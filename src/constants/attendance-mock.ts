@@ -1,0 +1,63 @@
+import type { AttendanceDashboard } from '@/features/attendance/types';
+
+export const MOCK_ATTENDANCE_DASHBOARD: AttendanceDashboard = {
+  overallPercent: 84,
+  totalAttended: 168,
+  totalClasses: 200,
+  atRiskCount: 1,
+  monthlyOverview: [
+    { month: 'Dec', percent: 78 },
+    { month: 'Jan', percent: 81 },
+    { month: 'Feb', percent: 83 },
+    { month: 'Mar', percent: 85 },
+    { month: 'Apr', percent: 82 },
+    { month: 'May', percent: 84 },
+  ],
+  subjects: [
+    {
+      subjectId: '1',
+      subjectCode: 'CS401',
+      subjectName: 'Design & Analysis of Algorithms',
+      facultyName: 'Dr. Priya Sharma',
+      attended: 38,
+      total: 42,
+      monthlyTrend: [82, 84, 86, 88, 90, 90],
+    },
+    {
+      subjectId: '2',
+      subjectCode: 'CS402',
+      subjectName: 'Operating Systems',
+      facultyName: 'Prof. Rajiv Menon',
+      attended: 40,
+      total: 44,
+      monthlyTrend: [88, 89, 90, 91, 91, 91],
+    },
+    {
+      subjectId: '3',
+      subjectCode: 'CS403',
+      subjectName: 'Computer Networks',
+      facultyName: 'Dr. Ananya Das',
+      attended: 28,
+      total: 40,
+      monthlyTrend: [62, 65, 68, 70, 68, 70],
+    },
+    {
+      subjectId: '4',
+      subjectCode: 'CS404',
+      subjectName: 'Database Management Systems',
+      facultyName: 'Prof. Vikram Singh',
+      attended: 41,
+      total: 42,
+      monthlyTrend: [94, 95, 96, 97, 98, 98],
+    },
+    {
+      subjectId: '5',
+      subjectCode: 'CS405',
+      subjectName: 'Software Engineering',
+      facultyName: 'Dr. Meera Iyer',
+      attended: 21,
+      total: 32,
+      monthlyTrend: [58, 60, 62, 64, 65, 66],
+    },
+  ],
+};
