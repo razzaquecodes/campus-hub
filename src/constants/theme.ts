@@ -158,7 +158,7 @@ export const LightTheme = {
 } as const;
 
 // ─── Active Theme export (re-exported by ThemeContext) ───────────────────────
-export type AppTheme = typeof DarkTheme;
+export type AppTheme = typeof DarkTheme | typeof LightTheme;
 export type ThemeColors = AppTheme['colors'];
 
 // ─── Spacing ─────────────────────────────────────────────────────────────────
@@ -171,6 +171,7 @@ export const Spacing = {
   xxl:  24,
   xxxl: 32,
   huge: 48,
+  full: 999,
   page: { horizontal: 20, top: 16 },
 } as const;
 
@@ -184,6 +185,7 @@ export const Radius = {
   xxl:  32,
   pill: 100,
   circle: 999,
+  full: 999,
 } as const;
 
 // Default export for files that haven't been migrated to ThemeContext yet

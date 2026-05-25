@@ -1,79 +1,92 @@
-import { DEMO_MAKAUT_CREDENTIALS } from '@/constants/mock-data';
-import { parseRollNumber } from '@/lib/makaut-parser';
-import { isSupabaseConfigured } from '@/lib/env';
-import type { MakautCredentials, MakautVerifiedProfile } from '@/types/database';
+import { supabase } from '@/lib/supabase';
+import type { StudentProfile, UserProfile } from '@/types/database';
 
-const MAKAUT_API_URL = process.env.EXPO_PUBLIC_MAKAUT_API_URL ?? '';
+/**
+ * Fetch the linked MAKAUT profile for a given user ID
+ */
+export async function getMakautProfile(userId: string): Promise<StudentProfile | null> {
+  if (!supabase) return null;
 
-export class MakautAuthError extends Error {
-  constructor(
-    message: string,
-    public code: 'INVALID_CREDENTIALS' | 'NETWORK' | 'UNVERIFIED' | 'UNKNOWN',
-  ) {
-    super(message);
-    this.name = 'MakautAuthError';
+  const { data, error } = await supabase
+    .from('student_profiles')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.warn('[makaut.service] Error fetching makaut profile:', error);
+    return null;
   }
+
+  return data as StudentProfile | null;
 }
 
 /**
- * Verifies MAKAUT portal credentials.
- *
- * Production: POST to your secure backend / Edge Function that scrapes or
- * integrates with the official MAKAUT student portal — never call portal from client.
+ * Mocks connecting to MAKAUT and fetching academic data.
+ * In a real app, this would hit an API endpoint or a secure backend service
+ * that performs the scraping/API call to MAKAUT and returns the data.
  */
-export async function verifyMakautCredentials(
-  credentials: MakautCredentials,
-): Promise<MakautVerifiedProfile> {
-  const identifier = credentials.identifier.trim();
-  const password = credentials.password;
+export async function connectMakautAccount(
+  userId: string,
+  rollNumber: string,
+  password: string, // Currently not used in the mock, but would be sent to the backend securely
+  existingProfile: UserProfile
+): Promise<StudentProfile> {
+  if (!supabase) throw new Error('Supabase not configured');
 
-  if (!identifier || !password) {
-    throw new MakautAuthError('Email/roll and password are required.', 'INVALID_CREDENTIALS');
+  // Simulate network delay for "verification"
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+
+  // Mock checking validity (e.g. valid length of roll number)
+  if (rollNumber.length < 5) {
+    throw new Error('Invalid MAKAUT Roll Number');
   }
 
-  if (MAKAUT_API_URL && isSupabaseConfigured) {
-    try {
-      const res = await fetch(`${MAKAUT_API_URL}/verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier, password }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new MakautAuthError(
-          err.message ?? 'Invalid MAKAUT credentials.',
-          'INVALID_CREDENTIALS',
-        );
-      }
-      return (await res.json()) as MakautVerifiedProfile;
-    } catch (e) {
-      if (e instanceof MakautAuthError) throw e;
-      throw new MakautAuthError('Could not reach MAKAUT verification service.', 'NETWORK');
-    }
-  }
-
-  // Development / Expo Go — demo gate
-  const isDemo =
-    identifier.toUpperCase() === DEMO_MAKAUT_CREDENTIALS.identifier.toUpperCase() &&
-    password === DEMO_MAKAUT_CREDENTIALS.password;
-
-  if (!isDemo) {
-    throw new MakautAuthError(
-      'Invalid MAKAUT credentials. Use demo: 20300120001 / makaut123',
-      'INVALID_CREDENTIALS',
-    );
-  }
-
-  const parsed = parseRollNumber(identifier);
-  return {
-    roll_number: parsed.roll_number ?? identifier,
-    email: `${identifier.toLowerCase()}@makautstudent.edu`,
-    full_name: 'Arjun Mehta',
-    branch_code: parsed.branch_code ?? 'CSE',
-    branch_name: parsed.branch_name ?? 'Computer Science & Engineering',
-    department: parsed.department ?? 'Computer Science & Engineering',
-    semester: parsed.semester ?? 4,
-    section: parsed.section ?? 'A',
-    college: 'MAKAUT Affiliated Institute of Technology',
+  // Mocked data that would theoretically be returned from MAKAUT
+  const mockedMakautData = {
+    user_id: userId,
+    full_name: existingProfile.full_name,
+    roll_number: rollNumber,
+    registration_number: `REG${Math.floor(Math.random() * 9000000) + 1000000}`,
+    email: existingProfile.email,
+    mobile: existingProfile.phone || `+91 ${Math.floor(Math.random() * 9000000000) + 1000000000}`,
+    institute_name: 'Budge Budge Institute of Technology',
+    course_name: 'B.Tech in Computer Science & Engineering',
+    abc_id: `ABC-${Math.floor(Math.random() * 9000) + 1000}-${Math.floor(Math.random() * 9000) + 1000}-${Math.floor(Math.random() * 9000) + 1000}`,
+    photo_url: existingProfile.avatar_url,
+    last_synced_at: new Date().toISOString(),
   };
+
+  // Check if profile exists
+  const { data: existingMakaut } = await supabase
+    .from('student_profiles')
+    .select('id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  let data, error;
+  
+  if (existingMakaut) {
+    // Update existing
+    ({ data, error } = await supabase
+      .from('student_profiles')
+      .update(mockedMakautData)
+      .eq('user_id', userId)
+      .select('*')
+      .single());
+  } else {
+    // Insert new
+    ({ data, error } = await supabase
+      .from('student_profiles')
+      .insert(mockedMakautData)
+      .select('*')
+      .single());
+  }
+
+  if (error) {
+    console.error('[makaut.service] Error saving makaut profile:', error);
+    throw new Error('Failed to save MAKAUT profile to database.');
+  }
+
+  return data as StudentProfile;
 }

@@ -1,93 +1,71 @@
-# CampusHub — Supabase Setup Guide
+# CampusHub Supabase Setup
 
-## 1. Create project
+## Environment
 
-1. Go to [supabase.com](https://supabase.com) → New project  
-2. Copy **Project URL** and **anon public key**
-
-## 2. Configure the app
+Copy `.env.example` to `.env` and fill values from Supabase Dashboard -> Project Settings -> API:
 
 ```bash
 cp .env.example .env
 ```
 
 ```env
-EXPO_PUBLIC_SUPABASE_URL=https://czfylavvvvwohqkrhbdb.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6ZnlsYXZ2dnd3b2hxa3JoYmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyOTA2NTgsImV4cCI6MjA5NDg2NjY1OH0.dPEb_6_3L4KPzVAaQWYK-FNTYeJZhSx0CiFkwvsuvgA
-
-EXPO_PUBLIC_MAKAUT_API_URL=https://YOUR_PROJECT.supabase.co/functions/v1/makaut-auth
+EXPO_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+EXPO_PUBLIC_MAKAUT_API_URL=https://your-project-ref.supabase.co/functions/v1/makaut-auth
 ```
 
-Restart Expo after changing `.env`:
+Restart Expo after changing environment values:
 
 ```bash
 npx expo start --clear
 ```
 
-## 3. Run migrations
+## Google OAuth
 
-In Supabase → **SQL Editor**, run in order:
+In Supabase Dashboard -> Authentication -> Providers -> Google:
+
+1. Enable Google.
+2. Add the Google OAuth client ID and secret.
+3. In Google Cloud Console, add this authorized redirect URI:
+
+```text
+https://your-project-ref.supabase.co/auth/v1/callback
+```
+
+In Supabase Dashboard -> Authentication -> URL Configuration -> Redirect URLs, add:
+
+```text
+campushub://oauth-callback
+http://localhost:8081/oauth-callback
+```
+
+Expo Go uses an `exp://.../--/oauth-callback` URL generated at runtime, which can change with LAN address and port. The app logs the exact redirect URI as `[auth] Starting Google OAuth`; add that exact Expo Go URL to Supabase while testing in Expo Go. Development and production builds use the stable registered `campushub` scheme.
+
+## Database
+
+Run migrations in Supabase SQL Editor:
 
 1. `supabase/migrations/001_initial_schema.sql`
 2. `supabase/migrations/002_exams_notifications_rls.sql`
 
-## 4. Seed data (example)
+The first Google sign-in creates a row in `users` if one does not already exist.
 
-```sql
-INSERT INTO branches (code, name) VALUES ('CSE', 'Computer Science & Engineering');
+## MAKAUT Verification
 
-INSERT INTO semesters (number, branch_id, academic_year)
-SELECT 4, id, '2024-25' FROM branches WHERE code = 'CSE';
+Deploy the `makaut-auth` Edge Function or equivalent backend endpoint. The mobile app should only receive verified student profile JSON. Never expose MAKAUT credentials or server-side secrets in the Expo app.
 
-INSERT INTO sections (code, semester_id)
-SELECT 'A', id FROM semesters LIMIT 1;
+## EAS Environment
+
+For cloud builds, create EAS environment variables or secrets with the same names:
+
+```bash
+eas secret:create --scope project --name EXPO_PUBLIC_SUPABASE_URL --value "https://your-project-ref.supabase.co"
+eas secret:create --scope project --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value "your-supabase-anon-key"
+eas secret:create --scope project --name EXPO_PUBLIC_MAKAUT_API_URL --value "https://your-project-ref.supabase.co/functions/v1/makaut-auth"
 ```
 
-Add subjects, faculty, and attendance rows linked to `auth.users` after first student login.
+Then build:
 
-## 5. Auth
-
-- Students sign in via **MAKAUT credentials** in the app  
-- `auth.service.ts` creates Supabase Auth user + `users` profile row  
-- Profile fields (`branch_id`, `semester_id`, `section_id`) are set from roll number parsing
-
-## 6. Row Level Security
-
-RLS policies are in `002_exams_notifications_rls.sql`. Adjust per college policy.
-
-## 7. Realtime
-
-Dashboard → **Database** → **Replication** → enable for:
-
-- `announcements`
-- `attendance`
-- `notifications`
-
-App hooks: `src/hooks/use-realtime.ts`
-
-## 8. Push notifications (placeholder)
-
-1. Store Expo push tokens on `users` table (add column `expo_push_token`)  
-2. Edge Function on `notifications` INSERT → call Expo Push API  
-3. Client: `expo-notifications` + register token after login
-
-## 9. MAKAUT verification (production)
-
-Deploy Edge Function `makaut-auth` that:
-
-1. Validates portal credentials server-side  
-2. Returns student profile JSON  
-3. Never exposes portal passwords to the client
-
-Set `EXPO_PUBLIC_MAKAUT_API_URL` to the function URL.
-
-## 10. Session storage
-
-- **Supabase Auth** uses `@react-native-async-storage/async-storage` (works on web, iOS, Android, Expo Go).
-- **Student profile cache** uses `src/lib/storage.ts` (SecureStore on native when available, AsyncStorage/localStorage fallback).
-
-## 11. Demo mode (no Supabase)
-
-If env vars are empty, the app uses mock data and works fully in **Expo Go**.
-
-Demo login: `20300120001` / `makaut123` (tap the demo card on the login screen to auto-fill)
+```bash
+npx eas build --platform ios --profile development
+```

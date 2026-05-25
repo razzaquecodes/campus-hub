@@ -1,12 +1,16 @@
 import Constants from 'expo-constants';
 
-function readEnv(key: string): string {
-  const fromProcess = process.env[key];
-  if (fromProcess) return fromProcess;
-
-  const extra = Constants.expoConfig?.extra as Record<string, string> | undefined;
-  return extra?.[key] ?? '';
+function readEnv(name: keyof typeof envFromProcess): string {
+  const fromProcess = envFromProcess[name];
+  const fromExtra = Constants.expoConfig?.extra?.[name];
+  return String(fromProcess ?? fromExtra ?? '').trim();
 }
+
+const envFromProcess = {
+  EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
+  EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+  EXPO_PUBLIC_MAKAUT_API_URL: process.env.EXPO_PUBLIC_MAKAUT_API_URL,
+} as const;
 
 export const Env = {
   supabaseUrl: readEnv('EXPO_PUBLIC_SUPABASE_URL'),
@@ -14,4 +18,42 @@ export const Env = {
   makautApiUrl: readEnv('EXPO_PUBLIC_MAKAUT_API_URL'),
 } as const;
 
-export const isSupabaseConfigured = Boolean(Env.supabaseUrl && Env.supabaseAnonKey);
+const isValidSupabaseUrl =
+  Env.supabaseUrl.startsWith('https://') &&
+  Env.supabaseUrl.includes('.supabase.co');
+
+const isPlaceholderMakautUrl =
+  Env.makautApiUrl.includes('YOUR_PROJECT_ID') ||
+  Env.makautApiUrl.includes('your-project-ref');
+
+export const isSupabaseConfigured = Boolean(
+  Env.supabaseUrl &&
+  isValidSupabaseUrl &&
+  Env.supabaseAnonKey,
+);
+
+export const isMakautApiConfigured = Boolean(
+  Env.makautApiUrl &&
+  Env.makautApiUrl.startsWith('https://') &&
+  !isPlaceholderMakautUrl,
+);
+
+export function getEnvironmentDiagnostics() {
+  return {
+    hasSupabaseUrl: Boolean(Env.supabaseUrl),
+    hasSupabaseAnonKey: Boolean(Env.supabaseAnonKey),
+    hasMakautApiUrl: Boolean(Env.makautApiUrl),
+    isSupabaseConfigured,
+    isMakautApiConfigured,
+    supabaseHost: Env.supabaseUrl ? safeHost(Env.supabaseUrl) : null,
+    makautApiHost: Env.makautApiUrl ? safeHost(Env.makautApiUrl) : null,
+  };
+}
+
+function safeHost(value: string): string | null {
+  try {
+    return new URL(value).host;
+  } catch {
+    return null;
+  }
+}

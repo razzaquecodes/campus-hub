@@ -2,11 +2,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
-import Animated, {
-  interpolateColor,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
+import {
+    useSharedValue,
+    withTiming,
+    type SharedValue
 } from 'react-native-reanimated';
 
 import { DarkTheme, LightTheme, type AppTheme } from '@/constants/theme';
@@ -22,7 +21,7 @@ interface ThemeContextValue {
   setThemeMode: (mode: ThemeMode) => void;
   toggleTheme: () => void;
   // Animated progress 0=dark 1=light (for cross-fade transitions)
-  themeProgress: Animated.SharedValue<number>;
+  themeProgress: SharedValue<number>;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -40,7 +39,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Animate on change
   useEffect(() => {
     themeProgress.value = withTiming(resolvedDark ? 0 : 1, { duration: 350 });
-  }, [resolvedDark]);
+  }, [resolvedDark, themeProgress]);
 
   // Hydrate from storage
   useEffect(() => {

@@ -1,34 +1,50 @@
 // screens/settings-screen.tsx
-// CampusHub — Premium Settings Screen
-// Apple Settings-inspired with smooth theme switcher
+// CampusHub — Premium Settings Screen Redesigned
+// Apple Settings-inspired layouts with fluid theme capsule selector and BBIT details modal
 
-import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import {
-  Bell, ChevronRight, Globe, HelpCircle, Info,
-  Lock, LogOut, Moon, Palette, Shield,
-  Smartphone, Star, Sun, Trash2, User, Wifi,
+    Award,
+    Bell,
+    BookOpen,
+    Check,
+    ChevronRight, Globe, Info,
+    Lock, LogOut, Moon, Palette, Shield,
+    Smartphone, Star, Sun, Trash2, Wifi,
+    X,
 } from 'lucide-react-native';
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
-  Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    Linking,
+    Modal,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    View,
 } from 'react-native';
 import Animated, {
-  FadeIn, FadeInDown,
-  useAnimatedStyle, useSharedValue, withSpring,
+    FadeIn, FadeInDown,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Animation, Radius, Spacing, Typography } from '@/constants/theme';
+import { Badge, SpringButton } from '@/components/ui';
+import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
-import { Avatar, Badge, GlassCard, SpringButton } from '@/components/ui';
+import { useAuthStore } from '@/store/auth.store';
 
-// ─── Theme mode picker ────────────────────────────────────────────────────────
 type ThemeMode = 'dark' | 'light' | 'system';
 
 function ThemePicker() {
-  const { theme, themeMode, setThemeMode, isDark } = useTheme();
+  const { theme, themeMode, setThemeMode } = useTheme();
 
   const options: { mode: ThemeMode; label: string; icon: typeof Sun }[] = [
     { mode: 'light',  label: 'Light',  icon: Sun },
@@ -37,44 +53,33 @@ function ThemePicker() {
   ];
 
   return (
-    <View style={{
-      flexDirection: 'row',
-      gap: 8,
-      backgroundColor: theme.colors.surface,
-      borderRadius: Radius.xl,
-      padding: 4,
-      borderWidth: 1,
+    <View style={[ss.themePickerContainer, {
+      backgroundColor: theme.colors.void,
       borderColor: theme.colors.border,
-    }}>
+    }]}>
       {options.map(({ mode, label, icon: Icon }) => {
         const active = themeMode === mode;
         return (
           <SpringButton
             key={mode}
             onPress={() => {
-              Haptics.selectionAsync();
+              Haptics.selectionAsync().catch(() => {});
               setThemeMode(mode);
             }}
-            haptic="light"
             scaleDown={0.94}
             style={{ flex: 1 }}>
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              paddingVertical: 10,
-              borderRadius: Radius.lg,
-              backgroundColor: active ? theme.colors.primary : 'transparent',
-            }}>
+            <View style={[ss.themeOption, {
+              backgroundColor: active ? theme.colors.surfaceElevated : 'transparent',
+              borderColor: active ? theme.colors.borderStrong : 'transparent',
+            }]}>
               <Icon
-                color={active ? '#fff' : theme.colors.textSecondary}
-                size={15}
-                strokeWidth={1.8}
+                color={active ? theme.colors.primaryLight : theme.colors.textSecondary}
+                size={14}
+                strokeWidth={2}
               />
               <Text style={[
                 Typography.label.md,
-                { color: active ? '#fff' : theme.colors.textSecondary },
+                { color: active ? theme.colors.textPrimary : theme.colors.textSecondary },
               ]}>
                 {label}
               </Text>
@@ -86,7 +91,6 @@ function ThemePicker() {
   );
 }
 
-// ─── Setting Row ──────────────────────────────────────────────────────────────
 interface SettingRowProps {
   icon: React.ReactNode;
   label: string;
@@ -104,52 +108,54 @@ function SettingRow({
   icon, label, value, onPress, toggle, toggleValue, onToggle,
   danger, badge, last,
 }: SettingRowProps) {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
 
   return (
     <>
       <Pressable
         onPress={onPress}
-        style={({ pressed }) => ({
-          flexDirection: 'row',
-          alignItems: 'center',
-          padding: Spacing.lg,
-          gap: Spacing.md,
-          backgroundColor: pressed && !toggle ? theme.colors.glass : 'transparent',
-        })}>
-        <View style={{ width: 24, alignItems: 'center' }}>
-          {icon}
+        style={({ pressed }) => [
+          ss.settingRow,
+          {
+            backgroundColor: pressed && !toggle
+              ? (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)')
+              : 'transparent',
+          }
+        ]}>
+        <View style={ss.settingRowLeft}>
+          <View style={ss.rowIconWrap}>
+            {icon}
+          </View>
+          <Text style={[
+            Typography.body.md,
+            { color: danger ? theme.colors.danger : theme.colors.textPrimary, fontWeight: '500' },
+          ]}>
+            {label}
+          </Text>
         </View>
 
-        <Text style={[
-          Typography.body.md,
-          { flex: 1, color: danger ? theme.colors.danger : theme.colors.textPrimary },
-        ]}>
-          {label}
-        </Text>
-
-        {badge && <Badge label={badge} color={theme.colors.primary} />}
-
-        {toggle ? (
-          <Switch
-            value={toggleValue}
-            onValueChange={onToggle}
-            trackColor={{ false: theme.colors.border, true: theme.colors.primaryMuted }}
-            thumbColor={toggleValue ? theme.colors.primary : theme.colors.textTertiary}
-            ios_backgroundColor={theme.colors.border}
-          />
-        ) : value ? (
-          <Text style={[Typography.body.sm, { color: theme.colors.textTertiary }]}>{value}</Text>
-        ) : (
-          <ChevronRight color={theme.colors.textTertiary} size={16} />
-        )}
+        <View style={ss.settingRowRight}>
+          {badge && <Badge label={badge} color={theme.colors.primaryLight} />}
+          {toggle ? (
+            <Switch
+              value={toggleValue}
+              onValueChange={onToggle}
+              trackColor={{ false: theme.colors.border, true: theme.colors.primaryLight }}
+              thumbColor={Platform.OS === 'ios' ? undefined : (toggleValue ? '#ffffff' : theme.colors.textTertiary)}
+              ios_backgroundColor={theme.colors.border}
+            />
+          ) : value ? (
+            <Text style={[Typography.body.sm, { color: theme.colors.textTertiary }]}>{value}</Text>
+          ) : (
+            <ChevronRight color={theme.colors.textTertiary} size={15} strokeWidth={2.2} />
+          )}
+        </View>
       </Pressable>
-      {!last && <View style={{ height: 1, backgroundColor: theme.colors.border, marginLeft: 56 }} />}
+      {!last && <View style={[ss.rowDivider, { backgroundColor: theme.colors.border }]} />}
     </>
   );
 }
 
-// ─── Settings Group ───────────────────────────────────────────────────────────
 interface SettingGroupProps {
   title?: string;
   children: React.ReactNode;
@@ -159,50 +165,94 @@ interface SettingGroupProps {
 function SettingGroup({ title, children, entering }: SettingGroupProps) {
   const { theme } = useTheme();
   return (
-    <Animated.View entering={entering} style={{ marginBottom: Spacing.xl }}>
+    <Animated.View entering={entering} style={{ marginBottom: Spacing.lg }}>
       {title && (
         <Text style={[
           Typography.label.lg,
           {
             color: theme.colors.textTertiary,
             textTransform: 'uppercase',
-            letterSpacing: 1,
+            letterSpacing: 1.2,
             marginBottom: Spacing.sm,
-            paddingHorizontal: Spacing.page.horizontal,
+            paddingHorizontal: Spacing.page.horizontal + 2,
           },
         ]}>
           {title}
         </Text>
       )}
-      <View style={{
-        backgroundColor: theme.colors.surface,
-        borderRadius: Radius.xl,
-        borderWidth: 1,
-        borderColor: theme.colors.border,
-        overflow: 'hidden',
-        marginHorizontal: Spacing.page.horizontal,
-      }}>
+      <View style={[
+        ss.groupContainer,
+        {
+          backgroundColor: theme.colors.surface,
+          borderColor: theme.colors.border,
+        }
+      ]}>
         {children}
       </View>
     </Animated.View>
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
 export function SettingsScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const [notifications, setNotifications] = React.useState(true);
-  const [dataSync, setDataSync] = React.useState(true);
-  const [biometric, setBiometric] = React.useState(false);
-  const [emailDigest, setEmailDigest] = React.useState(true);
+  const [notifications, setNotifications] = useState(true);
+  const [dataSync, setDataSync] = useState(true);
+  const [biometric, setBiometric] = useState(false);
+  const [emailDigest, setEmailDigest] = useState(true);
+
+  // Modals state
+  const [aboutModalVisible, setAboutModalVisible] = useState(false);
+  const [clearingCache, setClearingCache] = useState(false);
+
+  const profile = useAuthStore((s) => s.profile);
+  const signOut = useAuthStore((s) => s.signOut);
 
   const handleLogout = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: () => {} },
+      { text: 'Sign Out', style: 'destructive', onPress: async () => {
+        try {
+          await signOut();
+          router.replace('/(auth)/login' as any);
+        } catch {
+          Alert.alert('Error', 'Failed to sign out');
+        }
+      } },
     ]);
+  }, [signOut]);
+
+  const handleClearCache = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    Alert.alert(
+      'Clear Application Cache',
+      'This will refresh offline resources and timetable buffers. Your session will remain active.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Clear', style: 'destructive', onPress: async () => {
+          try {
+            setClearingCache(true);
+            const allKeys = await AsyncStorage.getAllKeys();
+            const cacheKeys = allKeys.filter((key) =>
+              key.startsWith('campushub:cache:') ||
+              key.startsWith('campushub:routine:') ||
+              key.startsWith('campushub:announcements:'),
+            );
+            if (cacheKeys.length > 0) {
+              await AsyncStorage.multiRemove(cacheKeys);
+            }
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+            Alert.alert('Cache Cleared', 'Timetable routines and static assets have been refreshed.');
+          } catch {
+            Alert.alert('Error', 'Failed to clear cache');
+          } finally {
+            setClearingCache(false);
+          }
+        } },
+      ]
+    );
   }, []);
 
   return (
@@ -210,106 +260,92 @@ export function SettingsScreen() {
       {/* Header */}
       <Animated.View
         entering={FadeIn.duration(400)}
-        style={{
-          paddingTop: insets.top + 8,
-          paddingHorizontal: Spacing.page.horizontal,
-          paddingBottom: Spacing.xl,
-        }}>
-        <Text style={[Typography.display.small, { color: theme.colors.textPrimary }]}>
+        style={[ss.headerContainer, { paddingTop: insets.top + 16 }]}>
+        <Text style={[Typography.display.small, { color: theme.colors.textPrimary, letterSpacing: -0.6 }]}>
           Settings
         </Text>
-        <Text style={[Typography.body.md, { color: theme.colors.textSecondary, marginTop: 4 }]}>
-          Customize your experience
+        <Text style={[Typography.body.md, { color: theme.colors.textSecondary, marginTop: 2 }]}>
+          Manage your CampusHub experience
         </Text>
       </Animated.View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}>
+        contentContainerStyle={{ paddingBottom: 110 + insets.bottom }}>
 
-        {/* ── Profile Card ── */}
+        {/* ── Premium Student Card Entry ── */}
         <Animated.View
           entering={FadeInDown.duration(500).delay(100)}
-          style={{ marginHorizontal: Spacing.page.horizontal, marginBottom: Spacing.xxxl }}>
-          <SpringButton scaleDown={0.98} onPress={() => {}}>
+          style={{ paddingHorizontal: Spacing.page.horizontal, marginBottom: Spacing.lg }}>
+          <SpringButton scaleDown={0.97} onPress={() => router.push('/(tabs)/profile' as any)}>
             <LinearGradient
-              colors={['#1A1040', '#0F0820']}
+              colors={isDark ? ['#0b162c', '#060b14'] : ['#ffffff', '#f1f5f9']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={{
-                borderRadius: Radius.xl,
-                padding: Spacing.xl,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: Spacing.lg,
-                borderWidth: 1,
-                borderColor: theme.colors.primaryMuted,
-              }}>
-              {/* Avatar */}
-              <View style={{
-                width: 64, height: 64, borderRadius: 32,
-                backgroundColor: theme.colors.primaryMuted,
-                borderWidth: 2,
-                borderColor: `${theme.colors.primaryLight}50`,
-                alignItems: 'center', justifyContent: 'center',
-              }}>
-                <Text style={{ fontSize: 24, fontWeight: '700', color: theme.colors.primaryLight }}>
-                  AK
-                </Text>
+              style={[ss.profileBriefCard, {
+                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+              }]}>
+              
+              {/* Profile Avatar */}
+              <View style={[ss.profileAvatarRing, { borderColor: theme.colors.primaryLight }]}>
+                {profile?.avatar_url ? (
+                  <Image source={{ uri: profile.avatar_url }} style={ss.avatarImage} />
+                ) : (
+                  <Text style={[ss.avatarInitial, { color: theme.colors.primaryLight }]}>
+                    {profile?.full_name?.charAt(0) ?? 'S'}
+                  </Text>
+                )}
               </View>
 
-              <View style={{ flex: 1 }}>
-                <Text style={[Typography.headline.lg, { color: '#fff' }]}>
-                  Arjun Kumar
+              <View style={{ flex: 1, gap: 3 }}>
+                <Text style={[Typography.headline.md, { color: theme.colors.textPrimary }]}>
+                  {profile?.full_name ?? 'Student Name'}
                 </Text>
-                <Text style={[Typography.body.sm, { color: 'rgba(255,255,255,0.55)', marginTop: 2 }]}>
-                  arjun.kumar@campus.edu
+                <Text style={[Typography.body.sm, { color: theme.colors.textSecondary }]}>
+                  {profile?.email ?? 'Google Linked Profile'}
                 </Text>
-                <Badge label="Student · CSE" color={theme.colors.primaryLight} size="sm" />
+                <View style={ss.tagContainer}>
+                  <Badge label={`Sem ${profile?.semester || '4'} · Section ${profile?.section || 'C'}`} color={theme.colors.primaryLight} />
+                </View>
               </View>
 
-              <ChevronRight color="rgba(255,255,255,0.4)" size={18} />
+              <ChevronRight color={theme.colors.textTertiary} size={16} strokeWidth={2.2} />
             </LinearGradient>
           </SpringButton>
         </Animated.View>
 
-        {/* ── Appearance ── */}
+        {/* ── Visual Theme Section ── */}
         <Animated.View
           entering={FadeInDown.duration(500).delay(160)}
-          style={{ marginBottom: Spacing.xl }}>
+          style={{ marginBottom: Spacing.lg }}>
           <Text style={[
             Typography.label.lg,
             {
               color: theme.colors.textTertiary,
               textTransform: 'uppercase',
-              letterSpacing: 1,
+              letterSpacing: 1.2,
               marginBottom: Spacing.sm,
-              paddingHorizontal: Spacing.page.horizontal,
+              paddingHorizontal: Spacing.page.horizontal + 2,
             },
           ]}>
-            Appearance
+            Interface Theme
           </Text>
           <View style={{ paddingHorizontal: Spacing.page.horizontal }}>
-            <View style={{
-              backgroundColor: theme.colors.surface,
-              borderRadius: Radius.xl,
-              padding: Spacing.lg,
-              borderWidth: 1,
-              borderColor: theme.colors.border,
-              gap: Spacing.lg,
-            }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <View style={{
-                  width: 36, height: 36, borderRadius: 18,
-                  backgroundColor: theme.colors.primaryMuted,
-                  alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <Palette color={theme.colors.primary} size={18} />
+            <View style={[
+              ss.themePickerBox,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+              }
+            ]}>
+              <View style={ss.themeBoxHeader}>
+                <View style={[ss.themeIconWrap, { backgroundColor: `${theme.colors.primary}12` }]}>
+                  <Palette color={theme.colors.primaryLight} size={16} strokeWidth={2} />
                 </View>
-                <Text style={[Typography.headline.sm, { color: theme.colors.textPrimary, flex: 1 }]}>
-                  Theme
+                <Text style={[Typography.headline.sm, { color: theme.colors.textPrimary, flex: 1, fontWeight: '600' }]}>
+                  Color Theme
                 </Text>
-                <Badge label={isDark ? 'Dark' : 'Light'} />
+                <Badge label={isDark ? 'AMOLED Dark' : 'iOS Light'} color={theme.colors.primaryLight} />
               </View>
               <ThemePicker />
             </View>
@@ -319,14 +355,14 @@ export function SettingsScreen() {
         {/* ── Notifications ── */}
         <SettingGroup title="Notifications" entering={FadeInDown.duration(500).delay(220)}>
           <SettingRow
-            icon={<Bell color={theme.colors.primary} size={19} />}
-            label="Push Notifications"
+            icon={<Bell color={theme.colors.primaryLight} size={18} strokeWidth={2} />}
+            label="Push Alerts"
             toggle toggleValue={notifications}
             onToggle={setNotifications}
           />
           <SettingRow
-            icon={<Globe color={theme.colors.info} size={19} />}
-            label="Email Digest"
+            icon={<Globe color={theme.colors.info} size={18} strokeWidth={2} />}
+            label="Email Announcements"
             toggle toggleValue={emailDigest}
             onToggle={setEmailDigest}
             last
@@ -334,74 +370,374 @@ export function SettingsScreen() {
         </SettingGroup>
 
         {/* ── Privacy & Security ── */}
-        <SettingGroup title="Privacy & Security" entering={FadeInDown.duration(500).delay(280)}>
+        <SettingGroup title="Security & Network" entering={FadeInDown.duration(500).delay(280)}>
           <SettingRow
-            icon={<Lock color={theme.colors.warning} size={19} />}
-            label="Biometric Login"
+            icon={<Lock color={theme.colors.warning} size={18} strokeWidth={2} />}
+            label="Biometric Passcode"
             toggle toggleValue={biometric}
             onToggle={setBiometric}
           />
           <SettingRow
-            icon={<Wifi color={theme.colors.success} size={19} />}
-            label="Background Sync"
+            icon={<Wifi color={theme.colors.success} size={18} strokeWidth={2} />}
+            label="Timetable Background Sync"
             toggle toggleValue={dataSync}
             onToggle={setDataSync}
-          />
-          <SettingRow
-            icon={<Shield color={theme.colors.accent} size={19} />}
-            label="Privacy Policy"
-            onPress={() => {}}
             last
           />
         </SettingGroup>
 
-        {/* ── App ── */}
-        <SettingGroup title="App" entering={FadeInDown.duration(500).delay(340)}>
+        {/* ── Budge Budge Institute of Technology Details ── */}
+        <SettingGroup title="Institution" entering={FadeInDown.duration(500).delay(340)}>
           <SettingRow
-            icon={<Info color={theme.colors.info} size={19} />}
-            label="About CampusHub"
-            onPress={() => router.push('/about' as any)}
-            badge="v1.0"
+            icon={<Info color={theme.colors.info} size={18} strokeWidth={2} />}
+            label="About BBIT College"
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+              setAboutModalVisible(true);
+            }}
+            badge="Accredited"
           />
           <SettingRow
-            icon={<Star color={theme.colors.gold} size={19} />}
-            label="Rate the App"
-            onPress={() => {}}
-          />
-          <SettingRow
-            icon={<HelpCircle color={theme.colors.accent} size={19} />}
-            label="Help & Support"
-            onPress={() => {}}
+            icon={<Star color={theme.colors.gold} size={18} strokeWidth={2} />}
+            label="Rate App Experience"
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+              Linking.openURL('mailto:support@bbit.edu.in?subject=CampusHub%20Feedback').catch(() => {
+                Alert.alert('Feedback', 'Email is not configured on this device.');
+              });
+            }}
             last
           />
         </SettingGroup>
 
-        {/* ── Danger Zone ── */}
-        <SettingGroup title="Account" entering={FadeInDown.duration(500).delay(400)}>
+        {/* ── Danger & Maintenance Zone ── */}
+        <SettingGroup title="Management" entering={FadeInDown.duration(500).delay(400)}>
           <SettingRow
-            icon={<Trash2 color={theme.colors.danger} size={19} />}
-            label="Clear Cache"
+            icon={clearingCache ? (
+              <ActivityIndicator size="small" color={theme.colors.danger} />
+            ) : (
+              <Trash2 color={theme.colors.danger} size={18} strokeWidth={2} />
+            )}
+            label="Clear Offline Cache"
             danger
-            onPress={() => {}}
+            onPress={handleClearCache}
           />
           <SettingRow
-            icon={<LogOut color={theme.colors.danger} size={19} />}
-            label="Sign Out"
+            icon={<LogOut color={theme.colors.danger} size={18} strokeWidth={2} />}
+            label="Sign Out of Session"
             danger
             onPress={handleLogout}
             last
           />
         </SettingGroup>
 
-        {/* App version */}
+        {/* Version branding Footer */}
         <Animated.View
           entering={FadeInDown.duration(400).delay(450)}
-          style={{ alignItems: 'center', paddingBottom: Spacing.xl }}>
-          <Text style={[Typography.caption, { color: theme.colors.textTertiary }]}>
-            CampusHub v1.0.0 · Built with ♥ for students
+          style={ss.footerContainer}>
+          <Text style={[Typography.caption, { color: theme.colors.textTertiary, fontWeight: '500' }]}>
+            CampusHub v2.4.0 · Budge Budge Institute of Technology
+          </Text>
+          <Text style={[Typography.caption, { color: theme.colors.textTertiary, fontSize: 10, marginTop: 2 }]}>
+            Designed for CSE B.Tech Undergraduates
           </Text>
         </Animated.View>
       </ScrollView>
+
+      {/* ── Detailed BBIT Institutional Info Modal ── */}
+      <Modal
+        visible={aboutModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setAboutModalVisible(false)}
+      >
+        <View style={ss.modalOverlay}>
+          <View style={[ss.modalContent, { backgroundColor: theme.colors.surfaceElevated }]}>
+            
+            {/* Modal Header */}
+            <View style={[ss.modalHeader, { borderBottomColor: theme.colors.border }]}>
+              <View>
+                <Text style={[ss.modalTitle, { color: theme.colors.textPrimary }]}>Budge Budge Institute of Technology</Text>
+                <Text style={[ss.modalSub, { color: theme.colors.textTertiary }]}>Institutional accreditation & details</Text>
+              </View>
+              <Pressable
+                onPress={() => setAboutModalVisible(false)}
+                style={[ss.closeBtn, { backgroundColor: theme.colors.border }]}
+              >
+                <X color={theme.colors.textPrimary} size={16} strokeWidth={2.5} />
+              </Pressable>
+            </View>
+
+            {/* Scrollable description */}
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={ss.modalScroll}>
+              <View style={ss.modalHeroLogoRow}>
+                <View style={ss.collegeTagPill}>
+                  <Text style={ss.collegeTagText}>BBIT CAMPUS</Text>
+                </View>
+              </View>
+
+              <Text style={[ss.modalBodyText, { color: theme.colors.textSecondary }]}>
+                Budge Budge Institute of Technology (BBIT), established in 2009 under the trust of Jagannath Gupta Family Trust, is an esteemed technical college situated in Budge Budge, Kolkata, West Bengal.
+              </Text>
+
+              {/* Accreditations list */}
+              <View style={ss.aboutGrid}>
+                <View style={[ss.gridBox, { backgroundColor: theme.colors.void, borderColor: theme.colors.border }]}>
+                  <Award color={theme.colors.primaryLight} size={20} />
+                  <Text style={[ss.gridTitle, { color: theme.colors.textPrimary }]}>Affiliated</Text>
+                  <Text style={[ss.gridDesc, { color: theme.colors.textTertiary }]}>MAKAUT University</Text>
+                </View>
+                <View style={[ss.gridBox, { backgroundColor: theme.colors.void, borderColor: theme.colors.border }]}>
+                  <Shield color={theme.colors.success} size={20} />
+                  <Text style={[ss.gridTitle, { color: theme.colors.textPrimary }]}>Approved</Text>
+                  <Text style={[ss.gridDesc, { color: theme.colors.textTertiary }]}>AICTE Department</Text>
+                </View>
+                <View style={[ss.gridBox, { backgroundColor: theme.colors.void, borderColor: theme.colors.border }]}>
+                  <BookOpen color={theme.colors.info} size={20} />
+                  <Text style={[ss.gridTitle, { color: theme.colors.textPrimary }]}>NBA Accredited</Text>
+                  <Text style={[ss.gridDesc, { color: theme.colors.textTertiary }]}>CSE Department</Text>
+                </View>
+              </View>
+
+              <Text style={[ss.modalHeaderSmall, { color: theme.colors.textPrimary }]}>College Mission</Text>
+              <Text style={[ss.modalBodyText, { color: theme.colors.textSecondary }]}>
+                To prepare students for professional careers with advanced computer laboratories, designated Training and Placement Cells, outstanding faculty mentors, and an industry-grade curriculum.
+              </Text>
+
+              <Text style={[ss.modalHeaderSmall, { color: theme.colors.textPrimary }]}>Accreditations</Text>
+              <Text style={[ss.modalBodyText, { color: theme.colors.textSecondary }]}>
+                • NAAC Accredited B+ Institution{"\n"}
+                • NBA Accredited Department (B.Tech Computer Science){"\n"}
+                • MAKAUT University Code: 285
+              </Text>
+            </ScrollView>
+
+            {/* Close action bottom bar */}
+            <View style={[ss.modalFooter, { borderTopColor: theme.colors.border }]}>
+              <Pressable
+                onPress={() => setAboutModalVisible(false)}
+                style={[ss.okBtn, { backgroundColor: theme.colors.primary }]}
+              >
+                <Check color="#fff" size={16} strokeWidth={2.5} />
+                <Text style={ss.okBtnText}>Acknowledge</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
+
+const ss = StyleSheet.create({
+  headerContainer: {
+    paddingHorizontal: Spacing.page.horizontal,
+    paddingBottom: Spacing.lg,
+  },
+  profileBriefCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: Radius.xl,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    gap: Spacing.md,
+    ...Shadows.card,
+  },
+  profileAvatarRing: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: 58,
+    height: 58,
+  },
+  avatarInitial: {
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  tagContainer: {
+    marginTop: 2,
+    alignSelf: 'flex-start',
+  },
+  themePickerBox: {
+    borderRadius: Radius.xl,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    gap: Spacing.md,
+    ...Shadows.card,
+  },
+  themeBoxHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  themeIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  themePickerContainer: {
+    flexDirection: 'row',
+    gap: 6,
+    borderRadius: Radius.circle,
+    padding: 4,
+    borderWidth: 1,
+  },
+  themeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: Radius.circle,
+    borderWidth: 1,
+  },
+  groupContainer: {
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    overflow: 'hidden',
+    marginHorizontal: Spacing.page.horizontal,
+    ...Shadows.card,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.lg,
+  },
+  settingRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  rowIconWrap: {
+    width: 24,
+    alignItems: 'center',
+  },
+  settingRowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  rowDivider: {
+    height: 1,
+    marginLeft: 54,
+  },
+  footerContainer: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xxl,
+  },
+
+  // Modal Editing Layout
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: Radius.xl,
+    borderTopRightRadius: Radius.xl,
+    maxHeight: '85%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 18,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.4,
+  },
+  modalSub: {
+    fontSize: 11.5,
+    marginTop: 2,
+  },
+  closeBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalScroll: {
+    padding: 18,
+    gap: 14,
+  },
+  modalHeroLogoRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+  },
+  collegeTagPill: {
+    backgroundColor: 'rgba(245,158,11,0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: Radius.circle,
+    borderWidth: 1,
+    borderColor: 'rgba(245,158,11,0.24)',
+  },
+  collegeTagText: {
+    color: '#F59E0B',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+  },
+  modalBodyText: {
+    fontSize: 13.5,
+    lineHeight: 20,
+  },
+  aboutGrid: {
+    flexDirection: 'row',
+    gap: 8,
+    marginVertical: 6,
+  },
+  gridBox: {
+    flex: 1,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    padding: 10,
+    gap: 4,
+    alignItems: 'center',
+  },
+  gridTitle: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  gridDesc: {
+    fontSize: 10,
+    textAlign: 'center',
+  },
+  modalHeaderSmall: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 8,
+  },
+  modalFooter: {
+    padding: 18,
+    borderTopWidth: 1,
+  },
+  okBtn: {
+    height: 46,
+    borderRadius: Radius.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  okBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+});

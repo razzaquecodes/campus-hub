@@ -1,687 +1,491 @@
 // screens/login-screen.tsx
-// CampusHub — World-Class Authentication Experience
-// Obsidian Luxury × Linear × Arc × Apple-grade polish
+// CampusHub BBIT — Premium Login Screen Redesigned
+// Apple-polished AMOLED dark theme with glassmorphic cards, custom logo animations, and official CTAs.
 
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
+import { ShieldCheck, ArrowRight, LogIn } from 'lucide-react-native';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Chrome, Eye, EyeOff, Lock, Mail, MoveRight, ShieldCheck,
-} from 'lucide-react-native';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Dimensions, KeyboardAvoidingView, Platform, Pressable,
-  StatusBar, StyleSheet, Text, TextInput, View,
+  Alert,
+  Dimensions,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import Animated, {
-  Easing,
   FadeIn,
   FadeInDown,
   FadeInUp,
-  interpolate,
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
   withRepeat,
   withSequence,
-  withSpring,
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, {
+  Circle,
+  Defs,
+  Ellipse,
+  Line,
+  Path,
+  RadialGradient,
+  Rect,
+  Stop,
+  Text as SvgText,
+  TextPath,
+} from 'react-native-svg';
 
-const { width: SW, height: SH } = Dimensions.get('window');
+import { useAuthStore } from '@/store/auth.store';
+import { Radius, Shadows } from '@/constants/theme';
+import { SpringButton } from '@/components/ui';
 
-// ─── Design Tokens ────────────────────────────────────────────────────────────
-const T = {
-  // Core palette: obsidian + electric violet
-  void:         '#000000',
-  abyss:        '#04030A',
-  surface:      '#0D0B18',
-  elevated:     '#13111F',
-  border:       '#1E1B30',
-  borderBright: '#2D2848',
+const { height: H } = Dimensions.get('window');
 
-  // Violet spectrum
-  violet:       '#7C5CFC',
-  violetBright: '#9B7DFF',
-  violetDim:    '#5438C4',
-  violetGlow:   'rgba(124,92,252,0.18)',
-  violetMist:   'rgba(124,92,252,0.08)',
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function polarXY(cx: number, cy: number, r: number, angleDeg: number) {
+  const rad = ((angleDeg - 90) * Math.PI) / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+function arcPath(cx: number, cy: number, r: number, a1: number, a2: number) {
+  const s = polarXY(cx, cy, r, a2);
+  const e = polarXY(cx, cy, r, a1);
+  const large = a2 - a1 <= 180 ? '0' : '1';
+  return `M ${s.x} ${s.y} A ${r} ${r} 0 ${large} 0 ${e.x} ${e.y}`;
+}
 
-  // Accent
-  indigo:       '#4F6EF7',
-  aurora:       '#B57CEE',
-
-  // Text
-  textPrimary:   '#F4F2FF',
-  textSecondary: '#8B88A8',
-  textTertiary:  '#4E4C6A',
-
-  // Semantic
-  success:  '#34D399',
-  error:    '#F87171',
-  errorDim: 'rgba(248,113,113,0.12)',
-
-  // Glass
-  glass:        'rgba(13,11,24,0.72)',
-  glassBorder:  'rgba(255,255,255,0.06)',
-  glassShine:   'rgba(255,255,255,0.03)',
-};
-
-// ─── Font stack (assumes expo-font with these loaded, else falls back gracefully)
-const F = {
-  display:   Platform.select({ ios: 'SF Pro Display', android: 'sans-serif-condensed', default: 'system' }),
-  text:      Platform.select({ ios: 'SF Pro Text',    android: 'sans-serif',            default: 'system' }),
-  mono:      Platform.select({ ios: 'SF Mono',        android: 'monospace',             default: 'monospace' }),
-};
-
-// ─── Animated aurora mesh orb ─────────────────────────────────────────────────
-function AuroraOrb({ x, y, size, color, delay = 0 }: {
-  x: number; y: number; size: number; color: string; delay?: number;
-}) {
-  const opacity = useSharedValue(0);
-  const scale   = useSharedValue(0.85);
-
-  useEffect(() => {
-    opacity.value = withDelay(delay, withRepeat(
-      withSequence(
-        withTiming(1,    { duration: 3200, easing: Easing.inOut(Easing.sine) }),
-        withTiming(0.55, { duration: 3200, easing: Easing.inOut(Easing.sine) }),
-      ), -1, true,
-    ));
-    scale.value = withDelay(delay, withRepeat(
-      withSequence(
-        withTiming(1.12, { duration: 4000, easing: Easing.inOut(Easing.sine) }),
-        withTiming(0.88, { duration: 4000, easing: Easing.inOut(Easing.sine) }),
-      ), -1, true,
-    ));
-  }, []);
-
-  const style = useAnimatedStyle(() => ({
-    opacity:   opacity.value,
-    transform: [{ scale: scale.value }],
-  }));
-
+// ─── Premium BBIT Logo SVG ───────────────────────────────────────────────────
+function BBITLogoSVG({ size }: { size: number }) {
+  const cx = size / 2, cy = size / 2, R = size / 2;
+  const globeR = R * 0.42;
+  const gx = cx, gy = cy - R * 0.04;
   return (
-    <Animated.View style={[style, {
-      position: 'absolute', left: x, top: y,
-      width: size, height: size, borderRadius: size / 2,
-      backgroundColor: color,
-    }]} />
+    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <Defs>
+        <RadialGradient id="bgG" cx="50%" cy="40%" r="60%">
+          <Stop offset="0%" stopColor="#1A3050" />
+          <Stop offset="100%" stopColor="#060D1A" />
+        </RadialGradient>
+        <RadialGradient id="gbG" cx="36%" cy="33%" r="65%">
+          <Stop offset="0%" stopColor="#1D4ED8" />
+          <Stop offset="100%" stopColor="#0B1A35" />
+        </RadialGradient>
+        <Path id="aTop" d={arcPath(cx, cy, R * 0.8, -150, -30)} fill="none" />
+        <Path id="aBot" d={arcPath(cx, cy, R * 0.8, 30, 150)} fill="none" />
+      </Defs>
+      <Circle cx={cx} cy={cy} r={R * 0.96} fill="#1D4ED8" />
+      <Circle cx={cx} cy={cy} r={R * 0.90} fill="#1E3A6E" />
+      <Circle cx={cx} cy={cy} r={R * 0.86} fill="url(#bgG)" />
+      <SvgText fontSize={R * 0.11} fontWeight="700" fill="#94A3B8" letterSpacing="1.1" fontFamily="System">
+        <TextPath href="#aTop">BUDGE BUDGE INSTITUTE OF TECHNOLOGY</TextPath>
+      </SvgText>
+      <SvgText fontSize={R * 0.115} fontWeight="700" fill="#94A3B8" letterSpacing="1.5" fontFamily="System">
+        <TextPath href="#aBot">EMPOWERING KNOWLEDGE</TextPath>
+      </SvgText>
+      {[[-150, R * 0.8], [-30, R * 0.8], [30, R * 0.8], [150, R * 0.8]].map(([a, r], i) => {
+        const p = polarXY(cx, cy, r as number, a as number);
+        return <Circle key={i} cx={p.x} cy={p.y} r={R * 0.017} fill="#60A5FA" />;
+      })}
+      <Circle cx={gx} cy={gy} r={globeR} fill="url(#gbG)" />
+      <Circle cx={gx} cy={gy} r={globeR} fill="none" stroke="#60A5FA" strokeWidth={size * 0.011} />
+      {[-0.52, -0.24, 0, 0.24, 0.52].map((t, i) => {
+        const ly = gy + t * globeR;
+        const hw = Math.sqrt(Math.max(0, globeR * globeR - (t * globeR) ** 2));
+        return <Ellipse key={i} cx={gx} cy={ly} rx={hw} ry={hw * 0.17} fill="none" stroke="#60A5FA" strokeWidth={size * 0.007} opacity={i === 2 ? 1 : 0.55} />;
+      })}
+      <Line x1={gx} y1={gy - globeR} x2={gx} y2={gy + globeR} stroke="#60A5FA" strokeWidth={size * 0.008} opacity="0.65" />
+      <Ellipse cx={gx} cy={gy} rx={globeR * 0.42} ry={globeR} fill="none" stroke="#60A5FA" strokeWidth={size * 0.007} opacity="0.5" />
+      <Ellipse cx={gx} cy={gy} rx={globeR * 1.4} ry={globeR * 0.4} fill="none" stroke="#3B82F6" strokeWidth={size * 0.018} />
+      <Rect x={cx - R * 0.27} y={gy - R * 0.17} width={R * 0.54} height={R * 0.34} rx={R * 0.04} fill="rgba(0,0,0,0.72)" stroke="rgba(96,165,250,0.5)" strokeWidth="1" />
+      <SvgText x={cx} y={gy + R * 0.085} fontSize={R * 0.23} fontWeight="900" fill="#F8FAFC" textAnchor="middle" fontFamily="System" letterSpacing="2">BBIT</SvgText>
+    </Svg>
   );
 }
 
-// ─── Scanning beam ─────────────────────────────────────────────────────────────
-function ScanBeam() {
-  const translateY = useSharedValue(-20);
-
-  useEffect(() => {
-    translateY.value = withRepeat(
-      withTiming(SH + 20, { duration: 5000, easing: Easing.inOut(Easing.quad) }),
-      -1,
-    );
-  }, []);
-
-  const style = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
-
+function GoogleMark() {
   return (
-    <Animated.View pointerEvents="none" style={[style, {
-      position: 'absolute', left: 0, right: 0, height: 1,
-      backgroundColor: 'rgba(124,92,252,0.15)',
-    }]}>
-      <LinearGradient
-        colors={['transparent', 'rgba(124,92,252,0.4)', 'transparent']}
-        start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}
-        style={{ flex: 1 }}
-      />
-    </Animated.View>
-  );
-}
-
-// ─── Animated grid ─────────────────────────────────────────────────────────────
-function GridBackground() {
-  const cols = 8, rows = 16, cw = SW / cols, rh = SH / rows;
-  return (
-    <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-      {Array.from({ length: cols + 1 }).map((_, i) => (
-        <View key={`v${i}`} style={{
-          position: 'absolute', left: i * cw, top: 0, bottom: 0,
-          width: StyleSheet.hairlineWidth, backgroundColor: 'rgba(124,92,252,0.07)',
-        }} />
-      ))}
-      {Array.from({ length: rows + 1 }).map((_, i) => (
-        <View key={`h${i}`} style={{
-          position: 'absolute', top: i * rh, left: 0, right: 0,
-          height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(124,92,252,0.07)',
-        }} />
-      ))}
+    <View style={s.googleMark}>
+      <Text style={s.googleMarkText}>G</Text>
     </View>
   );
 }
 
-// ─── Status pill ───────────────────────────────────────────────────────────────
-function StatusPill() {
-  const pulse = useSharedValue(1);
-  useEffect(() => {
-    pulse.value = withRepeat(
-      withSequence(
-        withTiming(1.4, { duration: 900 }),
-        withTiming(1,   { duration: 900 }),
-      ), -1,
-    );
-  }, []);
-
-  const dotStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: pulse.value }],
-    opacity: interpolate(pulse.value, [1, 1.4], [0.7, 1]),
-  }));
-
-  return (
-    <Animated.View entering={FadeIn.duration(600).delay(800)} style={{
-      flexDirection: 'row', alignItems: 'center', gap: 6,
-      backgroundColor: 'rgba(52,211,153,0.1)',
-      borderWidth: 1, borderColor: 'rgba(52,211,153,0.2)',
-      borderRadius: 99, paddingHorizontal: 12, paddingVertical: 5,
-      alignSelf: 'center', marginBottom: 32,
-    }}>
-      <Animated.View style={[dotStyle, {
-        width: 6, height: 6, borderRadius: 3, backgroundColor: T.success,
-      }]} />
-      <Text style={{ fontFamily: F.mono, fontSize: 11, color: T.success, letterSpacing: 0.5 }}>
-        SECURE · VERIFIED · ENCRYPTED
-      </Text>
-    </Animated.View>
-  );
-}
-
-// ─── Icon container ─────────────────────────────────────────────────────────────
-function AppIcon() {
-  const glow = useSharedValue(0.5);
-  useEffect(() => {
-    glow.value = withRepeat(
-      withSequence(
-        withTiming(1,   { duration: 2000, easing: Easing.inOut(Easing.sine) }),
-        withTiming(0.5, { duration: 2000, easing: Easing.inOut(Easing.sine) }),
-      ), -1,
-    );
-  }, []);
-
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: glow.value,
-    transform: [{ scale: interpolate(glow.value, [0.5, 1], [0.9, 1.1]) }],
-  }));
-
-  return (
-    <Animated.View entering={FadeInDown.duration(700).springify()} style={{ alignItems: 'center', marginBottom: 10 }}>
-      {/* Outer glow halo */}
-      <Animated.View style={[glowStyle, {
-        position: 'absolute',
-        width: 110, height: 110, borderRadius: 55,
-        backgroundColor: T.violetGlow,
-        top: -11,
-      }]} />
-
-      {/* Icon box */}
-      <View style={{
-        width: 88, height: 88, borderRadius: 26,
-        backgroundColor: T.elevated,
-        borderWidth: 1.5, borderColor: T.borderBright,
-        alignItems: 'center', justifyContent: 'center',
-        shadowColor: T.violet, shadowOpacity: 0.6,
-        shadowRadius: 24, shadowOffset: { width: 0, height: 8 },
-      }}>
-        {/* Inner gradient shimmer */}
-        <LinearGradient
-          colors={['rgba(124,92,252,0.25)', 'rgba(79,110,247,0.1)']}
-          style={{ ...StyleSheet.absoluteFillObject, borderRadius: 24 }}
-        />
-
-        {/* Cap icon replaced with stylised CH monogram */}
-        <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-          <Text style={{
-            fontFamily: F.display,
-            fontSize: 30,
-            fontWeight: '800',
-            color: T.violetBright,
-            letterSpacing: -1,
-            lineHeight: 36,
-          }}>
-            CH
-          </Text>
-        </View>
-      </View>
-    </Animated.View>
-  );
-}
-
-// ─── Input field ───────────────────────────────────────────────────────────────
-function InputField({
-  label, placeholder, value, onChangeText, icon, secureEntry,
-  keyboardType, error, delay = 0,
-}: {
-  label: string; placeholder: string; value: string;
-  onChangeText: (v: string) => void;
-  icon: React.ReactNode;
-  secureEntry?: boolean; keyboardType?: any;
-  error?: string; delay?: number;
-}) {
-  const [focused, setFocused] = useState(false);
-  const [showPass, setShowPass] = useState(false);
-  const focusAnim = useSharedValue(0);
-
-  const onFocus  = () => { setFocused(true);  focusAnim.value = withTiming(1, { duration: 200 }); };
-  const onBlur   = () => { setFocused(false); focusAnim.value = withTiming(0, { duration: 200 }); };
-
-  const containerStyle = useAnimatedStyle(() => ({
-    borderColor: error
-      ? T.error
-      : interpolate(focusAnim.value, [0, 1], [0, 1]) === 1
-        ? T.violetBright
-        : T.border,
-    shadowOpacity: error ? 0.3 : focusAnim.value * 0.35,
-    shadowColor:   error ? T.error : T.violet,
-    shadowRadius:  12,
-    shadowOffset:  { width: 0, height: 0 },
-  }));
-
-  return (
-    <Animated.View entering={FadeInUp.duration(500).delay(delay)} style={{ marginBottom: 16 }}>
-      <Text style={{
-        fontFamily: F.text, fontSize: 12, fontWeight: '600',
-        color: T.textTertiary, letterSpacing: 0.8,
-        textTransform: 'uppercase', marginBottom: 8,
-      }}>
-        {label}
-      </Text>
-
-      <Animated.View style={[containerStyle, {
-        flexDirection: 'row', alignItems: 'center',
-        backgroundColor: T.elevated,
-        borderRadius: 14, borderWidth: 1,
-        paddingHorizontal: 16, height: 54, gap: 12,
-      }]}>
-        {/* Leading icon */}
-        <View style={{ opacity: focused || value.length > 0 ? 1 : 0.5 }}>
-          {icon}
-        </View>
-
-        <TextInput
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={T.textTertiary}
-          keyboardType={keyboardType ?? 'default'}
-          autoCapitalize="none"
-          secureTextEntry={secureEntry && !showPass}
-          onFocus={onFocus}
-          onBlur={onBlur}
-          style={{
-            flex: 1,
-            fontFamily: F.text, fontSize: 16,
-            color: T.textPrimary,
-          }}
-        />
-
-        {/* Trailing eye toggle */}
-        {secureEntry && (
-          <Pressable onPress={() => setShowPass(s => !s)} hitSlop={8}>
-            {showPass
-              ? <EyeOff color={T.textTertiary} size={17} />
-              : <Eye    color={T.textTertiary} size={17} />
-            }
-          </Pressable>
-        )}
-      </Animated.View>
-
-      {/* Error message */}
-      {error && (
-        <Animated.View entering={FadeIn.duration(200)} style={{
-          flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6,
-          backgroundColor: T.errorDim,
-          borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5,
-        }}>
-          <Text style={{ fontFamily: F.text, fontSize: 12, color: T.error }}>
-            {error}
-          </Text>
-        </Animated.View>
-      )}
-    </Animated.View>
-  );
-}
-
-// ─── Google Sign-In button ─────────────────────────────────────────────────────
-function GoogleButton({ onPress, loading }: { onPress: () => void; loading?: boolean }) {
-  const scale = useSharedValue(1);
-
-  const onPressIn  = () => { scale.value = withSpring(0.97, { damping: 18, stiffness: 300 }); };
-  const onPressOut = () => { scale.value = withSpring(1,    { damping: 18, stiffness: 300 }); };
-
-  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
-  return (
-    <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} disabled={loading}>
-      <Animated.View style={[style, {
-        height: 56, borderRadius: 16,
-        backgroundColor: T.textPrimary,
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        gap: 10,
-        shadowColor: T.violet, shadowOpacity: 0.3, shadowRadius: 20, shadowOffset: { width: 0, height: 8 },
-      }]}>
-        {/* Google G mark — simple inline SVG-style using text */}
-        <View style={{
-          width: 22, height: 22, borderRadius: 11,
-          backgroundColor: '#ffffff',
-          alignItems: 'center', justifyContent: 'center',
-          borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.08)',
-          overflow: 'hidden',
-        }}>
-          <Text style={{ fontSize: 13, fontWeight: '900', color: '#4285F4', fontFamily: F.text }}>G</Text>
-        </View>
-
-        <Text style={{
-          fontFamily: F.text, fontSize: 16, fontWeight: '600',
-          color: '#0A0A0A', letterSpacing: -0.2,
-        }}>
-          {loading ? 'Connecting…' : 'Continue with Google'}
-        </Text>
-      </Animated.View>
-    </Pressable>
-  );
-}
-
-// ─── Primary Sign-In button ────────────────────────────────────────────────────
-function SignInButton({ onPress, loading }: { onPress: () => void; loading: boolean }) {
-  const scale     = useSharedValue(1);
-  const glowAnim  = useSharedValue(0);
-
-  useEffect(() => {
-    if (!loading) {
-      glowAnim.value = withRepeat(
-        withSequence(
-          withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.sine) }),
-          withTiming(0, { duration: 1500, easing: Easing.inOut(Easing.sine) }),
-        ), -1,
-      );
-    }
-  }, [loading]);
-
-  const onPressIn  = () => { scale.value = withSpring(0.97, { damping: 18, stiffness: 300 }); };
-  const onPressOut = () => { scale.value = withSpring(1,    { damping: 18, stiffness: 300 }); };
-
-  const btnStyle  = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(glowAnim.value, [0, 1], [0.4, 0.85]),
-  }));
-
-  return (
-    <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut} disabled={loading}>
-      <Animated.View style={[btnStyle, { borderRadius: 16, overflow: 'hidden', marginTop: 4 }]}>
-        {/* Glow layer */}
-        <Animated.View style={[glowStyle, {
-          ...StyleSheet.absoluteFillObject,
-          backgroundColor: T.violet,
-          borderRadius: 16,
-          top: 4, left: 4, right: 4, bottom: -8,
-          shadowColor: T.violet, shadowOpacity: 1, shadowRadius: 20,
-        }]} />
-
-        <LinearGradient
-          colors={[T.violetBright, T.violet, T.violetDim]}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={{
-            height: 56, flexDirection: 'row',
-            alignItems: 'center', justifyContent: 'center', gap: 8,
-            borderRadius: 16,
-          }}>
-          <Text style={{
-            fontFamily: F.text, fontSize: 16, fontWeight: '700',
-            color: '#FFFFFF', letterSpacing: -0.2,
-          }}>
-            {loading ? 'Signing in…' : 'Sign In with Email'}
-          </Text>
-          {!loading && <MoveRight color="#FFFFFF" size={17} strokeWidth={2.5} />}
-        </LinearGradient>
-      </Animated.View>
-    </Pressable>
-  );
-}
-
-// ─── Divider ──────────────────────────────────────────────────────────────────
-function Divider() {
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 20 }}>
-      <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: T.border }} />
-      <Text style={{ fontFamily: F.mono, fontSize: 11, color: T.textTertiary, letterSpacing: 1 }}>OR</Text>
-      <View style={{ flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: T.border }} />
-    </View>
-  );
-}
-
-// ─── Main Screen ───────────────────────────────────────────────────────────────
 export function LoginScreen() {
-  const insets  = useSafeAreaInsets();
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading]   = useState(false);
-  const [gLoading, setGLoading] = useState(false);
-  const [emailErr, setEmailErr] = useState('');
+  const insets = useSafeAreaInsets();
+  const [loading, setLoading] = useState(false);
+  const [guestLoading, setGuestLoading] = useState(false);
 
-  // Card entrance
-  const cardY = useSharedValue(60);
+  const signInWithGoogle = useAuthStore((s) => s.signInWithGoogle);
+  const signInAsGuest = useAuthStore((s) => s.signInAsGuest);
+  const authError = useAuthStore((s) => s.error);
+  const clearError = useAuthStore((s) => s.clearError);
+
+  // Animated floating logo scale & position
+  const logoTranslationY = useSharedValue(0);
+
   useEffect(() => {
-    cardY.value = withDelay(300, withSpring(0, { damping: 22, stiffness: 180 }));
-  }, []);
-  const cardStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: cardY.value }],
+    // Initiate continuous floating idle animation for the logo
+    logoTranslationY.value = withRepeat(
+      withSequence(
+        withTiming(-8, { duration: 2000 }),
+        withTiming(0, { duration: 2000 })
+      ),
+      -1, // Infinite repeat
+      true // Reverse direction
+    );
+  }, [logoTranslationY]);
+
+  const logoAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: logoTranslationY.value }],
   }));
 
-  const validate = () => {
-    if (!email.includes('@')) { setEmailErr('Please enter a valid email'); return false; }
-    setEmailErr('');
-    return true;
-  };
-
-  const handleLogin = useCallback(() => {
-    if (!validate()) return;
+  const handleGoogleLogin = useCallback(async () => {
+    clearError();
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      router.replace('/(tabs)' as any);
-    }, 1200);
-  }, [email]);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
 
-  const handleGoogle = useCallback(() => {
-    setGLoading(true);
+    // Safety timeout: if signInWithGoogle hangs beyond 30s, reset loading state
+    const timeoutId = setTimeout(() => {
+      console.warn('[login] Google sign-in timed out after 30s — resetting loading state');
+      setLoading(false);
+    }, 30000);
+
+    try {
+      await signInWithGoogle();
+      // DO NOT call router.replace here.
+      // Navigation is driven reactively by index.tsx based on store state.
+      // AuthHydrator.onAuthStateChange(SIGNED_IN) sets the profile → index.tsx
+      // sees profile is set → redirects to /(tabs) or /(auth)/connect-makaut.
+      console.info('[login] signInWithGoogle completed — waiting for reactive navigation');
+    } catch (e) {
+      // User cancelled or error — show alert. User stays on login screen.
+      const message = e instanceof Error ? e.message : 'Google sign-in failed';
+      if (message !== 'Sign-in was cancelled') {
+        Alert.alert('Authentication Error', message);
+      }
+    } finally {
+      clearTimeout(timeoutId);
+      setLoading(false);
+    }
+  }, [signInWithGoogle, clearError]);
+
+  const handleGuestLogin = useCallback(() => {
+    clearError();
+    setGuestLoading(true);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     setTimeout(() => {
-      setGLoading(false);
-      router.replace('/(tabs)' as any);
-    }, 1400);
-  }, []);
+      signInAsGuest();
+      setGuestLoading(false);
+      // Guest login sets profile in store immediately.
+      // index.tsx will reactively redirect to /(auth)/connect-makaut or /(tabs).
+      console.info('[login] Guest sign-in completed — waiting for reactive navigation');
+    }, 800);
+  }, [signInAsGuest, clearError]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: T.abyss }}>
-      <StatusBar barStyle="light-content" backgroundColor={T.abyss} />
+    <View style={s.root}>
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
 
-      {/* ── Atmospheric background ── */}
+      {/* Deep dark premium background */}
       <LinearGradient
-        colors={[T.abyss, '#06041A', '#000000']}
+        colors={['#000000', '#030814', '#050f24']}
+        locations={[0, 0.45, 1]}
         style={StyleSheet.absoluteFillObject}
       />
 
-      {/* Grid */}
-      <GridBackground />
+      {/* Neon glowing aura rings */}
+      <View style={s.glowTop} />
+      <View style={s.glowTopInner} />
 
-      {/* Scanning beam */}
-      <ScanBeam />
+      {/* Grid overlay for depth */}
+      <View style={s.gridOverlay} pointerEvents="none">
+        {[...Array(6)].map((_, i) => (
+          <View key={i} style={[s.gridLine, { top: (H / 6) * i }]} />
+        ))}
+      </View>
 
-      {/* Aurora orbs */}
-      <AuroraOrb x={-80}      y={-80}          size={320} color="rgba(124,92,252,0.12)" delay={0}    />
-      <AuroraOrb x={SW - 120} y={SH * 0.3}     size={280} color="rgba(79,110,247,0.10)"  delay={600}  />
-      <AuroraOrb x={SW * 0.1} y={SH * 0.65}    size={220} color="rgba(181,124,238,0.08)" delay={1200} />
-
-      {/* Noise overlay (visual texture suggestion via semi-transparent layer) */}
-      <View style={{
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'transparent',
-        opacity: 0.04,
-      }} />
-
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}>
-
-        <View style={{
-          flex: 1,
-          paddingHorizontal: 24,
-          paddingTop: insets.top + 16,
-          paddingBottom: insets.bottom + 16,
-          justifyContent: 'center',
-        }}>
-
-          {/* ── Brand header ── */}
-          <Animated.View entering={FadeInDown.duration(700)} style={{ alignItems: 'center', marginBottom: 36 }}>
-            <AppIcon />
-
-            {/* Name */}
-            <Animated.View entering={FadeInDown.duration(600).delay(150)} style={{ alignItems: 'center', marginTop: 20 }}>
-              <Text style={{
-                fontFamily: F.display,
-                fontSize: 40, fontWeight: '800',
-                color: T.textPrimary,
-                letterSpacing: -2,
-                lineHeight: 44,
-              }}>
-                CampusHub
-              </Text>
-
-              <Text style={{
-                fontFamily: F.text,
-                fontSize: 15, fontWeight: '400',
-                color: T.textSecondary,
-                letterSpacing: 0.1,
-                marginTop: 6,
-              }}>
-                Your Academic Operating System
-              </Text>
-            </Animated.View>
-
-            {/* Status pill */}
-            <View style={{ marginTop: 20 }}>
-              <StatusPill />
+      <View style={[s.container, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 24 }]}>
+        
+        {/* ── Large Hero Logo Area ── */}
+        <View style={s.hero}>
+          <Animated.View style={[s.logoContainer, logoAnimatedStyle]}>
+            <View style={s.logoShadow}>
+              <BBITLogoSVG size={120} />
             </View>
           </Animated.View>
 
-          {/* ── Glass card ── */}
-          <Animated.View style={[cardStyle, {
-            backgroundColor: T.glass,
-            borderRadius: 28,
-            borderWidth: 1,
-            borderColor: T.glassBorder,
-            padding: 24,
-            overflow: 'hidden',
-          }]}>
-
-            {/* Card top shimmer line */}
-            <View style={{
-              position: 'absolute', top: 0, left: 48, right: 48,
-              height: 1,
-              backgroundColor: 'rgba(255,255,255,0.1)',
-            }} />
-
-            {/* Inner highlight */}
-            <LinearGradient
-              colors={['rgba(255,255,255,0.04)', 'transparent']}
-              style={{
-                ...StyleSheet.absoluteFillObject,
-                borderRadius: 28,
-              }}
-            />
-
-            {/* Section label */}
-            <Animated.View entering={FadeIn.duration(400).delay(400)} style={{
-              flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 22,
-            }}>
-              <ShieldCheck color={T.violet} size={16} strokeWidth={2} />
-              <Text style={{
-                fontFamily: F.text, fontSize: 13, fontWeight: '600',
-                color: T.textSecondary, letterSpacing: 0.2,
-              }}>
-                Secure sign-in
-              </Text>
-            </Animated.View>
-
-            {/* Google CTA — primary action */}
-            <Animated.View entering={FadeInUp.duration(500).delay(350)}>
-              <GoogleButton onPress={handleGoogle} loading={gLoading} />
-            </Animated.View>
-
-            <Divider />
-
-            {/* Email field */}
-            <InputField
-              label="Email or Roll No."
-              placeholder="you@campus.edu"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              icon={<Mail color={T.violet} size={17} strokeWidth={2} />}
-              error={emailErr}
-              delay={450}
-            />
-
-            {/* Password field */}
-            <InputField
-              label="Password"
-              placeholder="••••••••"
-              value={password}
-              onChangeText={setPassword}
-              icon={<Lock color={T.violet} size={17} strokeWidth={2} />}
-              secureEntry
-              delay={520}
-            />
-
-            {/* Forgot password */}
-            <Animated.View entering={FadeIn.duration(400).delay(580)} style={{ alignItems: 'flex-end', marginBottom: 20, marginTop: -4 }}>
-              <Pressable hitSlop={8}>
-                <Text style={{
-                  fontFamily: F.text, fontSize: 13, fontWeight: '500',
-                  color: T.violetBright,
-                }}>
-                  Forgot password?
-                </Text>
-              </Pressable>
-            </Animated.View>
-
-            {/* Sign in CTA */}
-            <Animated.View entering={FadeInUp.duration(500).delay(600)}>
-              <SignInButton onPress={handleLogin} loading={loading} />
-            </Animated.View>
+          {/* Official Verification Badge */}
+          <Animated.View entering={FadeIn.duration(400).delay(250)} style={s.badgeRow}>
+            <View style={[s.verifiedBadge, {
+              backgroundColor: 'rgba(99,102,241,0.12)',
+              borderColor: 'rgba(99,102,241,0.24)',
+            }]}>
+              <ShieldCheck color="#60A5FA" size={13} strokeWidth={2} />
+              <Text style={s.badgeText}>OFFICIAL BBIT PORTAL</Text>
+            </View>
           </Animated.View>
 
-          {/* ── Footer ── */}
-          <Animated.View entering={FadeIn.duration(500).delay(900)} style={{
-            alignItems: 'center', marginTop: 24, paddingHorizontal: 12,
-          }}>
-            <Text style={{
-              fontFamily: F.text, fontSize: 12,
-              color: T.textTertiary, textAlign: 'center', lineHeight: 18,
-            }}>
-              By continuing, you agree to our{' '}
-              <Text style={{ color: T.violetBright }}>Terms of Service</Text>
-              {' '}and{' '}
-              <Text style={{ color: T.violetBright }}>Privacy Policy</Text>.
-            </Text>
-            <Text style={{
-              fontFamily: F.mono, fontSize: 10,
-              color: T.textTertiary, marginTop: 8, letterSpacing: 0.5,
-            }}>
-              © 2025 CAMPUSHUB · FOR VERIFIED STUDENTS ONLY
-            </Text>
+          {/* Titles */}
+          <Animated.View entering={FadeInUp.duration(500).delay(350)} style={s.titleBlock}>
+            <Text style={s.appName}>CampusHub</Text>
+            <Text style={s.institutionName}>Budge Budge Institute of Technology</Text>
           </Animated.View>
         </View>
-      </KeyboardAvoidingView>
+
+        {/* ── Glassmorphic Sign-In Panel ── */}
+        <Animated.View entering={FadeInDown.duration(650).delay(300)} style={s.panelContainer}>
+          <BlurView intensity={24} tint="dark" style={s.glassCard}>
+            <View style={s.cardInner}>
+              <View style={s.cardHeader}>
+                <Text style={s.cardTitle}>Academic Access</Text>
+                <Text style={s.cardSub}>Sign in via certified single sign-on providers</Text>
+              </View>
+
+              {authError && (
+                <Animated.View entering={FadeIn.duration(200)} style={s.errorBox}>
+                  <Text style={s.errorText}>{authError}</Text>
+                </Animated.View>
+              )}
+
+              {/* ── Primary Google CTA ── */}
+              <View style={s.ctaGroup}>
+                <SpringButton
+                  onPress={handleGoogleLogin}
+                  disabled={loading || guestLoading}
+                  scaleDown={0.96}
+                >
+                  <LinearGradient
+                    colors={['#4F46E5', '#7C3AED']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={[s.primaryCtaBtn, { opacity: loading ? 0.7 : 1 }]}
+                  >
+                    <GoogleMark />
+                    <Text style={s.primaryCtaText}>
+                      {loading ? 'Connecting Google...' : 'Sign In with Google'}
+                    </Text>
+                    <ArrowRight color="#ffffff" size={18} strokeWidth={2.5} />
+                  </LinearGradient>
+                </SpringButton>
+
+                {/* ── Secondary Continue as Guest CTA ── */}
+                <SpringButton
+                  onPress={handleGuestLogin}
+                  disabled={loading || guestLoading}
+                  scaleDown={0.97}
+                >
+                  <View style={[s.secondaryCtaBtn, {
+                    borderColor: 'rgba(255,255,255,0.08)',
+                    backgroundColor: 'rgba(255,255,255,0.03)',
+                  }]}>
+                    <LogIn color="#94A3B8" size={18} strokeWidth={2} />
+                    <Text style={s.secondaryCtaText}>
+                      {guestLoading ? 'Signing in as Guest...' : 'Continue as Guest'}
+                    </Text>
+                  </View>
+                </SpringButton>
+              </View>
+            </View>
+          </BlurView>
+        </Animated.View>
+
+        {/* ── Footer Details ── */}
+        <Animated.View entering={FadeIn.duration(400).delay(600)} style={s.footer}>
+          <Text style={s.footerText}>
+            Protected by Budge Budge Institute of Technology IT Services.{"\n"}
+            By accessing this portal you consent to the BBIT System Policies.
+          </Text>
+        </Animated.View>
+
+      </View>
     </View>
   );
 }
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#000000' },
+  container: {
+    flex: 1,
+    paddingHorizontal: 24,
+    justifyContent: 'space-between',
+  },
+  glowTop: {
+    position: 'absolute',
+    top: -100,
+    alignSelf: 'center',
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: 'rgba(79,70,229,0.12)',
+  },
+  glowTopInner: {
+    position: 'absolute',
+    top: -50,
+    alignSelf: 'center',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(96,165,250,0.06)',
+  },
+  gridOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    overflow: 'hidden',
+  },
+  gridLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: 'rgba(96,165,250,0.03)',
+  },
+  hero: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  logoContainer: {
+    marginBottom: 16,
+  },
+  logoShadow: {
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+  },
+  badgeRow: {
+    marginBottom: 12,
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: Radius.circle,
+  },
+  badgeText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#60A5FA',
+    letterSpacing: 0.8,
+  },
+  titleBlock: {
+    alignItems: 'center',
+  },
+  appName: {
+    fontSize: 34,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.8,
+    marginBottom: 4,
+  },
+  institutionName: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: '#94A3B8',
+    textAlign: 'center',
+  },
+  panelContainer: {
+    marginVertical: 18,
+  },
+  glassCard: {
+    borderRadius: Radius.xl,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    ...Shadows.float,
+    shadowRadius: 20,
+  },
+  cardInner: {
+    padding: 24,
+    backgroundColor: 'rgba(8,12,24,0.72)',
+  },
+  cardHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  cardTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.4,
+    marginBottom: 4,
+  },
+  cardSub: {
+    fontSize: 12.5,
+    color: '#475569',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  errorBox: {
+    backgroundColor: 'rgba(248,113,113,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(248,113,113,0.18)',
+    borderRadius: Radius.md,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorText: {
+    fontSize: 12.5,
+    color: '#F87171',
+    textAlign: 'center',
+  },
+  ctaGroup: {
+    gap: 12,
+  },
+  primaryCtaBtn: {
+    height: 52,
+    borderRadius: Radius.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    ...Shadows.glow('rgba(99,102,241,0.25)'),
+  },
+  primaryCtaText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.1,
+  },
+  googleMark: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  googleMarkText: {
+    color: '#4285F4',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  secondaryCtaBtn: {
+    height: 50,
+    borderRadius: Radius.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1.5,
+  },
+  secondaryCtaText: {
+    fontSize: 14.5,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  footer: {
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  footerText: {
+    fontSize: 11,
+    color: '#475569',
+    textAlign: 'center',
+    lineHeight: 16.5,
+  },
+});

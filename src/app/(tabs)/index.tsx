@@ -1,7 +1,3 @@
-import React from 'react';
-
+// app/(tabs)/index.tsx
 import { HomeScreen } from '@/screens/home-screen';
-
-export default function HomeTab() {
-  return <HomeScreen />;
-}
+export default HomeScreen;

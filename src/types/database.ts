@@ -1,4 +1,4 @@
-import type { UserRole } from '@/constants/theme';
+import type { UserRole } from '@/types/supabase';
 
 export interface Branch {
   id: string;
@@ -25,15 +25,38 @@ export interface UserProfile {
   email: string;
   full_name: string;
   role: UserRole;
-  branch_id: string | null;
-  semester_id: string | null;
-  section_id: string | null;
-  branch?: Branch | null;
-  semester?: Semester | null;
-  section?: Section | null;
+  branch_id?: string | null;
+  semester_id?: string | null;
+  section_id?: string | null;
+  branch?: string | null;
+  semester?: string | null;
+  section?: string | null;
+  year?: string | null;
+  batch?: string | null;
+  advisor?: string | null;
+  phone?: string | null;
+  hostel_block?: string | null;
+  hostel_room?: string | null;
   college: string;
   avatar_url?: string | null;
   is_verified: boolean;
+}
+
+export interface StudentProfile {
+  id: string;
+  user_id: string;
+  full_name: string;
+  roll_number: string;
+  registration_number?: string | null;
+  email?: string | null;
+  mobile?: string | null;
+  institute_name?: string | null;
+  course_name?: string | null;
+  abc_id?: string | null;
+  photo_url?: string | null;
+  last_synced_at?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
 export interface FacultyMember {
@@ -101,19 +124,3 @@ export interface CalendarEvent {
   description?: string;
 }
 
-export interface MakautCredentials {
-  identifier: string;
-  password: string;
-}
-
-export interface MakautVerifiedProfile {
-  roll_number: string;
-  email: string;
-  full_name: string;
-  branch_code: string;
-  branch_name: string;
-  semester: number;
-  section: string;
-  college: string;
-  department: string;
-}

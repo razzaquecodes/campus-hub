@@ -1,3 +1,6 @@
+// components/ui/index.tsx
+// CampusHub — Shared Premium UI Components
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import React, { useCallback } from 'react';
@@ -8,12 +11,10 @@ import {
   StyleSheet,
   Text,
   View,
+  ViewStyle,
   type PressableProps,
-  type ViewStyle,
 } from 'react-native';
 import Animated, {
-  Extrapolation,
-  interpolate,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -27,35 +28,83 @@ import Animated, {
 import { Animation, Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 
-export { AmbientBackground } from './ambient-background';
-export { AnimatedCard, Avatar } from './animated-card';
-export { FloatingInput } from './floating-input';
-export { GlassCard } from './glass-card';
-export { GlassPanel } from './glass-panel';
-export { GradientButton } from './gradient-button';
-export { OsButton } from './os-button';
-export { OsText } from './os-text';
-export { PriorityBadge } from './priority-badge';
-export { ProgressBar, ProgressLabel } from './progress-bar';
-export { ScreenBackground, GlowOrb } from './screen-background';
-export { SectionHeader } from './section-header';
-export { Skeleton, SkeletonCard } from './skeleton';
+// ─── Re-export Animated entering presets ─────────────────────────────────────
+export { FadeIn, FadeInDown, FadeInUp, ZoomIn };
 
-interface SurfaceCardProps {
+// ─── Glass Card ──────────────────────────────────────────────────────────────
+interface GlassCardProps {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
+  intensity?: number;
   padding?: number;
   radius?: number;
+  gradient?: boolean;
 }
 
+export function GlassCard({
+  children,
+  style,
+  intensity = 20,
+  padding = Spacing.lg,
+  radius = Radius.lg,
+  gradient = false,
+}: GlassCardProps) {
+  const { theme, isDark } = useTheme();
+
+  return (
+    <Animated.View
+      style={[
+        {
+          borderRadius: radius,
+          overflow: 'hidden',
+          borderWidth: 1,
+          borderColor: theme.colors.glassBorder,
+          ...Shadows.card,
+        },
+        style,
+      ]}>
+      {Platform.OS === 'ios' ? (
+        <BlurView intensity={intensity} tint={isDark ? 'dark' : 'light'} style={{ flex: 1 }}>
+          {gradient && (
+            <LinearGradient
+              colors={theme.colors.gradientCard as any}
+              style={StyleSheet.absoluteFillObject}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
+          )}
+          <View style={{ padding }}>{children}</View>
+        </BlurView>
+      ) : (
+        <View
+          style={{
+            backgroundColor: isDark
+              ? theme.colors.glassMedium
+              : theme.colors.glassStrong,
+          }}>
+          {gradient && (
+            <LinearGradient
+              colors={theme.colors.gradientCard as any}
+              style={StyleSheet.absoluteFillObject}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
+          )}
+          <View style={{ padding }}>{children}</View>
+        </View>
+      )}
+    </Animated.View>
+  );
+}
+
+// ─── Surface Card ─────────────────────────────────────────────────────────────
 export function SurfaceCard({
   children,
   style,
   padding = Spacing.lg,
   radius = Radius.lg,
-}: SurfaceCardProps) {
+}: GlassCardProps) {
   const { theme } = useTheme();
-
   return (
     <View
       style={[
@@ -74,6 +123,7 @@ export function SurfaceCard({
   );
 }
 
+// ─── Pressable with haptic spring scale ──────────────────────────────────────
 interface SpringButtonProps extends Omit<PressableProps, 'style'> {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
@@ -103,7 +153,7 @@ export function SpringButton({
           : Haptics.ImpactFeedbackStyle.Heavy,
       );
     }
-  }, [haptic, scaleDown, scale]);
+  }, [haptic, scale, scaleDown]);
 
   const handlePressOut = useCallback(() => {
     scale.value = withSpring(1, Animation.spring.bouncy);
@@ -122,6 +172,7 @@ export function SpringButton({
   );
 }
 
+// ─── Primary Button ───────────────────────────────────────────────────────────
 interface PrimaryButtonProps {
   label: string;
   onPress?: () => void;
@@ -152,10 +203,10 @@ export function PrimaryButton({
   };
 
   const variantStyles: Record<string, { bg: string; text: string; border: string }> = {
-    solid: { bg: theme.colors.primary, text: '#FFFFFF', border: 'transparent' },
-    ghost: { bg: theme.colors.primaryMuted, text: theme.colors.primaryLight, border: 'transparent' },
+    solid:   { bg: theme.colors.primary, text: '#FFFFFF', border: 'transparent' },
+    ghost:   { bg: theme.colors.primaryMuted, text: theme.colors.primaryLight, border: 'transparent' },
     outline: { bg: 'transparent', text: theme.colors.primary, border: theme.colors.primary },
-    danger: { bg: theme.colors.dangerMuted, text: theme.colors.danger, border: 'transparent' },
+    danger:  { bg: theme.colors.dangerMuted, text: theme.colors.danger, border: 'transparent' },
   };
 
   const vs = variantStyles[variant];
@@ -168,7 +219,9 @@ export function PrimaryButton({
       scaleDown={0.96}
       style={{ alignSelf: fullWidth ? 'stretch' : 'flex-start' }}>
       <LinearGradient
-        colors={variant === 'solid' ? [theme.colors.primaryLight, theme.colors.primaryDark] : [vs.bg, vs.bg]}
+        colors={variant === 'solid'
+          ? [theme.colors.primaryLight, theme.colors.primaryDark]
+          : [vs.bg, vs.bg]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{
@@ -189,6 +242,7 @@ export function PrimaryButton({
   );
 }
 
+// ─── Stat Tile ────────────────────────────────────────────────────────────────
 interface StatTileProps {
   label: string;
   value: string | number;
@@ -223,7 +277,7 @@ export function StatTile({ label, value, sub, color, icon, trend, entering }: St
         <Text style={[Typography.label.lg, { color: theme.colors.textTertiary, textTransform: 'uppercase' }]}>
           {label}
         </Text>
-        {icon ? (
+        {icon && (
           <View
             style={{
               width: 32,
@@ -235,12 +289,12 @@ export function StatTile({ label, value, sub, color, icon, trend, entering }: St
             }}>
             {icon}
           </View>
-        ) : null}
+        )}
       </View>
       <Text style={[Typography.display.small, { color: color ?? theme.colors.textPrimary }]}>
         {value}
       </Text>
-      {sub ? (
+      {sub && (
         <Text
           style={[
             Typography.label.md,
@@ -249,14 +303,36 @@ export function StatTile({ label, value, sub, color, icon, trend, entering }: St
               marginTop: 4,
             },
           ]}>
-          {trend === 'up' ? '↑ ' : trend === 'down' ? '↓ ' : ''}
-          {sub}
+          {trend === 'up' ? '↑ ' : trend === 'down' ? '↓ ' : ''}{sub}
         </Text>
-      ) : null}
+      )}
     </Animated.View>
   );
 }
 
+// ─── Section Header ───────────────────────────────────────────────────────────
+interface SectionHeaderProps {
+  title: string;
+  action?: string;
+  onAction?: () => void;
+  style?: StyleProp<ViewStyle>;
+}
+
+export function SectionHeader({ title, action, onAction, style }: SectionHeaderProps) {
+  const { theme } = useTheme();
+  return (
+    <View style={[{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, style]}>
+      <Text style={[Typography.headline.lg, { color: theme.colors.textPrimary }]}>{title}</Text>
+      {action && (
+        <Pressable onPress={onAction}>
+          <Text style={[Typography.label.lg, { color: theme.colors.primary }]}>{action}</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+// ─── Gradient Badge ───────────────────────────────────────────────────────────
 interface BadgeProps {
   label: string;
   color?: string;
@@ -266,7 +342,6 @@ interface BadgeProps {
 export function Badge({ label, color, size = 'sm' }: BadgeProps) {
   const { theme } = useTheme();
   const c = color ?? theme.colors.primary;
-
   return (
     <View
       style={{
@@ -285,7 +360,78 @@ export function Badge({ label, color, size = 'sm' }: BadgeProps) {
   );
 }
 
+// ─── Divider ──────────────────────────────────────────────────────────────────
 export function Divider({ style }: { style?: StyleProp<ViewStyle> }) {
   const { theme } = useTheme();
-  return <View style={[{ height: 1, backgroundColor: theme.colors.border, marginVertical: Spacing.lg }, style]} />;
+  return (
+    <View
+      style={[{ height: 1, backgroundColor: theme.colors.border, marginVertical: Spacing.lg }, style]}
+    />
+  );
 }
+
+// ─── Avatar ───────────────────────────────────────────────────────────────────
+interface AvatarProps {
+  initials?: string;
+  imageUri?: string;
+  size?: number;
+  color?: string;
+}
+
+export function Avatar({ initials = '?', size = 44, color }: AvatarProps) {
+  const { theme } = useTheme();
+  const bg = color ?? theme.colors.primary;
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: `${bg}25`,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1.5,
+        borderColor: `${bg}40`,
+      }}>
+      <Text style={[Typography.headline.sm, { color: bg, fontSize: size * 0.35 }]}>
+        {initials}
+      </Text>
+    </View>
+  );
+}
+
+// ─── Skeleton Loader ──────────────────────────────────────────────────────────
+export function Skeleton({ width, height, radius = Radius.sm }: { width: number | string; height: number; radius?: number }) {
+  const { theme } = useTheme();
+  const opacity = useSharedValue(0.4);
+
+  React.useEffect(() => {
+    opacity.value = withTiming(1, { duration: 600 });
+    const interval = setInterval(() => {
+      opacity.value = withTiming(0.4, { duration: 600 }, () => {
+        opacity.value = withTiming(1, { duration: 600 });
+      });
+    }, 1200);
+    return () => clearInterval(interval);
+  }, [opacity]);
+
+  const style = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+  return (
+    <Animated.View
+      style={[style, { width: width as any, height, borderRadius: radius, backgroundColor: theme.colors.surface }]}
+    />
+  );
+}
+
+// ─── Re-export other existing separate UI components ──────────────────────────
+export { AmbientBackground } from './ambient-background';
+export { AnimatedCard } from './animated-card';
+export { FloatingInput } from './floating-input';
+export { GlassPanel } from './glass-panel';
+export { GradientButton } from './gradient-button';
+export { OsButton } from './os-button';
+export { OsText } from './os-text';
+export { PriorityBadge } from './priority-badge';
+export { ProgressBar, ProgressLabel } from './progress-bar';
+export { ScreenBackground, GlowOrb } from './screen-background';

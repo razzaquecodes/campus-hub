@@ -4,8 +4,6 @@ export type {
   Branch,
   CalendarEvent,
   FacultyMember,
-  MakautCredentials,
-  MakautVerifiedProfile,
   ScheduleSlot,
   Section,
   Semester,

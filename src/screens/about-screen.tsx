@@ -1,225 +1,168 @@
 // screens/about-screen.tsx
-// CampusHub — Premium About Us Screen
-// College overview + faculty cards + timeline + mission
+// CampusHub — Premium About BBIT Screen
+// Glassmorphism + timeline + stats grid + faculty cards
 
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
 import {
-  ArrowLeft, Award, BookOpen, Building, ExternalLink, Globe,
-  GraduationCap, Heart, Mail, MapPin, Phone, Star, Users,
+  ArrowLeft, Award, BookOpen, Briefcase, Building,
+  ExternalLink, Globe, GraduationCap, Heart, Mail,
+  MapPin, Monitor, Phone, Star, Users, Wifi,
 } from 'lucide-react-native';
 import React from 'react';
 import {
-  Dimensions, Linking, Platform, ScrollView, StyleSheet, Text, View,
+  Dimensions, ScrollView, Text, View,
 } from 'react-native';
 import Animated, {
-  FadeIn, FadeInDown, FadeInLeft, FadeInRight, FadeInUp,
+  FadeIn, FadeInDown, FadeInLeft,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Radius, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
-import { Badge, GlassCard, SectionHeader, SpringButton, SurfaceCard } from '@/components/ui';
+import { Badge, GlassCard, SectionHeader, SpringButton } from '@/components/ui';
 
 const { width: W } = Dimensions.get('window');
 
-// ─── Faculty data ─────────────────────────────────────────────────────────────
-const FACULTY = [
+// ─── Featured Faculty (real CSE 4th Sem) ──────────────────────────────────────
+const FEATURED_FACULTY = [
   {
-    id: '1',
-    name: 'Dr. Rajiv Mehta',
-    title: 'Head of Department',
-    dept: 'Computer Science',
-    initials: 'RM',
-    color: '#6366F1',
-    specialization: 'Machine Learning, AI',
-    email: 'r.mehta@campus.edu',
-    publications: 42,
-    experience: 18,
-    rating: 4.9,
-  },
-  {
-    id: '2',
-    name: 'Prof. Sunita Sharma',
-    title: 'Associate Professor',
-    dept: 'Mathematics',
-    initials: 'SS',
+    name: 'Mr. Debraj Roy',
+    title: 'Assistant Professor',
+    dept: 'Computer Science & Engineering',
+    initials: 'DR',
     color: '#8B5CF6',
-    specialization: 'Linear Algebra, Topology',
-    email: 's.sharma@campus.edu',
-    publications: 28,
-    experience: 14,
-    rating: 4.7,
+    subject: 'Discrete Mathematics',
   },
   {
-    id: '3',
-    name: 'Dr. Anand Patel',
+    name: 'Mr. Rajat Subhra Nandi',
     title: 'Assistant Professor',
-    dept: 'Computer Science',
-    initials: 'AP',
-    color: '#10B981',
-    specialization: 'Systems, OS, Networks',
-    email: 'a.patel@campus.edu',
-    publications: 19,
-    experience: 9,
-    rating: 4.8,
+    dept: 'Computer Science & Engineering',
+    initials: 'RSN',
+    color: '#6366F1',
+    subject: 'Computer Architecture',
   },
   {
-    id: '4',
-    name: 'Dr. Priya Singh',
+    name: 'Mr. Arjun Chatterjee',
     title: 'Assistant Professor',
-    dept: 'Electronics',
-    initials: 'PS',
+    dept: 'Computer Science & Engineering',
+    initials: 'ARC',
     color: '#EC4899',
-    specialization: 'VLSI, Embedded Systems',
-    email: 'p.singh@campus.edu',
-    publications: 23,
-    experience: 11,
-    rating: 4.6,
+    subject: 'Design & Analysis of Algorithms',
+  },
+  {
+    name: 'Dr. Atal Chaudhury',
+    title: 'Professor',
+    dept: 'Computer Science & Engineering',
+    initials: 'ATC',
+    color: '#7C3AED',
+    subject: 'Computer Architecture',
+  },
+  {
+    name: 'Mr. Rishov Saha',
+    title: 'Assistant Professor',
+    dept: 'Computer Science & Engineering',
+    initials: 'RS',
+    color: '#F59E0B',
+    subject: 'Formal Language & Automata Theory',
+  },
+  {
+    name: 'Dr. Jyoti Kusum Acharya',
+    title: 'Associate Professor',
+    dept: 'Applied Sciences',
+    initials: 'JKA',
+    color: '#10B981',
+    subject: 'Environmental Sciences',
   },
 ];
 
-// ─── Timeline milestones ──────────────────────────────────────────────────────
+// ─── Timeline ─────────────────────────────────────────────────────────────────
 const MILESTONES = [
-  { year: '1962', event: 'College established by state government' },
-  { year: '1985', event: 'Department of Computer Science founded' },
-  { year: '2003', event: 'Achieved autonomous status — Grade A+ by NAAC' },
-  { year: '2015', event: 'New campus tech park and innovation lab inaugurated' },
-  { year: '2023', event: 'Ranked #12 in India by NIRF Engineering ranking' },
+  { year: '2009', event: 'BBIT founded under BFR Group of Institutions in Budge Budge, Kolkata' },
+  { year: '2010', event: 'First batch of B.Tech students admitted across 4 departments' },
+  { year: '2013', event: 'First batch of engineers graduated — 90%+ placement rate' },
+  { year: '2018', event: 'New academic block inaugurated with state-of-the-art labs' },
+  { year: '2024', event: 'Digital campus initiative launched — CampusHub, smart classrooms' },
 ];
 
 // ─── Stats ────────────────────────────────────────────────────────────────────
 const COLLEGE_STATS = [
-  { label: 'Students',    value: '8,400+', icon: Users,        color: '#6366F1' },
-  { label: 'Faculty',     value: '320+',   icon: GraduationCap,color: '#8B5CF6' },
-  { label: 'Courses',     value: '60+',    icon: BookOpen,     color: '#10B981' },
-  { label: 'NAAC Grade',  value: 'A+',     icon: Award,        color: '#F59E0B' },
+  { label: 'Students',     value: '2,000+',  icon: Users,        color: '#6366F1' },
+  { label: 'Faculty',      value: '100+',    icon: GraduationCap,color: '#8B5CF6' },
+  { label: 'Departments',  value: '7',       icon: BookOpen,     color: '#10B981' },
+  { label: 'AICTE',        value: 'Approved',icon: Award,        color: '#F59E0B' },
+];
+
+// ─── Campus Life ──────────────────────────────────────────────────────────────
+const CAMPUS_HIGHLIGHTS = [
+  { icon: Monitor,  label: 'Smart Labs',      desc: 'Modern computer labs with latest hardware', color: '#6366F1' },
+  { icon: BookOpen,  label: 'Central Library', desc: '10,000+ books and digital resources',      color: '#8B5CF6' },
+  { icon: Wifi,     label: 'Wi-Fi Campus',    desc: 'High-speed internet across campus',        color: '#3B82F6' },
+  { icon: Building, label: 'Hostel',          desc: 'Separate hostels for boys and girls',      color: '#10B981' },
+  { icon: Briefcase,label: 'Placement Cell',  desc: 'Dedicated training & placement support',   color: '#EC4899' },
+  { icon: Award,    label: 'Workshops',       desc: 'Regular industry workshops & hackathons',  color: '#F59E0B' },
 ];
 
 // ─── Faculty Card ─────────────────────────────────────────────────────────────
-function FacultyCard({ faculty, index }: { faculty: typeof FACULTY[0]; index: number }) {
+function FacultyCard({ faculty, index }: { faculty: typeof FEATURED_FACULTY[0]; index: number }) {
   const { theme } = useTheme();
   return (
-    <Animated.View entering={FadeInDown.duration(450).delay(index * 70 + 400)}>
-      <SpringButton scaleDown={0.97}>
-        <View style={{
-          backgroundColor: theme.colors.surface,
-          borderRadius: Radius.xl,
-          padding: Spacing.xl,
-          borderWidth: 1,
-          borderColor: theme.colors.border,
-          marginBottom: 12,
-        }}>
-          {/* Top row */}
-          <View style={{ flexDirection: 'row', gap: Spacing.lg, alignItems: 'flex-start' }}>
-            {/* Avatar */}
-            <LinearGradient
-              colors={[`${faculty.color}60`, `${faculty.color}20`]}
-              style={{
-                width: 60, height: 60, borderRadius: 30,
-                alignItems: 'center', justifyContent: 'center',
-                borderWidth: 1.5,
-                borderColor: `${faculty.color}40`,
-              }}>
-              <Text style={{ fontSize: 20, fontWeight: '700', color: faculty.color }}>
-                {faculty.initials}
-              </Text>
-            </LinearGradient>
-
-            {/* Info */}
-            <View style={{ flex: 1 }}>
-              <Text style={[Typography.headline.md, { color: theme.colors.textPrimary }]}>
-                {faculty.name}
-              </Text>
-              <Text style={[Typography.body.sm, { color: theme.colors.textSecondary, marginTop: 2 }]}>
-                {faculty.title}
-              </Text>
-              <Badge label={faculty.dept} color={faculty.color} size="sm" />
-            </View>
-
-            {/* Rating */}
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 4,
-              backgroundColor: `${faculty.color}15`,
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-              borderRadius: Radius.pill,
+    <Animated.View entering={FadeInDown.duration(400).delay(index * 60 + 400)}>
+      <View style={{
+        backgroundColor: theme.colors.surface,
+        borderRadius: Radius.xl,
+        padding: Spacing.lg,
+        borderWidth: 1,
+        borderColor: theme.colors.border,
+        marginBottom: 10,
+      }}>
+        <View style={{ flexDirection: 'row', gap: Spacing.md, alignItems: 'center' }}>
+          {/* Avatar */}
+          <LinearGradient
+            colors={[`${faculty.color}60`, `${faculty.color}20`]}
+            style={{
+              width: 52, height: 52, borderRadius: 26,
+              alignItems: 'center', justifyContent: 'center',
+              borderWidth: 1.5,
+              borderColor: `${faculty.color}40`,
             }}>
-              <Star color={faculty.color} size={12} fill={faculty.color} />
-              <Text style={[Typography.label.md, { color: faculty.color }]}>
-                {faculty.rating}
-              </Text>
+            <Text style={{ fontSize: 17, fontWeight: '700', color: faculty.color }}>
+              {faculty.initials}
+            </Text>
+          </LinearGradient>
+
+          {/* Info */}
+          <View style={{ flex: 1 }}>
+            <Text style={[Typography.headline.sm, { color: theme.colors.textPrimary }]}>
+              {faculty.name}
+            </Text>
+            <Text style={[Typography.body.sm, { color: theme.colors.textSecondary, marginTop: 1 }]}>
+              {faculty.title}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
+              <Badge label={faculty.dept.length > 20 ? 'CSE' : faculty.dept} color={faculty.color} size="sm" />
             </View>
-          </View>
-
-          {/* Specialization */}
-          <View style={{
-            marginTop: Spacing.lg,
-            backgroundColor: `${faculty.color}10`,
-            borderRadius: Radius.md,
-            padding: Spacing.md,
-            borderLeftWidth: 3,
-            borderLeftColor: faculty.color,
-          }}>
-            <Text style={[Typography.label.sm, { color: theme.colors.textTertiary, marginBottom: 2 }]}>
-              Specialization
-            </Text>
-            <Text style={[Typography.body.sm, { color: theme.colors.textPrimary }]}>
-              {faculty.specialization}
-            </Text>
-          </View>
-
-          {/* Bottom stats */}
-          <View style={{
-            flexDirection: 'row',
-            marginTop: Spacing.lg,
-            gap: Spacing.sm,
-          }}>
-            {[
-              { label: 'Publications', value: faculty.publications },
-              { label: 'Years Exp.',   value: faculty.experience },
-            ].map((s) => (
-              <View key={s.label} style={{
-                flex: 1,
-                backgroundColor: theme.colors.void,
-                borderRadius: Radius.md,
-                padding: Spacing.md,
-                alignItems: 'center',
-                borderWidth: 1,
-                borderColor: theme.colors.border,
-              }}>
-                <Text style={[Typography.headline.md, { color: theme.colors.textPrimary }]}>
-                  {s.value}
-                </Text>
-                <Text style={[Typography.label.xs, { color: theme.colors.textTertiary, textTransform: 'uppercase', letterSpacing: 0.6 }]}>
-                  {s.label}
-                </Text>
-              </View>
-            ))}
-            {/* Email */}
-            <SpringButton
-              onPress={() => Linking.openURL(`mailto:${faculty.email}`)}
-              style={{
-                flex: 1,
-                backgroundColor: `${faculty.color}15`,
-                borderRadius: Radius.md,
-                padding: Spacing.md,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderWidth: 1,
-                borderColor: `${faculty.color}25`,
-              }}>
-              <Mail color={faculty.color} size={18} />
-              <Text style={[Typography.label.xs, { color: faculty.color, marginTop: 4, textTransform: 'uppercase', letterSpacing: 0.6 }]}>
-                Email
-              </Text>
-            </SpringButton>
           </View>
         </View>
-      </SpringButton>
+
+        {/* Subject taught */}
+        <View style={{
+          marginTop: Spacing.md,
+          backgroundColor: `${faculty.color}10`,
+          borderRadius: Radius.md,
+          padding: Spacing.sm,
+          paddingHorizontal: Spacing.md,
+          borderLeftWidth: 3,
+          borderLeftColor: faculty.color,
+        }}>
+          <Text style={[Typography.label.xs, { color: theme.colors.textTertiary }]}>
+            Teaching
+          </Text>
+          <Text style={[Typography.body.sm, { color: theme.colors.textPrimary }]}>
+            {faculty.subject}
+          </Text>
+        </View>
+      </View>
     </Animated.View>
   );
 }
@@ -233,7 +176,7 @@ export function AboutScreen() {
     <View style={{ flex: 1, backgroundColor: theme.colors.void }}>
       {/* Header */}
       <Animated.View
-        entering={FadeInDown.duration(400)}
+        entering={FadeIn.duration(400)}
         style={{
           paddingTop: insets.top + 8,
           paddingHorizontal: Spacing.page.horizontal,
@@ -253,7 +196,7 @@ export function AboutScreen() {
           </View>
         </SpringButton>
         <Text style={[Typography.headline.xl, { color: theme.colors.textPrimary }]}>
-          About
+          About BBIT
         </Text>
       </Animated.View>
 
@@ -290,16 +233,16 @@ export function AboutScreen() {
             </View>
 
             <Text style={[Typography.headline.xl, { color: theme.colors.textPrimary, textAlign: 'center' }]}>
-              National Institute of{'\n'}Technology Campus
+              Budge Budge Institute{'\n'}of Technology
             </Text>
-            <Text style={[Typography.body.sm, { color: theme.colors.textSecondary, marginTop: 8, textAlign: 'center' }]}>
-              Excellence in Education · Innovation · Research
+            <Text style={[Typography.body.sm, { color: theme.colors.textSecondary, marginTop: 6, textAlign: 'center' }]}>
+              Affiliated to MAKAUT, West Bengal
             </Text>
 
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: Spacing.lg }}>
-              <Badge label="NAAC A+" color={theme.colors.primary} />
-              <Badge label="NIRF #12" color={theme.colors.gold} />
-              <Badge label="Est. 1962" color={theme.colors.accent} />
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: Spacing.lg, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <Badge label="AICTE Approved" color={theme.colors.primary} />
+              <Badge label="Est. 2009" color={theme.colors.gold} />
+              <Badge label="MAKAUT" color={theme.colors.accent} />
             </View>
 
             {/* Location */}
@@ -310,8 +253,8 @@ export function AboutScreen() {
               marginTop: Spacing.lg,
             }}>
               <MapPin color={theme.colors.textTertiary} size={14} />
-              <Text style={[Typography.body.sm, { color: theme.colors.textTertiary }]}>
-                Patna, Bihar, India
+              <Text style={[Typography.body.sm, { color: theme.colors.textTertiary, textAlign: 'center' }]}>
+                Nischintapur, Budge Budge, Kolkata – 700137
               </Text>
             </View>
           </LinearGradient>
@@ -358,47 +301,177 @@ export function AboutScreen() {
           </View>
         </Animated.View>
 
-        {/* ── Mission ── */}
+        {/* ── Vision & Mission ── */}
         <Animated.View
-          entering={FadeInDown.duration(500).delay(320)}
+          entering={FadeInDown.duration(500).delay(300)}
           style={{ paddingHorizontal: Spacing.page.horizontal, marginTop: Spacing.xxxl }}>
-          <SectionHeader title="Our Mission" style={{ marginBottom: Spacing.lg }} />
+          <SectionHeader title="Vision & Mission" style={{ marginBottom: Spacing.lg }} />
+
           <GlassCard intensity={14} padding={Spacing.xl} radius={Radius.xl} gradient>
-            <Text style={[Typography.body.lg, {
-              color: theme.colors.textPrimary,
-              lineHeight: 28,
-              fontStyle: 'italic',
-            }]}>
-              "To foster a culture of academic excellence, innovation, and inclusive growth — equipping students with the knowledge, skills, and character to lead the world's most important challenges."
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: Spacing.lg }}>
-              <Heart color={theme.colors.danger} size={15} fill={theme.colors.danger} />
-              <Text style={[Typography.label.md, { color: theme.colors.textSecondary }]}>
-                NIT Campus, since 1962
-              </Text>
+            <View style={{ gap: Spacing.xl }}>
+              {/* Vision */}
+              <View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: Spacing.sm }}>
+                  <View style={{
+                    width: 28, height: 28, borderRadius: 14,
+                    backgroundColor: `${theme.colors.primary}20`,
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Star color={theme.colors.primary} size={14} fill={theme.colors.primary} />
+                  </View>
+                  <Text style={[Typography.headline.sm, { color: theme.colors.primaryLight }]}>
+                    Our Vision
+                  </Text>
+                </View>
+                <Text style={[Typography.body.md, {
+                  color: theme.colors.textPrimary,
+                  lineHeight: 24,
+                  fontStyle: 'italic',
+                }]}>
+                  To be a premier institution producing globally competitive engineers and technologists who contribute meaningfully to society.
+                </Text>
+              </View>
+
+              {/* Divider */}
+              <View style={{ height: 1, backgroundColor: theme.colors.border }} />
+
+              {/* Mission */}
+              <View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: Spacing.sm }}>
+                  <View style={{
+                    width: 28, height: 28, borderRadius: 14,
+                    backgroundColor: `${theme.colors.accent}20`,
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Heart color={theme.colors.accent} size={14} fill={theme.colors.accent} />
+                  </View>
+                  <Text style={[Typography.headline.sm, { color: theme.colors.accent }]}>
+                    Our Mission
+                  </Text>
+                </View>
+                <Text style={[Typography.body.md, {
+                  color: theme.colors.textPrimary,
+                  lineHeight: 24,
+                }]}>
+                  To provide quality education through innovative teaching-learning methodologies, industry collaboration, and holistic student development — nurturing young minds into skilled professionals and responsible citizens.
+                </Text>
+              </View>
             </View>
           </GlassCard>
         </Animated.View>
 
-        {/* ── Faculty ── */}
+        {/* ── Placements ── */}
+        <Animated.View
+          entering={FadeInDown.duration(500).delay(350)}
+          style={{ paddingHorizontal: Spacing.page.horizontal, marginTop: Spacing.xxxl }}>
+          <SectionHeader title="Placements" style={{ marginBottom: Spacing.lg }} />
+          <LinearGradient
+            colors={isDark ? ['#1A1040', '#0F0820'] : ['#EEF2FF', '#F0F0FF']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{
+              borderRadius: Radius.xl,
+              padding: Spacing.xl,
+              borderWidth: 1,
+              borderColor: theme.colors.primaryMuted,
+            }}>
+            <View style={{ flexDirection: 'row', gap: Spacing.md }}>
+              {[
+                { label: 'Placement Rate', value: '85%+', color: '#10B981' },
+                { label: 'Avg. Package',   value: '4.5 LPA', color: '#6366F1' },
+                { label: 'Highest',        value: '12 LPA',  color: '#F59E0B' },
+              ].map((stat) => (
+                <View key={stat.label} style={{
+                  flex: 1,
+                  alignItems: 'center',
+                  paddingVertical: Spacing.md,
+                }}>
+                  <Text style={[Typography.headline.lg, { color: stat.color }]}>
+                    {stat.value}
+                  </Text>
+                  <Text style={[Typography.label.xs, {
+                    color: theme.colors.textTertiary,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.6,
+                    marginTop: 4,
+                    textAlign: 'center',
+                  }]}>
+                    {stat.label}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            <View style={{ height: 1, backgroundColor: theme.colors.border, marginVertical: Spacing.lg }} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Briefcase color={theme.colors.textSecondary} size={15} />
+              <Text style={[Typography.body.sm, { color: theme.colors.textSecondary }]}>
+                Top recruiters: TCS, Wipro, Infosys, Cognizant, HCL, Tech Mahindra, Accenture & more
+              </Text>
+            </View>
+          </LinearGradient>
+        </Animated.View>
+
+        {/* ── Campus Life ── */}
         <Animated.View
           entering={FadeInDown.duration(500).delay(380)}
           style={{ paddingHorizontal: Spacing.page.horizontal, marginTop: Spacing.xxxl }}>
-          <SectionHeader title="Meet the Faculty" style={{ marginBottom: Spacing.lg }} />
-          {FACULTY.map((f, i) => (
-            <FacultyCard key={f.id} faculty={f} index={i} />
+          <SectionHeader title="Campus Life" style={{ marginBottom: Spacing.lg }} />
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+            {CAMPUS_HIGHLIGHTS.map((item, i) => {
+              const Icon = item.icon;
+              return (
+                <Animated.View
+                  key={item.label}
+                  entering={FadeInDown.duration(350).delay(i * 50 + 400)}
+                  style={{ width: (W - Spacing.page.horizontal * 2 - 10) / 2 }}>
+                  <View style={{
+                    backgroundColor: theme.colors.surface,
+                    borderRadius: Radius.xl,
+                    padding: Spacing.lg,
+                    borderWidth: 1,
+                    borderColor: theme.colors.border,
+                    gap: Spacing.sm,
+                    minHeight: 120,
+                  }}>
+                    <View style={{
+                      width: 40, height: 40, borderRadius: 20,
+                      backgroundColor: `${item.color}18`,
+                      alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <Icon color={item.color} size={20} />
+                    </View>
+                    <Text style={[Typography.headline.sm, { color: theme.colors.textPrimary }]}>
+                      {item.label}
+                    </Text>
+                    <Text style={[Typography.label.xs, { color: theme.colors.textTertiary, lineHeight: 16 }]}>
+                      {item.desc}
+                    </Text>
+                  </View>
+                </Animated.View>
+              );
+            })}
+          </View>
+        </Animated.View>
+
+        {/* ── Faculty ── */}
+        <Animated.View
+          entering={FadeInDown.duration(500).delay(420)}
+          style={{ paddingHorizontal: Spacing.page.horizontal, marginTop: Spacing.xxxl }}>
+          <SectionHeader title="CSE Department Faculty" style={{ marginBottom: Spacing.lg }} />
+          {FEATURED_FACULTY.map((f, i) => (
+            <FacultyCard key={f.name} faculty={f} index={i} />
           ))}
         </Animated.View>
 
         {/* ── History Timeline ── */}
         <Animated.View
-          entering={FadeInDown.duration(500).delay(500)}
+          entering={FadeInDown.duration(500).delay(480)}
           style={{ paddingHorizontal: Spacing.page.horizontal, marginTop: Spacing.xxxl }}>
-          <SectionHeader title="Our History" style={{ marginBottom: Spacing.xl }} />
+          <SectionHeader title="Our Journey" style={{ marginBottom: Spacing.xl }} />
           {MILESTONES.map((m, i) => (
             <Animated.View
               key={m.year}
-              entering={FadeInLeft.duration(400).delay(i * 60 + 520)}
+              entering={FadeInLeft.duration(400).delay(i * 60 + 500)}
               style={{ flexDirection: 'row', gap: Spacing.lg, marginBottom: Spacing.xl }}>
               {/* Timeline track */}
               <View style={{ alignItems: 'center', width: 52 }}>
@@ -427,19 +500,19 @@ export function AboutScreen() {
           ))}
         </Animated.View>
 
-        {/* ── Contact College ── */}
+        {/* ── Contact ── */}
         <Animated.View
-          entering={FadeInDown.duration(500).delay(580)}
+          entering={FadeInDown.duration(500).delay(540)}
           style={{ paddingHorizontal: Spacing.page.horizontal, marginTop: Spacing.xl }}>
           <SectionHeader title="Get in Touch" style={{ marginBottom: Spacing.lg }} />
           <View style={{ gap: 10 }}>
             {[
-              { icon: Phone, label: '+91 612-255-1234', color: theme.colors.success },
-              { icon: Mail, label: 'info@nitcampus.edu.in', color: theme.colors.info },
-              { icon: Globe, label: 'www.nitcampus.edu.in', color: theme.colors.primary },
-              { icon: MapPin, label: 'Ashok Rajpath, Patna – 800005', color: theme.colors.accent },
+              { icon: Phone,  label: '+91 33 2483 0011',                              color: theme.colors.success },
+              { icon: Mail,   label: 'info@bfrgroup.org',                              color: theme.colors.info },
+              { icon: Globe,  label: 'www.bfrgroup.org/bbit',                           color: theme.colors.primary },
+              { icon: MapPin, label: 'Nischintapur, Budge Budge, Kolkata – 700137',    color: theme.colors.accent },
             ].map(({ icon: Icon, label, color }) => (
-              <SpringButton key={label} onPress={() => {}} scaleDown={0.98}>
+              <SpringButton key={label} scaleDown={0.98}>
                 <View style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -469,16 +542,16 @@ export function AboutScreen() {
 
         {/* App info footer */}
         <Animated.View
-          entering={FadeInDown.duration(400).delay(620)}
+          entering={FadeInDown.duration(400).delay(580)}
           style={{ alignItems: 'center', marginTop: Spacing.xxxl, gap: 6 }}>
           <Text style={[Typography.label.md, { color: theme.colors.primary }]}>
             CampusHub
           </Text>
           <Text style={[Typography.caption, { color: theme.colors.textTertiary }]}>
-            The official student companion app
+            The official BBIT student companion app
           </Text>
           <Text style={[Typography.caption, { color: theme.colors.textTertiary }]}>
-            Version 1.0.0 · Made with ♥ for students
+            Version 1.0.0 · Made with ♥ for BBIT students
           </Text>
         </Animated.View>
       </ScrollView>

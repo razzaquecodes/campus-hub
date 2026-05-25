@@ -1,59 +1,86 @@
 // screens/home-screen.tsx
-// CampusHub — Premium Home Dashboard
-// Apple + Linear inspired — cinematic AMOLED dark design
+// CampusHub BBIT — Premium Home Dashboard Redesigned
+// Features responsive light/dark aesthetics, custom assignments tracking, and live schedule cards
 
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import {
-  Bell, BookOpen, Calendar, ChevronRight, Clock, GraduationCap,
-  MapPin, Star, TrendingUp, Zap, Award, Users
+  Award,
+  Bell,
+  BookOpen,
+  Calendar,
+  ChevronRight,
+  Clock,
+  GraduationCap,
+  MapPin,
+  Star,
+  TrendingUp,
+  Users,
+  Zap,
+  CheckCircle2,
+  Circle,
 } from 'lucide-react-native';
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
-  Platform, Pressable, RefreshControl, ScrollView,
-  StatusBar, StyleSheet, Text, View,
+  Dimensions,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  View,
+  Image,
 } from 'react-native';
 import Animated, {
-  FadeIn, FadeInDown, FadeInUp,
+  Extrapolation,
+  FadeIn,
+  FadeInDown,
+  FadeInUp,
+  interpolate,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
-  withTiming,
-  interpolate,
-  Extrapolation,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Animation, Radius, Spacing, Typography } from '@/constants/theme';
+import { useAuthStore } from '@/store/auth.store';
+import { getTodayClasses, getCurrentAndNextClass } from '@/constants/routine';
 import { useTheme } from '@/context/ThemeContext';
-import {
-  Badge, Divider, GlassCard, SectionHeader, SpringButton, StatTile,
-} from '@/components/ui';
+import { Radius, Shadows } from '@/constants/theme';
+import { useAssignments } from '@/hooks/use-assignments';
+import { useAnnouncements } from '@/hooks/queries/use-announcements';
+import { SpringButton } from '@/components/ui';
 
-const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
+const { width: W } = Dimensions.get('window');
+const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView) as any;
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
+// Quick actions list with custom color mappings
 const QUICK_ACTIONS = [
-  { id: 'attendance', label: 'Attendance', icon: Calendar, color: '#6366F1', route: '/attendance' },
-  { id: 'timetable', label: 'Timetable', icon: Clock, color: '#8B5CF6', route: '/(tabs)/timetable' },
-  { id: 'grades', label: 'Grades', icon: Star, color: '#F59E0B', route: '/(tabs)/grades' },
-  { id: 'library', label: 'Library', icon: BookOpen, color: '#10B981', route: '/(tabs)/library' },
+  { id: 'attendance', label: 'Attendance', icon: Calendar,    color: '#6366F1', route: '/attendance' },
+  { id: 'timetable',  label: 'Timetable',  icon: Clock,       color: '#3B82F6', route: '/(tabs)/courses' },
+  { id: 'grades',     label: 'Grades',     icon: Star,        color: '#F59E0B', route: '/(tabs)/courses' },
+  { id: 'library',    label: 'Library',    icon: BookOpen,    color: '#10B981', route: '/(tabs)/courses' },
+  { id: 'results',    label: 'Results',    icon: TrendingUp,  color: '#A78BFA', route: '/(tabs)/courses' },
+  { id: 'community',  label: 'Community',  icon: Users,       color: '#F472B6', route: '/(tabs)/courses' },
 ];
 
-const UPCOMING_CLASSES = [
-  { id: '1', subject: 'Data Structures', time: '9:00 AM', room: 'CS-301', instructor: 'Dr. Mehta', color: '#6366F1' },
-  { id: '2', subject: 'Linear Algebra', time: '11:00 AM', room: 'MA-102', instructor: 'Prof. Sharma', color: '#8B5CF6' },
-  { id: '3', subject: 'OS Lab', time: '2:00 PM', room: 'CS-Lab-2', instructor: 'Dr. Patel', color: '#10B981' },
-];
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
 
-const ANNOUNCEMENTS = [
-  { id: '1', title: 'Mid-semester exams schedule released', time: '2h ago', category: 'Exam', urgent: true },
-  { id: '2', title: 'Sports Day registration open until Friday', time: '5h ago', category: 'Event', urgent: false },
-  { id: '3', title: 'Library will be closed on Saturday', time: '1d ago', category: 'Notice', urgent: false },
-];
+function getRelativeTime(value: string): string {
+  const diffMs = Date.now() - new Date(value).getTime();
+  const minutes = Math.max(1, Math.round(diffMs / 60000));
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
+}
 
 export function HomeScreen() {
   const { theme, isDark } = useTheme();
@@ -61,364 +88,911 @@ export function HomeScreen() {
   const scrollY = useSharedValue(0);
   const [refreshing, setRefreshing] = React.useState(false);
 
-  const scrollHandler = useAnimatedScrollHandler((event) => {
-    scrollY.value = event.contentOffset.y;
+  const profile = useAuthStore((s) => s.profile);
+  const todayClasses = getTodayClasses();
+  const { pending, toggleComplete } = useAssignments();
+  const { data: announcements = [] } = useAnnouncements();
+
+  // Get active class info
+  const { current: currentClass } = useMemo(() => getCurrentAndNextClass(), []);
+
+  const scrollHandler = useAnimatedScrollHandler((e) => {
+    scrollY.value = e.contentOffset.y;
   });
 
-  // Header parallax + blur intensity
   const headerStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [0, 80], [1, 0.95], Extrapolation.CLAMP),
-    transform: [{ translateY: interpolate(scrollY.value, [0, 80], [0, -4], Extrapolation.CLAMP) }],
+    opacity: interpolate(scrollY.value, [0, 60], [1, 0.98], Extrapolation.CLAMP),
+    transform: [{ translateY: interpolate(scrollY.value, [0, 60], [0, -2], Extrapolation.CLAMP) }],
   }));
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     setTimeout(() => setRefreshing(false), 1500);
   }, []);
 
-  const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' });
+  const today = new Date().toLocaleDateString('en-IN', {
+    weekday: 'long', month: 'long', day: 'numeric',
+  });
+  const firstName = profile?.full_name?.split(' ')[0] ?? 'Student';
+
+  // Compute stats dynamically
+  const attendanceRate = 87; // Mock attendance rate
+  const pendingCount = pending.length;
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.void }}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.void} />
 
-      {/* ── Fixed Hero Header ── */}
-      <Animated.View style={[{ paddingTop: insets.top + 8 }, headerStyle]}>
-        <LinearGradient
-          colors={theme.colors.gradientHero as any}
-          style={StyleSheet.absoluteFillObject}
-        />
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingHorizontal: Spacing.page.horizontal,
-            paddingBottom: Spacing.xl,
-          }}>
-          <Animated.View entering={FadeInDown.duration(500).delay(100)}>
-            <Text style={[Typography.label.lg, { color: theme.colors.textTertiary, textTransform: 'uppercase', letterSpacing: 1.2 }]}>
-              {today}
-            </Text>
-            <Text style={[Typography.display.small, { color: theme.colors.textPrimary, marginTop: 2 }]}>
-              Good morning, {'\n'}Arjun 👋
-            </Text>
+      {/* ── Fixed Premium Header ── */}
+      <Animated.View style={[{ paddingTop: insets.top + 8, backgroundColor: 'transparent', zIndex: 10 }, headerStyle]}>
+        {isDark ? (
+          <LinearGradient
+            colors={['#000000', '#050a12', 'transparent']}
+            locations={[0, 0.75, 1]}
+            style={[StyleSheet.absoluteFillObject, { height: 155 }]}
+          />
+        ) : (
+          <LinearGradient
+            colors={['#F2F2F7', '#e8e8f2', 'transparent']}
+            locations={[0, 0.75, 1]}
+            style={[StyleSheet.absoluteFillObject, { height: 155 }]}
+          />
+        )}
+
+        <View style={ss.headerRow}>
+          <Animated.View entering={FadeInDown.duration(500).delay(80)}>
+            <Text style={[ss.dateLabel, { color: theme.colors.textTertiary }]}>{today}</Text>
+            <Text style={[ss.greeting, { color: theme.colors.textSecondary }]}>{getGreeting()},</Text>
+            <Text style={[ss.greetingName, { color: theme.colors.textPrimary }]}>{firstName} 👋</Text>
           </Animated.View>
 
-          <Animated.View
-            entering={FadeIn.duration(500).delay(200)}
-            style={{ flexDirection: 'row', gap: 10 }}>
-            {/* Notification bell */}
-            <SpringButton
-              onPress={() => router.push('/(tabs)/notifications' as any)}
-              style={{
-                width: 44, height: 44, borderRadius: 22,
-                backgroundColor: theme.colors.glass,
-                borderWidth: 1,
+          <Animated.View entering={FadeIn.duration(500).delay(180)} style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+            <Pressable
+              onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+              onPress={() => router.push('/(tabs)/profile' as any)}
+              style={[ss.headerBtn, {
+                backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
                 borderColor: theme.colors.glassBorder,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
+              }]}
+            >
               <Bell color={theme.colors.textPrimary} size={20} strokeWidth={1.8} />
-              {/* Unread dot */}
-              <View style={{
-                position: 'absolute', top: 10, right: 10,
-                width: 8, height: 8, borderRadius: 4,
-                backgroundColor: theme.colors.danger,
-                borderWidth: 1.5,
-                borderColor: theme.colors.void,
-              }} />
-            </SpringButton>
+              <View style={[ss.notifDot, { borderColor: theme.colors.void }]} />
+            </Pressable>
+
+            {profile?.avatar_url ? (
+              <Pressable
+                onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                onPress={() => router.push('/(tabs)/profile' as any)}
+              >
+                <Image
+                  source={{ uri: profile.avatar_url }}
+                  style={[ss.avatarImg, { borderColor: theme.colors.glassBorder }]}
+                />
+              </Pressable>
+            ) : (
+              <Pressable
+                onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                onPress={() => router.push('/(tabs)/profile' as any)}
+                style={[ss.avatarFallback, {
+                  backgroundColor: theme.colors.primaryMuted,
+                  borderColor: theme.colors.glassBorder,
+                }]}
+              >
+                <Text style={[ss.avatarFallbackText, { color: theme.colors.primaryLight }]}>
+                  {firstName.charAt(0)}
+                </Text>
+              </Pressable>
+            )}
           </Animated.View>
         </View>
 
-        {/* CGPA / Semester Pill */}
-        <Animated.View
-          entering={FadeInUp.duration(400).delay(250)}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 8,
-            paddingHorizontal: Spacing.page.horizontal,
-            paddingBottom: Spacing.lg,
-          }}>
-          <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            backgroundColor: theme.colors.primaryMuted,
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            borderRadius: Radius.pill,
-            borderWidth: 1,
-            borderColor: `${theme.colors.primary}30`,
-          }}>
-            <GraduationCap color={theme.colors.primaryLight} size={14} />
-            <Text style={[Typography.label.md, { color: theme.colors.primaryLight }]}>
-              Semester 5 · CSE
+        {/* BBIT Meta Pills */}
+        <Animated.View entering={FadeInUp.duration(400).delay(220)} style={ss.pillRow}>
+          <View style={[ss.pill, {
+            backgroundColor: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(79,70,229,0.06)',
+            borderColor: isDark ? 'rgba(99,102,241,0.18)' : 'rgba(79,70,229,0.12)',
+          }]}>
+            <GraduationCap color={theme.colors.primaryLight} size={13} strokeWidth={2} />
+            <Text style={[ss.pillText, { color: theme.colors.primaryLight }]}>
+              Sem {profile?.semester || '4'} · {profile?.branch || 'CSE'}
             </Text>
           </View>
-          <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            backgroundColor: theme.colors.goldMuted,
-            paddingHorizontal: 12,
-            paddingVertical: 6,
-            borderRadius: Radius.pill,
-            borderWidth: 1,
-            borderColor: `${theme.colors.gold}30`,
-          }}>
-            <Star color={theme.colors.gold} size={14} fill={theme.colors.gold} />
-            <Text style={[Typography.label.md, { color: theme.colors.gold }]}>
-              CGPA 8.7
+          <View style={[ss.pill, {
+            backgroundColor: isDark ? 'rgba(167,139,250,0.08)' : 'rgba(124,58,237,0.06)',
+            borderColor: isDark ? 'rgba(167,139,250,0.18)' : 'rgba(124,58,237,0.12)',
+          }]}>
+            <Users color={isDark ? theme.colors.accent : '#7C3AED'} size={13} strokeWidth={2} />
+            <Text style={[ss.pillText, { color: isDark ? theme.colors.accent : '#7C3AED' }]}>
+              Sec {profile?.section || 'C'} · {profile?.batch || '2024-2028'}
             </Text>
           </View>
         </Animated.View>
       </Animated.View>
 
-      {/* ── Scrollable Content ── */}
+      {/* ── Scrollable Body ── */}
       <AnimatedScrollView
         onScroll={scrollHandler}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
+        contentContainerStyle={{
+          paddingBottom: 110 + insets.bottom,
+          paddingTop: 10,
+        }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={theme.colors.primary}
+            tintColor={theme.colors.primaryLight}
+            colors={[theme.colors.primary]}
           />
-        }>
-
-        {/* Stat tiles */}
-        <View style={{ paddingHorizontal: Spacing.page.horizontal, marginTop: Spacing.xxl }}>
-          <View style={{ flexDirection: 'row', gap: 12 }}>
-            <StatTile
-              label="Attendance"
-              value="82%"
-              sub="↑ 3% this week"
-              trend="up"
-              color={theme.colors.success}
-              entering={FadeInDown.duration(400).delay(100)}
-              icon={<Calendar color={theme.colors.success} size={16} />}
-            />
-            <StatTile
-              label="Assignments"
-              value="4"
-              sub="Due this week"
-              trend="down"
-              color={theme.colors.warning}
-              entering={FadeInDown.duration(400).delay(160)}
-              icon={<Zap color={theme.colors.warning} size={16} />}
-            />
+        }
+      >
+        {/* ── Academic Overview ── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(180)} style={ss.section}>
+          <View style={ss.sectionRow}>
+            <Text style={[ss.sectionTitle, { color: theme.colors.textPrimary }]}>Academic Overview</Text>
           </View>
-        </View>
+          <View style={ss.statsRow}>
+            {/* Attendance stat */}
+            <View style={[ss.statCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+              <View style={[ss.statIconWrap, { backgroundColor: `${theme.colors.success}12` }]}>
+                <TrendingUp color={theme.colors.success} size={15} strokeWidth={2.2} />
+              </View>
+              <Text style={[ss.statValue, { color: theme.colors.success }]}>{attendanceRate}%</Text>
+              <Text style={[ss.statLabel, { color: theme.colors.textTertiary }]}>Attendance</Text>
+              <Text style={[ss.statSub, { color: theme.colors.textTertiary }]}>Good standing</Text>
+            </View>
 
-        {/* Quick Actions */}
-        <Animated.View
-          entering={FadeInDown.duration(500).delay(200)}
-          style={{ paddingHorizontal: Spacing.page.horizontal, marginTop: Spacing.xxl }}>
-          <SectionHeader title="Quick Access" style={{ marginBottom: Spacing.lg }} />
-          <View style={{ flexDirection: 'row', gap: 10 }}>
+            {/* CGPA stat */}
+            <View style={[ss.statCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+              <View style={[ss.statIconWrap, { backgroundColor: `${theme.colors.info}12` }]}>
+                <Star color={theme.colors.info} size={15} strokeWidth={2.2} />
+              </View>
+              <Text style={[ss.statValue, { color: theme.colors.info }]}>8.4</Text>
+              <Text style={[ss.statLabel, { color: theme.colors.textTertiary }]}>Cur. CGPA</Text>
+              <Text style={[ss.statSub, { color: theme.colors.textTertiary }]}>Sem 3 score</Text>
+            </View>
+
+            {/* Assignments count stat */}
+            <View style={[ss.statCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+              <View style={[ss.statIconWrap, { backgroundColor: `${theme.colors.warning}12` }]}>
+                <Zap color={theme.colors.warning} size={15} strokeWidth={2.2} />
+              </View>
+              <Text style={[ss.statValue, { color: theme.colors.warning }]}>{pendingCount}</Text>
+              <Text style={[ss.statLabel, { color: theme.colors.textTertiary }]}>Due Tasks</Text>
+              <Text style={[ss.statSub, { color: theme.colors.textTertiary }]}>Assignments</Text>
+            </View>
+          </View>
+
+          {/* Progress bar */}
+          <View style={[ss.semProgress, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <View style={ss.semProgressHeader}>
+              <Text style={[ss.semProgressLabel, { color: theme.colors.textSecondary }]}>Semester Progress</Text>
+              <Text style={[ss.semProgressLabel, { color: theme.colors.primaryLight }]}>68%</Text>
+            </View>
+            <View style={ss.semProgressTrack}>
+              <View style={[ss.semProgressFill, { backgroundColor: theme.colors.primaryLight }]} />
+            </View>
+          </View>
+        </Animated.View>
+
+        {/* ── Quick Access Actions ── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(240)} style={ss.section}>
+          <View style={ss.sectionRow}>
+            <Text style={[ss.sectionTitle, { color: theme.colors.textPrimary }]}>Quick Access</Text>
+          </View>
+          <View style={ss.actionsGrid}>
             {QUICK_ACTIONS.map((action, i) => {
-              const Icon = action.icon;
+              const ActionIcon = action.icon;
               return (
-                <Animated.View
-                  key={action.id}
-                  entering={FadeInUp.duration(400).delay(i * 60 + 220)}
-                  style={{ flex: 1 }}>
+                <View key={action.id} style={{ width: (W - 44 - 16) / 3 }}>
                   <SpringButton
                     onPress={() => router.push(action.route as any)}
-                    scaleDown={0.94}>
-                    <View style={{
-                      aspectRatio: 1,
-                      borderRadius: Radius.lg,
-                      backgroundColor: `${action.color}15`,
-                      borderWidth: 1,
-                      borderColor: `${action.color}25`,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 8,
-                    }}>
-                      <View style={{
-                        width: 40, height: 40, borderRadius: 20,
-                        backgroundColor: `${action.color}25`,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}>
-                        <Icon color={action.color} size={20} strokeWidth={1.8} />
+                    scaleDown={0.93}
+                    style={{ flex: 1 }}
+                  >
+                    <View style={[ss.actionTile, {
+                      backgroundColor: theme.colors.surface,
+                      borderColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
+                    }]}>
+                      <View style={[ss.actionIconWrap, { backgroundColor: `${action.color}14` }]}>
+                        <ActionIcon color={action.color} size={20} strokeWidth={2} />
                       </View>
-                      <Text style={[Typography.label.sm, { color: theme.colors.textSecondary, textAlign: 'center' }]}>
+                      <Text style={[ss.actionLabel, { color: theme.colors.textSecondary }]} numberOfLines={1}>
                         {action.label}
                       </Text>
                     </View>
                   </SpringButton>
+                </View>
+              );
+            })}
+          </View>
+        </Animated.View>
+
+        {/* ── Active & Today&apos;s Schedule ── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(300)} style={ss.section}>
+          <View style={ss.sectionRow}>
+            <Text style={[ss.sectionTitle, { color: theme.colors.textPrimary }]}>Today&apos;s Classes</Text>
+            <Pressable
+              onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+              onPress={() => router.push('/(tabs)/courses' as any)}
+              style={ss.sectionAction}
+            >
+              <Text style={[ss.sectionActionText, { color: theme.colors.primaryLight }]}>Schedule</Text>
+              <ChevronRight color={theme.colors.primaryLight} size={14} strokeWidth={2.5} />
+            </Pressable>
+          </View>
+
+          {/* Routine List */}
+          <View style={[ss.scheduleContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            {todayClasses.length === 0 ? (
+              <View style={ss.emptyState}>
+                <Text style={ss.emptyIcon}>🎉</Text>
+                <Text style={[ss.emptyText, { color: theme.colors.textPrimary }]}>No classes today</Text>
+                <Text style={[ss.emptySubText, { color: theme.colors.textTertiary }]}>Enjoy your free time!</Text>
+              </View>
+            ) : (
+              todayClasses.map((cls, i) => {
+                const isActive = currentClass?.subject === cls.subject && currentClass?.time === cls.time;
+                return (
+                  <View key={i}>
+                    <View style={ss.classCard}>
+                      <View style={ss.classTimeCol}>
+                        <Text style={[ss.classTimeStart, { color: isActive ? theme.colors.primaryLight : theme.colors.textPrimary }]}>
+                          {cls.time?.split(' - ')[0]}
+                        </Text>
+                        <Text style={[ss.classTimeEnd, { color: theme.colors.textTertiary }]}>
+                          {cls.time?.split(' - ')[1]}
+                        </Text>
+                      </View>
+
+                      {/* Accent color bar */}
+                      <View style={[ss.classBar, { backgroundColor: cls.color }]} />
+
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={[ss.classSubject, { color: theme.colors.textPrimary }]} numberOfLines={1}>
+                            {cls.subject}
+                          </Text>
+                          {isActive && (
+                            <View style={[ss.liveIndicator, { backgroundColor: `${theme.colors.success}16` }]}>
+                              <View style={[ss.liveDot, { backgroundColor: theme.colors.success }]} />
+                              <Text style={[ss.liveText, { color: theme.colors.success }]}>LIVE</Text>
+                            </View>
+                          )}
+                        </View>
+                        <View style={ss.classMeta}>
+                          <MapPin color={theme.colors.textTertiary} size={11} strokeWidth={2} />
+                          <Text style={[ss.classMetaText, { color: theme.colors.textTertiary }]} numberOfLines={1}>
+                            {cls.room} · {cls.instructor}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    {i < todayClasses.length - 1 && (
+                      <View style={[ss.classDivider, { backgroundColor: theme.colors.border }]} />
+                    )}
+                  </View>
+                );
+              })
+            )}
+          </View>
+        </Animated.View>
+
+        {/* ── Assignments Tracker (NEW Dashboard Component) ── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(350)} style={ss.section}>
+          <View style={ss.sectionRow}>
+            <Text style={[ss.sectionTitle, { color: theme.colors.textPrimary }]}>Pending Assignments</Text>
+            <View style={[ss.countBadge, { backgroundColor: theme.colors.primaryMuted }]}>
+              <Text style={[ss.countBadgeText, { color: theme.colors.primaryLight }]}>{pendingCount}</Text>
+            </View>
+          </View>
+
+          {pending.length === 0 ? (
+            <View style={[ss.assignmentEmpty, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+              <CheckCircle2 color={theme.colors.success} size={28} strokeWidth={1.8} />
+              <Text style={[ss.emptyText, { color: theme.colors.textPrimary, marginTop: 8 }]}>All caught up!</Text>
+              <Text style={[ss.emptySubText, { color: theme.colors.textTertiary }]}>No pending homework assignments</Text>
+            </View>
+          ) : (
+            <View style={ss.assignmentsList}>
+              {pending.slice(0, 3).map((item, i) => {
+                const priorityColor =
+                  item.priority === 'urgent' ? theme.colors.danger :
+                  item.priority === 'high' ? theme.colors.warning :
+                  theme.colors.info;
+
+                const formattedDate = new Date(item.due_date).toLocaleDateString('en-IN', {
+                  month: 'short', day: 'numeric',
+                });
+
+                return (
+                  <Animated.View
+                    key={item.id}
+                    entering={FadeInDown.duration(380).delay(i * 60)}
+                    style={[ss.assignmentCard, {
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.border,
+                    }]}
+                  >
+                    <Pressable
+                      onPress={() => {
+                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+                        toggleComplete(item.id);
+                      }}
+                      style={ss.checkButton}
+                    >
+                      <Circle color={theme.colors.textTertiary} size={20} strokeWidth={1.5} />
+                    </Pressable>
+
+                    <View style={{ flex: 1 }}>
+                      <Text style={[ss.assignmentTitle, { color: theme.colors.textPrimary }]} numberOfLines={1}>
+                        {item.title}
+                      </Text>
+                      <View style={ss.assignmentMeta}>
+                        <View style={[ss.subjectTag, { backgroundColor: `${theme.colors.primary}12` }]}>
+                          <Text style={[ss.subjectTagText, { color: theme.colors.primaryLight }]}>
+                            {item.subject_name}
+                          </Text>
+                        </View>
+                        <View style={ss.dotSeparator} />
+                        <Clock color={theme.colors.textTertiary} size={11} />
+                        <Text style={[ss.dueText, { color: theme.colors.textTertiary }]}>
+                          Due {formattedDate}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Priority Indicator */}
+                    <View style={[ss.priorityPill, { backgroundColor: `${priorityColor}14`, borderColor: `${priorityColor}30` }]}>
+                      <Text style={[ss.priorityText, { color: priorityColor }]}>
+                        {item.priority}
+                      </Text>
+                    </View>
+                  </Animated.View>
+                );
+              })}
+            </View>
+          )}
+        </Animated.View>
+
+        {/* ── Recent Notices ── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(380)} style={ss.section}>
+          <View style={ss.sectionRow}>
+            <Text style={[ss.sectionTitle, { color: theme.colors.textPrimary }]}>Recent Notices</Text>
+          </View>
+          <View style={{ gap: 10 }}>
+            {announcements.slice(0, 3).map((item, i) => {
+              const urgent = item.priority === 'urgent' || item.priority === 'high';
+              const catColor = urgent ? theme.colors.danger : theme.colors.primaryLight;
+              return (
+                <Animated.View
+                  key={item.id}
+                  entering={FadeInDown.duration(380).delay(i * 60 + 200)}
+                  style={[ss.annoCard, {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: urgent ? `${theme.colors.danger}20` : theme.colors.border,
+                  }]}
+                >
+                  {urgent && <View style={[ss.urgentStripe, { backgroundColor: theme.colors.danger }]} />}
+                  <View style={[ss.annoCatDot, { backgroundColor: `${catColor}12` }]}>
+                    <Bell color={catColor} size={15} strokeWidth={2} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[ss.annoTitle, { color: theme.colors.textPrimary }]} numberOfLines={2}>
+                      {item.title}
+                    </Text>
+                    <View style={ss.annoMeta}>
+                      <View style={[ss.annoCatPill, {
+                        backgroundColor: `${catColor}12`,
+                        borderColor: `${catColor}24`,
+                      }]}>
+                        <Text style={[ss.annoCatText, { color: catColor }]}>{item.priority}</Text>
+                      </View>
+                      <Text style={[ss.annoTime, { color: theme.colors.textTertiary }]}>{getRelativeTime(item.created_at)}</Text>
+                    </View>
+                  </View>
                 </Animated.View>
               );
             })}
           </View>
         </Animated.View>
 
-        {/* Today's Schedule */}
-        <Animated.View
-          entering={FadeInDown.duration(500).delay(300)}
-          style={{ paddingHorizontal: Spacing.page.horizontal, marginTop: Spacing.xxxl }}>
-          <SectionHeader
-            title="Today's Classes"
-            action="Full Schedule"
-            onAction={() => router.push('/(tabs)/timetable' as any)}
-            style={{ marginBottom: Spacing.lg }}
-          />
+        {/* ── Campus Tech Fest Spotlight ── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(440)} style={[ss.section, { marginBottom: 12 }]}>
+          <View style={[ss.spotlightCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            {/* Glow Orbs */}
+            <View style={[ss.spotlightGlow, { backgroundColor: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(79,70,229,0.05)' }]} />
 
-          <GlassCard intensity={15} padding={0} radius={Radius.xl}>
-            {UPCOMING_CLASSES.map((cls, i) => (
-              <Animated.View
-                key={cls.id}
-                entering={FadeInDown.duration(350).delay(i * 70 + 320)}>
-                <Pressable>
-                  <View style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    padding: Spacing.lg,
-                    gap: Spacing.md,
-                  }}>
-                    {/* Time indicator */}
-                    <View style={{ width: 52, alignItems: 'center' }}>
-                      <Text style={[Typography.label.sm, { color: cls.color, fontWeight: '700' }]}>
-                        {cls.time.split(' ')[0]}
-                      </Text>
-                      <Text style={[Typography.label.xs, { color: theme.colors.textTertiary }]}>
-                        {cls.time.split(' ')[1]}
-                      </Text>
-                    </View>
-
-                    {/* Color bar */}
-                    <View style={{
-                      width: 3,
-                      height: 44,
-                      borderRadius: 2,
-                      backgroundColor: cls.color,
-                    }} />
-
-                    {/* Details */}
-                    <View style={{ flex: 1 }}>
-                      <Text style={[Typography.headline.sm, { color: theme.colors.textPrimary }]}>
-                        {cls.subject}
-                      </Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
-                        <MapPin color={theme.colors.textTertiary} size={11} />
-                        <Text style={[Typography.body.sm, { color: theme.colors.textTertiary }]}>
-                          {cls.room} · {cls.instructor}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <ChevronRight color={theme.colors.textTertiary} size={16} />
-                  </View>
-                  {i < UPCOMING_CLASSES.length - 1 && (
-                    <View style={{ height: 1, backgroundColor: theme.colors.border, marginLeft: 80 }} />
-                  )}
-                </Pressable>
-              </Animated.View>
-            ))}
-          </GlassCard>
-        </Animated.View>
-
-        {/* Announcements */}
-        <Animated.View
-          entering={FadeInDown.duration(500).delay(400)}
-          style={{ paddingHorizontal: Spacing.page.horizontal, marginTop: Spacing.xxxl }}>
-          <SectionHeader
-            title="Announcements"
-            action="All"
-            style={{ marginBottom: Spacing.lg }}
-          />
-
-          <View style={{ gap: 10 }}>
-            {ANNOUNCEMENTS.map((item, i) => (
-              <Animated.View
-                key={item.id}
-                entering={FadeInDown.duration(350).delay(i * 60 + 420)}>
-                <SpringButton scaleDown={0.98}>
-                  <View style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    backgroundColor: theme.colors.surface,
-                    borderRadius: Radius.lg,
-                    padding: Spacing.lg,
-                    borderWidth: 1,
-                    borderColor: item.urgent ? `${theme.colors.danger}30` : theme.colors.border,
-                    gap: Spacing.md,
-                  }}>
-                    <View style={{
-                      width: 40, height: 40, borderRadius: Radius.sm,
-                      backgroundColor: item.urgent ? theme.colors.dangerMuted : theme.colors.primaryMuted,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      <Bell
-                        color={item.urgent ? theme.colors.danger : theme.colors.primary}
-                        size={18}
-                        strokeWidth={1.8}
-                      />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[Typography.body.md, { color: theme.colors.textPrimary }]} numberOfLines={2}>
-                        {item.title}
-                      </Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                        <Badge
-                          label={item.category}
-                          color={item.urgent ? theme.colors.danger : theme.colors.primary}
-                        />
-                        <Text style={[Typography.caption, { color: theme.colors.textTertiary }]}>
-                          {item.time}
-                        </Text>
-                      </View>
-                    </View>
-                    <ChevronRight color={theme.colors.textTertiary} size={16} />
-                  </View>
-                </SpringButton>
-              </Animated.View>
-            ))}
-          </View>
-        </Animated.View>
-
-        {/* Campus Activity strip */}
-        <Animated.View
-          entering={FadeInDown.duration(500).delay(500)}
-          style={{ paddingHorizontal: Spacing.page.horizontal, marginTop: Spacing.xxxl }}>
-          <GlassCard intensity={20} padding={Spacing.xl} radius={Radius.xl} gradient>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <View style={{ flex: 1 }}>
-                <Badge label="Campus Event" color={theme.colors.accent} />
-                <Text style={[Typography.headline.lg, { color: theme.colors.textPrimary, marginTop: 8 }]}>
-                  Annual Tech Fest
-                </Text>
-                <Text style={[Typography.body.sm, { color: theme.colors.textSecondary, marginTop: 4 }]}>
-                  Register before Nov 20 · 200+ teams expected
-                </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 }}>
-                  <Users color={theme.colors.textTertiary} size={14} />
-                  <Text style={[Typography.label.sm, { color: theme.colors.textTertiary }]}>
-                    347 registered
-                  </Text>
-                </View>
+            <View style={{ flex: 1, zIndex: 2 }}>
+              <View style={ss.spotlightBadge}>
+                <View style={[ss.spotlightBadgeDot, { backgroundColor: theme.colors.primaryLight }]} />
+                <Text style={[ss.spotlightBadgeText, { color: theme.colors.primaryLight }]}>Campus Announcements</Text>
               </View>
-              <LinearGradient
-                colors={[theme.colors.primaryLight, theme.colors.accent]}
-                style={{
-                  width: 64, height: 64, borderRadius: 32,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                <Award color="#fff" size={28} />
-              </LinearGradient>
+              <Text style={[ss.spotlightTitle, { color: theme.colors.textPrimary }]}>BBIT Annual TechFest</Text>
+              <Text style={[ss.spotlightSub, { color: theme.colors.textSecondary }]}>
+                Budge Budge Institute of Technology hackathon registrations are open now!
+              </Text>
+              <View style={ss.spotlightMeta}>
+                <Users color={theme.colors.textTertiary} size={13} />
+                <Text style={[ss.spotlightMetaText, { color: theme.colors.textTertiary }]}>250+ teams registered</Text>
+              </View>
             </View>
-          </GlassCard>
+
+            <LinearGradient
+              colors={[theme.colors.primaryLight, theme.colors.primaryDark]}
+              style={ss.spotlightIcon}
+            >
+              <Award color="#fff" size={24} strokeWidth={2} />
+            </LinearGradient>
+          </View>
         </Animated.View>
       </AnimatedScrollView>
     </View>
   );
 }
+
+const ss = StyleSheet.create({
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingHorizontal: 22,
+    paddingBottom: 10,
+    paddingTop: 8,
+  },
+  dateLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 4,
+  },
+  greeting: {
+    fontSize: 16,
+    fontWeight: '500',
+    letterSpacing: -0.2,
+  },
+  greetingName: {
+    fontSize: 26,
+    fontWeight: '700',
+    letterSpacing: -0.6,
+    marginTop: 1,
+  },
+  headerBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  notifDot: {
+    position: 'absolute',
+    top: 10,
+    right: 11,
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#EF4444',
+    borderWidth: 1.5,
+  },
+  avatarImg: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1.5,
+  },
+  avatarFallback: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarFallbackText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  pillRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 22,
+    paddingBottom: 14,
+  },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: Radius.circle,
+  },
+  pillText: {
+    fontSize: 11.5,
+    fontWeight: '600',
+  },
+  section: {
+    paddingHorizontal: 22,
+    marginTop: 24,
+  },
+  sectionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+  },
+  sectionAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  sectionActionText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: Radius.lg,
+    padding: 12,
+    borderWidth: 1,
+    gap: 3,
+    ...Shadows.cardLight,
+  },
+  statIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: Radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    letterSpacing: -0.4,
+  },
+  statLabel: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.2,
+  },
+  statSub: {
+    fontSize: 9.5,
+    marginTop: 1,
+  },
+  semProgress: {
+    borderRadius: Radius.md,
+    padding: 12,
+    borderWidth: 1,
+    ...Shadows.cardLight,
+  },
+  semProgressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  semProgressLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  semProgressTrack: {
+    height: 5,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 2.5,
+    overflow: 'hidden',
+  },
+  semProgressFill: {
+    height: 5,
+    width: '68%',
+    borderRadius: 2.5,
+  },
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  actionTile: {
+    borderRadius: Radius.lg,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    gap: 8,
+  },
+  actionIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionLabel: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  scheduleContainer: {
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    overflow: 'hidden',
+    ...Shadows.card,
+  },
+  classCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  classTimeCol: {
+    width: 48,
+    alignItems: 'center',
+  },
+  classTimeStart: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  classTimeEnd: {
+    fontSize: 10.5,
+    marginTop: 1,
+  },
+  classBar: {
+    width: 3.5,
+    height: 38,
+    borderRadius: Radius.circle,
+  },
+  classSubject: {
+    fontSize: 14,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+  },
+  classMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 3,
+  },
+  classMetaText: {
+    fontSize: 11,
+  },
+  classDivider: {
+    height: 1,
+    marginLeft: 78,
+    marginRight: 16,
+  },
+  liveIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: Radius.xs,
+  },
+  liveDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  liveText: {
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 28,
+  },
+  emptyIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  emptyText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  emptySubText: {
+    fontSize: 12,
+  },
+  countBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: Radius.pill,
+  },
+  countBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  assignmentEmpty: {
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    alignItems: 'center',
+    paddingVertical: 32,
+    ...Shadows.card,
+  },
+  assignmentsList: {
+    gap: 8,
+  },
+  assignmentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: Radius.lg,
+    padding: 12,
+    borderWidth: 1,
+    gap: 12,
+    ...Shadows.cardLight,
+  },
+  checkButton: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  assignmentTitle: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    letterSpacing: -0.1,
+  },
+  assignmentMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  subjectTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: Radius.xs,
+  },
+  subjectTagText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  dotSeparator: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: 'rgba(0,0,0,0.15)',
+  },
+  dueText: {
+    fontSize: 11,
+  },
+  priorityPill: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: Radius.xs,
+    borderWidth: 0.5,
+  },
+  priorityText: {
+    fontSize: 9,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  annoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: Radius.lg,
+    padding: 14,
+    borderWidth: 1,
+    gap: 12,
+    overflow: 'hidden',
+    ...Shadows.cardLight,
+  },
+  urgentStripe: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3.5,
+    borderTopLeftRadius: Radius.lg,
+    borderBottomLeftRadius: Radius.lg,
+  },
+  annoCatDot: {
+    width: 36,
+    height: 36,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  annoTitle: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    lineHeight: 18,
+    marginBottom: 6,
+  },
+  annoMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  annoCatPill: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: Radius.xs,
+    borderWidth: 0.5,
+  },
+  annoCatText: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.2,
+  },
+  annoTime: {
+    fontSize: 11,
+  },
+  spotlightCard: {
+    borderRadius: Radius.xl,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    borderWidth: 1,
+    overflow: 'hidden',
+    ...Shadows.card,
+  },
+  spotlightGlow: {
+    position: 'absolute',
+    top: -20,
+    right: 20,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+  },
+  spotlightBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 6,
+  },
+  spotlightBadgeDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  spotlightBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  spotlightTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.4,
+    marginBottom: 4,
+  },
+  spotlightSub: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginBottom: 8,
+  },
+  spotlightMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  spotlightMetaText: {
+    fontSize: 11.5,
+  },
+  spotlightIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+});
