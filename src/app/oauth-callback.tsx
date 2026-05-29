@@ -1,3 +1,4 @@
+// WebBrowser.maybeCompleteAuthSession() was moved to _layout.tsx for global execution context
 import { supabase } from '@/lib/supabase';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -16,6 +17,7 @@ function callbackLog(message: string, details?: Record<string, unknown>) {
 // This screen handles two scenarios:
 //
 // 1. openAuthSessionAsync DID intercept the redirect (normal path).
+//    → maybeCompleteAuthSession() above signalled the waiting openAuthSessionAsync().
 //    → signInWithGoogle() already called exchangeCodeForSession().
 //    → onAuthStateChange(SIGNED_IN) fired → AuthHydrator set the profile.
 //    → The store's auth-guard immediately navigates away from this screen.

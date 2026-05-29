@@ -51,19 +51,21 @@ import { useTheme } from '@/context/ThemeContext';
 import { Radius, Shadows } from '@/constants/theme';
 import { useAssignments } from '@/hooks/use-assignments';
 import { useAnnouncements } from '@/hooks/queries/use-announcements';
+import { useUnreadNotificationCount } from '@/hooks/queries/use-notifications';
+import { useStudentStats } from '@/hooks/queries/use-student-stats';
 import { SpringButton } from '@/components/ui';
 
 const { width: W } = Dimensions.get('window');
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView) as any;
 
-// Quick actions list with custom color mappings
+// Quick actions — all routes verified as real screens
 const QUICK_ACTIONS = [
-  { id: 'attendance', label: 'Attendance', icon: Calendar,    color: '#6366F1', route: '/attendance' },
-  { id: 'timetable',  label: 'Timetable',  icon: Clock,       color: '#3B82F6', route: '/(tabs)/courses' },
-  { id: 'grades',     label: 'Grades',     icon: Star,        color: '#F59E0B', route: '/(tabs)/courses' },
-  { id: 'library',    label: 'Library',    icon: BookOpen,    color: '#10B981', route: '/(tabs)/courses' },
-  { id: 'results',    label: 'Results',    icon: TrendingUp,  color: '#A78BFA', route: '/(tabs)/courses' },
-  { id: 'community',  label: 'Community',  icon: Users,       color: '#F472B6', route: '/(tabs)/courses' },
+  { id: 'attendance', label: 'Attendance',   icon: Calendar,    color: '#6366F1', route: '/attendance' },
+  { id: 'timetable',  label: 'Timetable',    icon: Clock,       color: '#3B82F6', route: '/(tabs)/courses' },
+  { id: 'notices',    label: 'Notices',      icon: BookOpen,    color: '#10B981', route: '/(tabs)/courses' },
+  { id: 'notifs',     label: 'Alerts',       icon: Star,        color: '#F59E0B', route: '/notifications' },
+  { id: 'profile',    label: 'My Profile',   icon: TrendingUp,  color: '#A78BFA', route: '/(tabs)/profile' },
+  { id: 'settings',   label: 'Settings',     icon: Users,       color: '#F472B6', route: '/(tabs)/settings' },
 ];
 
 function getGreeting(): string {
@@ -92,6 +94,8 @@ export function HomeScreen() {
   const todayClasses = getTodayClasses();
   const { pending, toggleComplete } = useAssignments();
   const { data: announcements = [] } = useAnnouncements();
+  const { data: unreadCount = 0 } = useUnreadNotificationCount();
+  const { data: stats, isLoading: statsLoading } = useStudentStats();
 
   // Get active class info
   const { current: currentClass } = useMemo(() => getCurrentAndNextClass(), []);
@@ -116,8 +120,10 @@ export function HomeScreen() {
   });
   const firstName = profile?.full_name?.split(' ')[0] ?? 'Student';
 
-  // Compute stats dynamically
-  const attendanceRate = 87; // Mock attendance rate
+  // Real stats — null means not yet set in DB (no fake fallbacks)
+  const attendanceRate = stats?.attendance_pct ?? null;
+  const cgpa = stats?.cgpa ?? null;
+  const semProgress = stats?.semester_progress ?? null;
   const pendingCount = pending.length;
 
   return (
@@ -150,14 +156,17 @@ export function HomeScreen() {
           <Animated.View entering={FadeIn.duration(500).delay(180)} style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
             <Pressable
               onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-              onPress={() => router.push('/(tabs)/profile' as any)}
+              onPress={() => router.push('/notifications' as any)}
               style={[ss.headerBtn, {
                 backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
                 borderColor: theme.colors.glassBorder,
               }]}
             >
               <Bell color={theme.colors.textPrimary} size={20} strokeWidth={1.8} />
-              <View style={[ss.notifDot, { borderColor: theme.colors.void }]} />
+              {unreadCount > 0 && (
+                <View style={[ss.notifDot, { borderColor: theme.colors.void }]}>
+                </View>
+              )}
             </Pressable>
 
             {profile?.avatar_url ? (
@@ -239,9 +248,17 @@ export function HomeScreen() {
               <View style={[ss.statIconWrap, { backgroundColor: `${theme.colors.success}12` }]}>
                 <TrendingUp color={theme.colors.success} size={15} strokeWidth={2.2} />
               </View>
-              <Text style={[ss.statValue, { color: theme.colors.success }]}>{attendanceRate}%</Text>
+              {statsLoading ? (
+                <View style={[ss.statSkeleton, { backgroundColor: theme.colors.border }]} />
+              ) : (
+                <Text style={[ss.statValue, { color: theme.colors.success }]}>
+                  {attendanceRate !== null ? `${attendanceRate.toFixed(1)}%` : '—'}
+                </Text>
+              )}
               <Text style={[ss.statLabel, { color: theme.colors.textTertiary }]}>Attendance</Text>
-              <Text style={[ss.statSub, { color: theme.colors.textTertiary }]}>Good standing</Text>
+              <Text style={[ss.statSub, { color: theme.colors.textTertiary }]}>
+                {attendanceRate !== null ? (attendanceRate >= 75 ? 'Good standing' : 'Low — risk!') : 'Not tracked'}
+              </Text>
             </View>
 
             {/* CGPA stat */}
@@ -249,9 +266,17 @@ export function HomeScreen() {
               <View style={[ss.statIconWrap, { backgroundColor: `${theme.colors.info}12` }]}>
                 <Star color={theme.colors.info} size={15} strokeWidth={2.2} />
               </View>
-              <Text style={[ss.statValue, { color: theme.colors.info }]}>8.4</Text>
-              <Text style={[ss.statLabel, { color: theme.colors.textTertiary }]}>Cur. CGPA</Text>
-              <Text style={[ss.statSub, { color: theme.colors.textTertiary }]}>Sem 3 score</Text>
+              {statsLoading ? (
+                <View style={[ss.statSkeleton, { backgroundColor: theme.colors.border }]} />
+              ) : (
+                <Text style={[ss.statValue, { color: theme.colors.info }]}>
+                  {cgpa !== null ? cgpa.toFixed(2) : '—'}
+                </Text>
+              )}
+              <Text style={[ss.statLabel, { color: theme.colors.textTertiary }]}>CGPA</Text>
+              <Text style={[ss.statSub, { color: theme.colors.textTertiary }]}>
+                {cgpa !== null ? 'Current semester' : 'Not available'}
+              </Text>
             </View>
 
             {/* Assignments count stat */}
@@ -265,14 +290,19 @@ export function HomeScreen() {
             </View>
           </View>
 
-          {/* Progress bar */}
+          {/* Semester Progress bar */}
           <View style={[ss.semProgress, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
             <View style={ss.semProgressHeader}>
               <Text style={[ss.semProgressLabel, { color: theme.colors.textSecondary }]}>Semester Progress</Text>
-              <Text style={[ss.semProgressLabel, { color: theme.colors.primaryLight }]}>68%</Text>
+              <Text style={[ss.semProgressLabel, { color: theme.colors.primaryLight }]}>
+                {semProgress !== null ? `${semProgress.toFixed(0)}%` : '—'}
+              </Text>
             </View>
             <View style={ss.semProgressTrack}>
-              <View style={[ss.semProgressFill, { backgroundColor: theme.colors.primaryLight }]} />
+              <View style={[ss.semProgressFill, {
+                backgroundColor: theme.colors.primaryLight,
+                width: semProgress !== null ? `${semProgress}%` : '0%',
+              }]} />
             </View>
           </View>
         </Animated.View>
@@ -499,35 +529,47 @@ export function HomeScreen() {
           </View>
         </Animated.View>
 
-        {/* ── Campus Tech Fest Spotlight ── */}
-        <Animated.View entering={FadeInDown.duration(500).delay(440)} style={[ss.section, { marginBottom: 12 }]}>
-          <View style={[ss.spotlightCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-            {/* Glow Orbs */}
-            <View style={[ss.spotlightGlow, { backgroundColor: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(79,70,229,0.05)' }]} />
+        {/* ── Dynamic Featured Announcement Spotlight ── */}
+        {announcements.length > 0 && (() => {
+          const featured = announcements.find((a) => a.is_pinned) ?? announcements[0];
+          return (
+            <Animated.View entering={FadeInDown.duration(500).delay(440)} style={[ss.section, { marginBottom: 12 }]}>
+              <View style={[ss.spotlightCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                {/* Glow Orbs */}
+                <View style={[ss.spotlightGlow, { backgroundColor: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(79,70,229,0.05)' }]} />
 
-            <View style={{ flex: 1, zIndex: 2 }}>
-              <View style={ss.spotlightBadge}>
-                <View style={[ss.spotlightBadgeDot, { backgroundColor: theme.colors.primaryLight }]} />
-                <Text style={[ss.spotlightBadgeText, { color: theme.colors.primaryLight }]}>Campus Announcements</Text>
-              </View>
-              <Text style={[ss.spotlightTitle, { color: theme.colors.textPrimary }]}>BBIT Annual TechFest</Text>
-              <Text style={[ss.spotlightSub, { color: theme.colors.textSecondary }]}>
-                Budge Budge Institute of Technology hackathon registrations are open now!
-              </Text>
-              <View style={ss.spotlightMeta}>
-                <Users color={theme.colors.textTertiary} size={13} />
-                <Text style={[ss.spotlightMetaText, { color: theme.colors.textTertiary }]}>250+ teams registered</Text>
-              </View>
-            </View>
+                <View style={{ flex: 1, zIndex: 2 }}>
+                  <View style={ss.spotlightBadge}>
+                    <View style={[ss.spotlightBadgeDot, { backgroundColor: theme.colors.primaryLight }]} />
+                    <Text style={[ss.spotlightBadgeText, { color: theme.colors.primaryLight }]}>
+                      {featured.is_pinned ? 'Pinned Notice' : 'Latest Notice'}
+                    </Text>
+                  </View>
+                  <Text style={[ss.spotlightTitle, { color: theme.colors.textPrimary }]} numberOfLines={2}>
+                    {featured.title}
+                  </Text>
+                  <Text style={[ss.spotlightSub, { color: theme.colors.textSecondary }]} numberOfLines={2}>
+                    {featured.body}
+                  </Text>
+                  <View style={ss.spotlightMeta}>
+                    <Clock color={theme.colors.textTertiary} size={11} />
+                    <Text style={[ss.spotlightMetaText, { color: theme.colors.textTertiary }]}>
+                      {getRelativeTime(featured.created_at)}
+                      {featured.author_name ? ` · ${featured.author_name}` : ''}
+                    </Text>
+                  </View>
+                </View>
 
-            <LinearGradient
-              colors={[theme.colors.primaryLight, theme.colors.primaryDark]}
-              style={ss.spotlightIcon}
-            >
-              <Award color="#fff" size={24} strokeWidth={2} />
-            </LinearGradient>
-          </View>
-        </Animated.View>
+                <LinearGradient
+                  colors={[theme.colors.primaryLight, theme.colors.primaryDark]}
+                  style={ss.spotlightIcon}
+                >
+                  <Award color="#fff" size={24} strokeWidth={2} />
+                </LinearGradient>
+              </View>
+            </Animated.View>
+          );
+        })()}
       </AnimatedScrollView>
     </View>
   );
@@ -698,7 +740,6 @@ const ss = StyleSheet.create({
   },
   semProgressFill: {
     height: 5,
-    width: '68%',
     borderRadius: 2.5,
   },
   actionsGrid: {
@@ -995,4 +1036,12 @@ const ss = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
+  // Skeleton loader for stat cards while data loads
+  statSkeleton: {
+    height: 22,
+    width: 48,
+    borderRadius: 6,
+    marginVertical: 2,
+  },
 });
+

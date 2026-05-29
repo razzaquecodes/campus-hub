@@ -25,6 +25,71 @@ function AuthHydrator({ children }: { children: React.ReactNode }) {
     let mounted = true;
     let authSubscription: { unsubscribe: () => void } | null = null;
 
+    // ── Helper: load profile + MAKAUT profile, then mark hydrated ──────────────
+    // This is extracted so we can call it from BOTH the onAuthStateChange handler
+    // AND the initial getSession() check, with consistent behaviour.
+    //
+    // KEY FIX for Race Condition RC-1:
+    //   setIsHydrated(true) is called INSIDE this function, AFTER setProfile().
+    //   This prevents the window where isHydrated=true but profile=null, which
+    //   caused index.tsx to flash the login screen for authenticated users.
+    //
+    const loadProfileAndMarkHydrated = async (markHydrated: boolean) => {
+      if (profileLoading.current) {
+        hydratorLog('Profile load already in progress — skipping duplicate');
+        return;
+      }
+
+      profileLoading.current = true;
+      try {
+        hydratorLog('Loading profile...');
+        const profile = await getPersistedSession();
+        if (mounted && profile) {
+          hydratorLog('Profile loaded', {
+            userId: profile.id,
+            email: profile.email,
+          });
+          setProfile(profile);
+
+          // Load MAKAUT profile (non-fatal if it fails)
+          try {
+            const mProfile = await getMakautProfile(profile.id);
+            if (mounted) {
+              hydratorLog('MAKAUT profile loaded', {
+                hasMakaut: Boolean(mProfile),
+              });
+              setMakautProfile(mProfile);
+            }
+          } catch (e) {
+            hydratorLog('MAKAUT profile load failed (non-fatal)', {
+              error: e instanceof Error ? e.message : String(e),
+            });
+          }
+        } else if (mounted) {
+          const currentProfile = useAuthStore.getState().profile;
+          if (currentProfile?.id !== 'guest-id') {
+            hydratorLog('Profile load returned null');
+            setProfile(null);
+          } else {
+            hydratorLog('Preserving guest profile');
+          }
+        }
+      } catch (e) {
+        hydratorLog('Profile load failed (non-fatal)', {
+          error: e instanceof Error ? e.message : String(e),
+        });
+      } finally {
+        profileLoading.current = false;
+        // Only mark hydrated from this call if requested.
+        // The onAuthStateChange path does NOT mark hydrated (the initial
+        // getSession() path is responsible for that on cold start).
+        if (markHydrated && mounted) {
+          hydratorLog('Marking isHydrated=true after profile resolution');
+          setIsHydrated(true);
+        }
+      }
+    };
+
     const initAuth = async () => {
       hydratorLog('initAuth started');
 
@@ -37,7 +102,7 @@ function AuthHydrator({ children }: { children: React.ReactNode }) {
 
       // ── Step 0: Register auth state listener FIRST ──────────────────────────
       // Must be registered before any async operations to catch events
-      // that fire during hydration
+      // that fire during hydration (e.g. token refresh on startup)
       hydratorLog('Step 0: Registering auth state listener...');
       const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
         if (!mounted) return;
@@ -50,47 +115,11 @@ function AuthHydrator({ children }: { children: React.ReactNode }) {
 
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (session?.user) {
-            // Guard against concurrent profile loads
-            if (profileLoading.current) {
-              hydratorLog('Profile load already in progress — skipping duplicate');
-              return;
-            }
-
-            profileLoading.current = true;
-            try {
-              hydratorLog('Loading profile after auth state change...');
-              const profile = await getPersistedSession();
-              if (mounted && profile) {
-                hydratorLog('Profile loaded after auth state change', {
-                  userId: profile.id,
-                  email: profile.email,
-                });
-                setProfile(profile);
-
-                // Load MAKAUT profile too
-                try {
-                  const mProfile = await getMakautProfile(profile.id);
-                  if (mounted) {
-                    hydratorLog('MAKAUT profile loaded after auth state change', {
-                      hasMakaut: Boolean(mProfile),
-                    });
-                    setMakautProfile(mProfile);
-                  }
-                } catch (e) {
-                  hydratorLog('MAKAUT profile load failed (non-fatal)', {
-                    error: e instanceof Error ? e.message : String(e),
-                  });
-                }
-              } else if (mounted) {
-                hydratorLog('Profile load returned null after SIGNED_IN');
-              }
-            } catch (e) {
-              hydratorLog('Profile load failed after auth state change (non-fatal)', {
-                error: e instanceof Error ? e.message : String(e),
-              });
-            } finally {
-              profileLoading.current = false;
-            }
+            // Do NOT pass markHydrated=true here: the initial getSession() call
+            // below is responsible for setting isHydrated on cold start.
+            // For post-login events (e.g. after Google OAuth), isHydrated is
+            // already true, so we just need to update the profile.
+            await loadProfileAndMarkHydrated(false);
           }
         } else if (event === 'SIGNED_OUT') {
           hydratorLog('User signed out — clearing profile');
@@ -104,8 +133,11 @@ function AuthHydrator({ children }: { children: React.ReactNode }) {
 
       // ── Step 1: Restore any persisted session from storage ──────────────────
       // This runs once on cold start. Supabase reads AsyncStorage / SecureStore
-      // async, so we wait for getSession() to resolve before marking hydration
-      // done — prevents the race condition that flashes the login screen.
+      // async, so we wait for getSession() to resolve before deciding whether
+      // to load the profile.
+      //
+      // KEY FIX for RC-1: isHydrated is only set after profile resolution,
+      // never before. This is handled inside loadProfileAndMarkHydrated().
       try {
         hydratorLog('Step 1: Checking for persisted session...');
         const { data: { session } } = await supabase.auth.getSession();
@@ -116,50 +148,24 @@ function AuthHydrator({ children }: { children: React.ReactNode }) {
             email: session.user.email,
           });
 
-          // Only load profile during hydration if we're not already loading
-          // (to avoid duplicate load if onAuthStateChange fires immediately)
-          if (!profileLoading.current) {
-            profileLoading.current = true;
-            try {
-              const profile = await getPersistedSession();
-              if (mounted && profile) {
-                hydratorLog('Profile loaded from persisted session', {
-                  userId: profile.id,
-                  email: profile.email,
-                });
-                setProfile(profile);
-
-                // Also load MAKAUT profile during hydration
-                try {
-                  const mProfile = await getMakautProfile(profile.id);
-                  if (mounted) {
-                    hydratorLog('MAKAUT profile loaded during hydration', {
-                      hasMakaut: Boolean(mProfile),
-                    });
-                    setMakautProfile(mProfile);
-                  }
-                } catch (e) {
-                  hydratorLog('MAKAUT profile load failed during hydration (non-fatal)', {
-                    error: e instanceof Error ? e.message : String(e),
-                  });
-                }
-              } else if (mounted) {
-                hydratorLog('Profile load returned null despite session existing');
-              }
-            } finally {
-              profileLoading.current = false;
-            }
-          }
+          // Load profile and mark hydrated after it resolves.
+          // markHydrated=true ensures isHydrated is set only after profile is loaded.
+          await loadProfileAndMarkHydrated(true);
         } else {
           hydratorLog('No persisted session found');
+          // No session — mark hydrated immediately (nothing to load)
+          if (mounted) {
+            hydratorLog('No session — marking isHydrated=true immediately');
+            setIsHydrated(true);
+          }
         }
       } catch (e) {
         hydratorLog('Session restore failed (non-fatal)', {
           error: e instanceof Error ? e.message : String(e),
         });
-      } finally {
+        // Even on error, mark hydrated so app doesn't hang on splash
         if (mounted) {
-          hydratorLog('Hydration complete — marking isHydrated=true');
+          hydratorLog('Error path — marking isHydrated=true');
           setIsHydrated(true);
         }
       }

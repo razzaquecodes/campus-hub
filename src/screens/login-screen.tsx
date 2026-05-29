@@ -2,10 +2,11 @@
 // CampusHub BBIT — Premium Login Screen Redesigned
 // Apple-polished AMOLED dark theme with glassmorphic cards, custom logo animations, and official CTAs.
 
-import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
-import { ShieldCheck, ArrowRight, LogIn } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+// router import removed — navigation is 100% reactive via index.tsx <Redirect>
+import { ArrowRight, LogIn, ShieldCheck } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
@@ -39,9 +40,9 @@ import Svg, {
   TextPath,
 } from 'react-native-svg';
 
-import { useAuthStore } from '@/store/auth.store';
-import { Radius, Shadows } from '@/constants/theme';
 import { SpringButton } from '@/components/ui';
+import { Radius, Shadows } from '@/constants/theme';
+import { useAuthStore } from '@/store/auth.store';
 
 const { height: H } = Dimensions.get('window');
 
@@ -108,7 +109,24 @@ function BBITLogoSVG({ size }: { size: number }) {
 function GoogleMark() {
   return (
     <View style={s.googleMark}>
-      <Text style={s.googleMarkText}>G</Text>
+      <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M12 2.04c2.88 0 5.29 1.05 7.12 2.77l-2.9 2.9A6.9 6.9 0 0 0 12 5.22c-2.07 0-3.83 1.04-4.88 2.6l-2.95-2.29A9.96 9.96 0 0 1 12 2.04Z"
+          fill="#4285F4"
+        />
+        <Path
+          d="M4.94 9.82c-.2.58-.32 1.2-.32 1.84 0 .64.12 1.26.33 1.83l-2.95 2.29A9.948 9.948 0 0 1 2 12.02c0-1.58.34-3.07.94-4.4l1.99 2.2Z"
+          fill="#FBBC05"
+        />
+        <Path
+          d="M12 21.96c2.83 0 5.24-1.05 7.09-2.78l-2.88-2.88A6.934 6.934 0 0 1 12 18.78c-2.04 0-3.8-1.05-4.85-2.64l-1.98 2.19A9.965 9.965 0 0 0 12 21.96Z"
+          fill="#34A853"
+        />
+        <Path
+          d="M21.96 12.02c0-.67-.06-1.31-.18-1.93H12v3.67h5.4c-.23 1.3-1.02 2.4-2.18 3.14l2.88 2.88A9.96 9.96 0 0 0 22 12.02Z"
+          fill="#EA4335"
+        />
+      </Svg>
     </View>
   );
 }
@@ -176,13 +194,13 @@ export function LoginScreen() {
     clearError();
     setGuestLoading(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    setTimeout(() => {
-      signInAsGuest();
-      setGuestLoading(false);
-      // Guest login sets profile in store immediately.
-      // index.tsx will reactively redirect to /(auth)/connect-makaut or /(tabs).
-      console.info('[login] Guest sign-in completed — waiting for reactive navigation');
-    }, 800);
+    // signInAsGuest() is synchronous — calls Zustand set({ profile: guestProfile }) immediately.
+    // index.tsx reads profile from the store reactively and handles navigation via <Redirect>.
+    // We MUST NOT also call router.replace() here — dual navigation causes RL-1 redirect loop
+    // where Expo Router's internal queue sends the user back to the login screen.
+    signInAsGuest();
+    setGuestLoading(false);
+    console.info('[login] Guest sign-in completed — reactive navigation via index.tsx');
   }, [signInAsGuest, clearError]);
 
   return (
@@ -230,7 +248,7 @@ export function LoginScreen() {
 
           {/* Titles */}
           <Animated.View entering={FadeInUp.duration(500).delay(350)} style={s.titleBlock}>
-            <Text style={s.appName}>CampusHub</Text>
+            <Text style={s.appName}>Campus Hub</Text>
             <Text style={s.institutionName}>Budge Budge Institute of Technology</Text>
           </Animated.View>
         </View>
@@ -257,18 +275,13 @@ export function LoginScreen() {
                   disabled={loading || guestLoading}
                   scaleDown={0.96}
                 >
-                  <LinearGradient
-                    colors={['#4F46E5', '#7C3AED']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={[s.primaryCtaBtn, { opacity: loading ? 0.7 : 1 }]}
-                  >
+                  <View style={[s.googleSignInBtn, { opacity: loading ? 0.7 : 1 }]}> 
                     <GoogleMark />
-                    <Text style={s.primaryCtaText}>
-                      {loading ? 'Connecting Google...' : 'Sign In with Google'}
+                    <Text style={s.googleSignInText}>
+                      {loading ? 'Connecting Google...' : 'Sign in with Google'}
                     </Text>
-                    <ArrowRight color="#ffffff" size={18} strokeWidth={2.5} />
-                  </LinearGradient>
+                    <ArrowRight color="#202124" size={18} strokeWidth={2.5} />
+                  </View>
                 </SpringButton>
 
                 {/* ── Secondary Continue as Guest CTA ── */}
@@ -436,32 +449,41 @@ const s = StyleSheet.create({
   ctaGroup: {
     gap: 12,
   },
-  primaryCtaBtn: {
+  googleSignInBtn: {
     height: 52,
     borderRadius: Radius.lg,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
-    ...Shadows.glow('rgba(99,102,241,0.25)'),
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  primaryCtaText: {
+  googleSignInText: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: 0.1,
+    fontWeight: '600',
+    color: '#202124',
+    letterSpacing: 0.08,
   },
   googleMark: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 28,
+    height: 28,
+    borderRadius: 6,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   googleMarkText: {
     color: '#4285F4',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '800',
   },
   secondaryCtaBtn: {

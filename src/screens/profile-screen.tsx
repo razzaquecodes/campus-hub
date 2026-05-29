@@ -90,25 +90,38 @@ export function ProfileScreen() {
     setEditModalVisible(true);
   };
 
+  const setProfile = useAuthStore((s) => s.setProfile);
+
   const handleSaveProfile = async () => {
     try {
       setSaving(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
 
+      const updates = {
+        full_name: editFullName,
+        phone: editPhone,
+        semester: editSemester,
+        section: editSection,
+        advisor: editAdvisor,
+        hostel_block: editHostelBlock,
+        hostel_room: editHostelRoom,
+      };
+
       const { error } = await supabase!
         .from('users')
-        .update({
-          full_name: editFullName,
-          phone: editPhone,
-          semester: editSemester,
-          section: editSection,
-          advisor: editAdvisor,
-          hostel_block: editHostelBlock,
-          hostel_room: editHostelRoom,
-        })
+        .update(updates)
         .eq('id', profile?.id);
 
       if (error) throw error;
+
+      // Immediately update the in-memory Zustand profile so the UI reflects
+      // the change without waiting for next auth event or app restart.
+      if (profile) {
+        setProfile({
+          ...profile,
+          ...updates,
+        });
+      }
 
       setEditModalVisible(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});

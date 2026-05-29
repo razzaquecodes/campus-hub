@@ -87,20 +87,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       roll_number: 'GUEST-2026',
       email: 'guest@bbit.edu.in',
       full_name: 'Guest Scholar',
-      role: 'student',
       branch: 'Computer Science & Engineering',
-      semester: '4',
-      section: 'C',
-      year: '2nd Year',
-      batch: '2024-2028',
-      advisor: 'Prof. Arjun Chatterjee',
       phone: '+91 98765 43210',
-      hostel_block: 'A',
-      hostel_room: '101',
       college: 'Budge Budge Institute of Technology',
       avatar_url: null,
-      is_verified: false,
-    };
+    } as UserProfile;
     set({ profile: guestProfile, makautProfile: null, isLoading: false, error: null });
   },
 

@@ -211,33 +211,35 @@ export const Theme = {
 
 // ─── Shadows ─────────────────────────────────────────────────────────────────
 export const Shadows = {
-  // iOS shadow style objects
+  // iOS shadow style objects — calibrated for both light and dark themes
+  // Light mode: keep shadows very subtle (Apple HIG: shadows should not dominate)
+  // Dark mode: same values work since card backgrounds are already dark
   card: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOpacity: 0.08,  // was 0.25 — too heavy in light theme
+    shadowRadius: 10,
+    elevation: 3,
   },
   cardLight: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOpacity: 0.04,  // was 0.12 — too heavy in light theme
+    shadowRadius: 6,
+    elevation: 1,
   },
   float: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 24,
-    elevation: 12,
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    elevation: 10,
   },
   glow: (color: string) => ({
     shadowColor: color,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.45,
-    shadowRadius: 20,
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
     elevation: 8,
   }),
 } as const;

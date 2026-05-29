@@ -35,6 +35,8 @@ https://your-project-ref.supabase.co/auth/v1/callback
 In Supabase Dashboard -> Authentication -> URL Configuration -> Redirect URLs, add:
 
 ```text
+exp://*/**
+exp://**
 campushub://oauth-callback
 http://localhost:8081/oauth-callback
 ```
@@ -48,7 +50,7 @@ Run migrations in Supabase SQL Editor:
 1. `supabase/migrations/001_initial_schema.sql`
 2. `supabase/migrations/002_exams_notifications_rls.sql`
 
-The first Google sign-in creates a row in `users` if one does not already exist.
+The first Google sign-in creates a row in `student_profiles` if one does not already exist.
 
 ## MAKAUT Verification
 

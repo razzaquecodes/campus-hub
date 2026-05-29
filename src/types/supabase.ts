@@ -9,31 +9,29 @@ export type AnnouncementPriority = 'low' | 'normal' | 'high' | 'urgent';
 export interface Database {
   public: {
     Tables: {
-      users: {
+      student_profiles: {
         Row: {
           id: string;
-          roll_number: string;
-          email: string;
+          user_id: string;
           full_name: string;
-          role: UserRole;
-          branch_id: string | null;
-          semester_id: string | null;
-          section_id: string | null;
-          college: string;
-          avatar_url: string | null;
-          phone: string | null;
-          is_verified: boolean;
-          makaut_verified_at: string | null;
+          roll_number: string | null;
+          registration_number: string | null;
+          email: string;
+          mobile: string | null;
+          institute_name: string | null;
+          course_name: string | null;
+          abc_id: string | null;
+          photo_url: string | null;
+          last_synced_at: string | null;
           created_at: string;
           updated_at: string;
         };
-        Insert: Partial<Database['public']['Tables']['users']['Row']> & {
-          id: string;
-          roll_number: string;
-          email: string;
+        Insert: Partial<Database['public']['Tables']['student_profiles']['Row']> & {
+          user_id: string;
           full_name: string;
+          email: string;
         };
-        Update: Partial<Database['public']['Tables']['users']['Row']>;
+        Update: Partial<Database['public']['Tables']['student_profiles']['Row']>;
       };
       branches: {
         Row: { id: string; code: string; name: string; college_id: string | null; created_at: string };

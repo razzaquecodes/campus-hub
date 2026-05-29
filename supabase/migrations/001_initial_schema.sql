@@ -30,21 +30,20 @@ CREATE TABLE IF NOT EXISTS sections (
   UNIQUE (semester_id, code)
 );
 
--- Users (extends Supabase auth.users)
-CREATE TABLE IF NOT EXISTS users (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  roll_number TEXT NOT NULL UNIQUE,
-  email TEXT NOT NULL,
+-- Student Profiles
+CREATE TABLE IF NOT EXISTS student_profiles (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   full_name TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'student' CHECK (role IN ('admin', 'teacher', 'class_rep', 'student')),
-  branch_id UUID REFERENCES branches(id),
-  semester_id UUID REFERENCES semesters(id),
-  section_id UUID REFERENCES sections(id),
-  college TEXT NOT NULL DEFAULT 'MAKAUT Affiliated College',
-  avatar_url TEXT,
-  phone TEXT,
-  is_verified BOOLEAN DEFAULT FALSE,
-  makaut_verified_at TIMESTAMPTZ,
+  roll_number TEXT,
+  registration_number TEXT,
+  email TEXT NOT NULL,
+  mobile TEXT,
+  institute_name TEXT,
+  course_name TEXT,
+  abc_id TEXT,
+  photo_url TEXT,
+  last_synced_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -52,7 +51,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- Faculty
 CREATE TABLE IF NOT EXISTS faculty (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES users(id),
+  user_id UUID REFERENCES student_profiles(user_id),
   full_name TEXT NOT NULL,
   designation TEXT NOT NULL,
   department TEXT NOT NULL,
@@ -100,18 +99,18 @@ CREATE TABLE IF NOT EXISTS assignments (
   description TEXT,
   due_date TIMESTAMPTZ NOT NULL,
   priority TEXT DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
-  created_by UUID REFERENCES users(id),
+  created_by UUID REFERENCES student_profiles(user_id),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Attendance
 CREATE TABLE IF NOT EXISTS attendance (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES student_profiles(user_id) ON DELETE CASCADE,
   subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
   date DATE NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('present', 'absent', 'late', 'excused')),
-  marked_by UUID REFERENCES users(id),
+  marked_by UUID REFERENCES student_profiles(user_id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE (user_id, subject_id, date)
 );
@@ -136,7 +135,7 @@ CREATE TABLE IF NOT EXISTS announcements (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   title TEXT NOT NULL,
   body TEXT NOT NULL,
-  author_id UUID REFERENCES users(id) NOT NULL,
+  author_id UUID REFERENCES student_profiles(user_id) NOT NULL,
   scope TEXT NOT NULL CHECK (scope IN ('college', 'branch', 'semester', 'section', 'subject')),
   branch_id UUID REFERENCES branches(id),
   semester_id UUID REFERENCES semesters(id),
@@ -153,7 +152,7 @@ CREATE TABLE IF NOT EXISTS announcements (
 CREATE TABLE IF NOT EXISTS announcement_reads (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   announcement_id UUID REFERENCES announcements(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES student_profiles(user_id) ON DELETE CASCADE,
   read_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE (announcement_id, user_id)
 );
@@ -163,7 +162,7 @@ CREATE TABLE IF NOT EXISTS notices (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   title TEXT NOT NULL,
   body TEXT NOT NULL,
-  published_by UUID REFERENCES users(id),
+  published_by UUID REFERENCES student_profiles(user_id),
   is_official BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -175,7 +174,7 @@ CREATE TABLE IF NOT EXISTS resources (
   title TEXT NOT NULL,
   file_url TEXT,
   resource_type TEXT DEFAULT 'notes' CHECK (resource_type IN ('notes', 'slides', 'assignment', 'link', 'video')),
-  uploaded_by UUID REFERENCES users(id),
+  uploaded_by UUID REFERENCES student_profiles(user_id),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -190,16 +189,13 @@ CREATE TABLE IF NOT EXISTS chats (
 );
 
 -- Indexes for scale
-CREATE INDEX IF NOT EXISTS idx_users_branch ON users(branch_id);
-CREATE INDEX IF NOT EXISTS idx_users_semester ON users(semester_id);
-CREATE INDEX IF NOT EXISTS idx_users_section ON users(section_id);
 CREATE INDEX IF NOT EXISTS idx_announcements_scope ON announcements(scope, branch_id, semester_id);
 CREATE INDEX IF NOT EXISTS idx_assignments_subject ON assignments(subject_id);
 CREATE INDEX IF NOT EXISTS idx_events_dates ON events(starts_at);
 CREATE INDEX IF NOT EXISTS idx_attendance_user ON attendance(user_id, date);
 
 -- RLS (enable in production)
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE student_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
 
 -- Example policy: students read scoped announcements

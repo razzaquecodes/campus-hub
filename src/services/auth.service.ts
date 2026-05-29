@@ -1,18 +1,18 @@
 import { makeRedirectUri } from 'expo-auth-session';
-import Constants, { ExecutionEnvironment } from 'expo-constants';
-import * as Linking from 'expo-linking';
+import Constants from 'expo-constants';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 import type { UserProfile } from '@/types/database';
 
-// Required on iOS: completes the browser session on redirect
-WebBrowser.maybeCompleteAuthSession();
+// ─── IMPORTANT: maybeCompleteAuthSession() must NOT be called here.
+// It must be called inside oauth-callback.tsx (the route that renders at the
+// redirect URL). Calling it at module scope in a service file does nothing
+// useful on iOS and can interfere with the auth session on Android.
+// See: oauth-callback.tsx line 1.
 
 // ─── Environment detection ────────────────────────────────────────────────────
-const isExpoGo =
-  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 const OAUTH_CALLBACK_PATH = 'oauth-callback';
 const APP_SCHEME =
   String(Constants.expoConfig?.extra?.oauthScheme ?? Constants.expoConfig?.scheme ?? 'campushub');
@@ -26,46 +26,47 @@ function authLog(message: string, details?: Record<string, unknown>) {
 
 // ─── Redirect URI ─────────────────────────────────────────────────────────────
 //
-// ASWebAuthenticationSession (iOS) intercepts OAuth callbacks by URL scheme.
-// The scheme MUST be registered in the hosting app's Info.plist, or the
-// browser stays open after auth — which is the bug we're fixing.
+// HOW THE OAUTH CALLBACK WORKS:
 //
-// Registered schemes per environment:
+//   App ──→ Supabase /auth/v1/authorize ──→ Google Consent ──→
+//   Google ──→ Supabase /auth/v1/callback ──→ YOUR APP (via scheme)
 //
-//   Expo Go        → 'exp'        (registered in Expo Go's own Info.plist)
-//   Dev / Standalone → 'campushub' (registered via scheme: "campushub" in app.config.ts)
-//   Web            → 'http(s)'    (standard browser)
+// The redirect URI registered in Supabase and the one passed to signInWithOAuth
+// must match EXACTLY (after Supabase processes it).
 //
-// Therefore:
-//   Expo Go uses    exp://IP:PORT/--/oauth-callback   ← exp is registered ✅
-//   Standalone uses campushub://oauth-callback        ← campushub registered ✅
-//   Web uses        http://localhost:PORT/            ← standard ✅
+// ENVIRONMENTS:
 //
-// Supabase redirect URLs to add:
-//   campushub://oauth-callback     (standalone)
-//   exp://**                       (Expo Go wildcard — covers all IPs)
+//   Expo Go (storeClient)
+//     makeRedirectUri falls through to Expo Linking.createURL() with scheme override
+//     → produces: exp://<IP>:<PORT>/--/oauth-callback
+//     Supabase must allow: exp://*/--/oauth-callback  (wildcard)
 //
-export const REDIRECT_URI: string = (() => {
-  if (Platform.OS === 'web') {
-    return makeRedirectUri({ path: OAUTH_CALLBACK_PATH });
-  }
-  if (isExpoGo) {
-    // Linking.createURL uses the actual Metro LAN IP/port Expo Go is
-    // running on — the same address the device already uses to load the
-    // JS bundle, so it is always reachable.
-    return Linking.createURL(OAUTH_CALLBACK_PATH);
-    // → exp://192.0.0.2:8081/--/oauth-callback  (or whatever the real IP is)
-  }
-  // Standalone / Dev Build: campushub:// is registered in Info.plist
-  return makeRedirectUri({
-    scheme: APP_SCHEME,
-    path: OAUTH_CALLBACK_PATH,
-  });
-})();
+//   Development build / Standalone (bare / standalone executionEnvironment)
+//     The `native` parameter is used: campushub://oauth-callback
+//     Supabase must allow: campushub://oauth-callback
+//     iOS Info.plist must register: campushub (already done in app.config.ts)
+//
+//   Web
+//     Linking.createURL() produces https://localhost:PORT/oauth-callback
+//
+// WHY `native` MATTERS:
+//   In makeRedirectUri(), when executionEnvironment is 'bare' or 'standalone',
+//   the function returns the `native` value directly, bypassing Linking.createURL().
+//   This guarantees a stable, predictable URI that never includes a dynamic IP.
+//
+const NATIVE_REDIRECT_URI = `${APP_SCHEME}://${OAUTH_CALLBACK_PATH}`;
+
+export const REDIRECT_URI: string = makeRedirectUri({
+  // native: returned directly in standalone/bare builds (most important)
+  native: NATIVE_REDIRECT_URI,
+  // scheme: used by makeRedirectUri in Expo Go (storeClient) via Linking.createURL
+  scheme: APP_SCHEME,
+  path: OAUTH_CALLBACK_PATH,
+});
 
 authLog('Redirect URI computed', {
   redirectUri: REDIRECT_URI,
-  isExpoGo,
+  nativeUri: NATIVE_REDIRECT_URI,
   scheme: APP_SCHEME,
   platform: Platform.OS,
   executionEnvironment: Constants.executionEnvironment,
@@ -124,6 +125,7 @@ export async function signInWithGoogle(): Promise<void> {
     appOwnership: Constants.appOwnership,
     platform: Platform.OS,
     redirectUri: REDIRECT_URI,
+    nativeUri: NATIVE_REDIRECT_URI,
     scheme: APP_SCHEME,
   });
 
@@ -153,11 +155,19 @@ export async function signInWithGoogle(): Promise<void> {
     provider: 'google',
     authHost: safeHost(data.url),
     redirectUri: REDIRECT_URI,
+    oauthUrl: __DEV__ ? data.url : '(redacted)',
   });
 
   // Step 2: Open Google sign-in in ASWebAuthenticationSession (iOS) /
   //   Chrome Custom Tab (Android). The session monitors for any redirect
   //   to a URL whose scheme matches REDIRECT_URI and closes automatically.
+  //
+  //   CRITICAL: openAuthSessionAsync's second argument is the "redirect URL prefix"
+  //   that the in-app browser watches for to auto-close. It MUST match the scheme
+  //   of the redirect URI we sent to Supabase. We pass REDIRECT_URI here so that:
+  //   - In Expo Go: the exp:// prefix is used
+  //   - In standalone/bare: the campushub:// prefix is used
+  //
   authLog('Step 2: Opening browser for Google consent...');
   const result = await WebBrowser.openAuthSessionAsync(
     data.url,
@@ -188,6 +198,7 @@ export async function signInWithGoogle(): Promise<void> {
     hasRefreshToken: Boolean(params.refresh_token),
     hasError: Boolean(params.error),
     url: __DEV__ ? result.url.slice(0, 120) + '...' : '(redacted)',
+    rawUrl: __DEV__ ? result.url : '(redacted)',
   });
 
   if (params.error) {
@@ -265,9 +276,9 @@ export async function getPersistedSession(): Promise<UserProfile | null> {
   authLog('Session found', { userId: user.id, email: user.email });
 
   const { data: profileRow, error: profileError } = await supabase
-    .from('users')
-    .select('*, branch:branches(*)')
-    .eq('id', user.id)
+    .from('student_profiles')
+    .select('*')
+    .eq('user_id', user.id)
     .maybeSingle();
 
   if (profileError) {
@@ -282,7 +293,7 @@ export async function getPersistedSession(): Promise<UserProfile | null> {
   // First login — create the profile row
   authLog('First login — creating profile row', { userId: user.id });
   const newProfile = {
-    id: user.id,
+    user_id: user.id,
     roll_number: '', // Will be set when user connects MAKAUT, or can be set manually
     email: user.email!,
     full_name:
@@ -290,26 +301,24 @@ export async function getPersistedSession(): Promise<UserProfile | null> {
       user.user_metadata?.name ??
       user.email?.split('@')[0] ??
       'Student',
-    role: 'student' as const,
-    college: 'Budge Budge Institute of Technology',
-    is_verified: true,
-    avatar_url:
+    institute_name: 'Budge Budge Institute of Technology',
+    photo_url:
       user.user_metadata?.avatar_url ?? user.user_metadata?.picture ?? null,
   };
 
   const { data: existingUser } = await supabase
-    .from('users')
-    .select('id')
-    .eq('id', user.id)
+    .from('student_profiles')
+    .select('user_id')
+    .eq('user_id', user.id)
     .maybeSingle();
 
   if (existingUser) {
     // If it somehow exists but the initial select didn't catch it
     authLog('User row exists (race condition) — updating');
     const { data: updated, error: updateError } = await supabase
-      .from('users')
+      .from('student_profiles')
       .update(newProfile)
-      .eq('id', user.id)
+      .eq('user_id', user.id)
       .select('*')
       .single();
       
@@ -321,7 +330,7 @@ export async function getPersistedSession(): Promise<UserProfile | null> {
   }
 
   const { data: inserted, error: insertError } = await supabase
-    .from('users')
+    .from('student_profiles')
     .insert(newProfile)
     .select('*')
     .single();
@@ -364,30 +373,14 @@ export async function signOut(): Promise<void> {
 
 // ─── DB row → UserProfile ─────────────────────────────────────────────────────
 function mapDbUser(row: Record<string, unknown>): UserProfile {
-  const branch = row.branch as Record<string, unknown> | null;
   return {
-    id: row.id as string,
-    roll_number: row.roll_number as string,
+    id: (row.user_id as string) || (row.id as string),
+    roll_number: (row.roll_number as string) || '',
     email: row.email as string,
     full_name: row.full_name as string,
-    role: (row.role as UserProfile['role']) || 'student',
-    branch_id: row.branch_id as string | null,
-    semester_id: row.semester_id as string | null,
-    section_id: row.section_id as string | null,
-    branch: branch
-      ? (branch.name as string)
-      : (row.branch as string | null),
-    semester: row.semester as string | null,
-    section: row.section as string | null,
-    year: row.year as string | null,
-    batch: row.batch as string | null,
-    advisor: row.advisor as string | null,
-    phone: row.phone as string | null,
-    hostel_block: row.hostel_block as string | null,
-    hostel_room: row.hostel_room as string | null,
-    college: (row.college as string) || 'BBIT',
-    avatar_url: row.avatar_url as string | null,
-    is_verified:
-      row.is_verified !== undefined ? Boolean(row.is_verified) : false,
-  };
+    branch: row.course_name as string | null,
+    phone: row.mobile as string | null,
+    college: (row.institute_name as string) || 'Budge Budge Institute of Technology',
+    avatar_url: row.photo_url as string | null,
+  } as UserProfile;
 }

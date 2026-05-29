@@ -8,7 +8,7 @@ const ANDROID_PACKAGE = 'in.edu.bbit.campushub';
 export default function appConfig({ config }: ConfigContext): ExpoConfig {
   return {
     ...config,
-    name: 'CampusHub',
+    name: 'Campus Hub',
     slug: 'campus-hub',
     version: '1.0.0',
     runtimeVersion: {
@@ -27,7 +27,16 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
       icon: './assets/images/icon.png',
       infoPlist: {
         ...config.ios?.infoPlist,
+        CFBundleDisplayName: 'Campus Hub',
         ITSAppUsesNonExemptEncryption: false,
+        CFBundleURLTypes: [
+          ...(Array.isArray(config.ios?.infoPlist?.CFBundleURLTypes)
+            ? config.ios?.infoPlist?.CFBundleURLTypes
+            : []),
+          {
+            CFBundleURLSchemes: [SCHEME],
+          },
+        ],
       },
     },
     android: {
@@ -40,6 +49,18 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
         backgroundImage: './assets/images/android-icon-background.png',
         monochromeImage: './assets/images/android-icon-monochrome.png',
       },
+      intentFilters: [
+        {
+          action: 'VIEW',
+          data: [
+            {
+              scheme: SCHEME,
+              host: '*',
+            },
+          ],
+          category: ['BROWSABLE', 'DEFAULT'],
+        },
+      ],
       predictiveBackGestureEnabled: false,
     },
     web: {
@@ -79,18 +100,21 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
       typedRoutes: true,
       reactCompiler: true,
     },
-    extra: {
-      ...config.extra,
-      router: {
-        root: './src/app',
-      },
-      eas: {
-        projectId: EAS_PROJECT_ID,
-      },
-      EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
-      EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-      EXPO_PUBLIC_MAKAUT_API_URL: process.env.EXPO_PUBLIC_MAKAUT_API_URL,
-      oauthScheme: SCHEME,
-    },
+    extra: (() => {
+      const env = (globalThis as any).process?.env ?? {};
+      return {
+        ...config.extra,
+        router: {
+          root: './src/app',
+        },
+        eas: {
+          projectId: EAS_PROJECT_ID,
+        },
+        EXPO_PUBLIC_SUPABASE_URL: env.EXPO_PUBLIC_SUPABASE_URL,
+        EXPO_PUBLIC_SUPABASE_ANON_KEY: env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+        EXPO_PUBLIC_MAKAUT_API_URL: env.EXPO_PUBLIC_MAKAUT_API_URL,
+        oauthScheme: SCHEME,
+      };
+    })(),
   };
 }
