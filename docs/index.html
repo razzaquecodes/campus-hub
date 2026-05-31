@@ -260,7 +260,20 @@ nav{
 .app-greeting{font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:2px}
 .app-name-row{display:flex;align-items:center;justify-content:space-between}
 .app-name{font-size:22px;font-weight:700;color:#fff;letter-spacing:-0.6px}
-.app-avatar-sm{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#4f46e5);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff}
+.app-avatar-sm{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  overflow:hidden;
+  flex-shrink:0;
+}
+
+.app-avatar-sm img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
 
 .app-id-card{
   margin:0 16px 14px;
@@ -352,80 +365,171 @@ section{padding:100px 40px}
 }
 
 /* ── SHOWCASE SECTION ── */
-.showcase-section{background:var(--ink);color:var(--text-on-dark);padding:100px 40px}
-.showcase-header{text-align:center;max-width:680px;margin:0 auto 80px}
+.showcase-section{background:var(--ink);color:var(--text-on-dark);padding:100px 0 100px}
+.showcase-header{text-align:center;max-width:680px;margin:0 auto 70px;padding:0 40px}
 .showcase-header .section-label{justify-content:center;color:var(--electric-2)}
 .showcase-header .section-label-line{background:var(--electric-2)}
 .showcase-header .section-h2{color:var(--text-on-dark)}
 .showcase-header .section-p{color:var(--text-on-dark-2);margin:0 auto}
 
-.showcase-items{display:flex;flex-direction:column;gap:80px}
-.showcase-item{
-  display:grid;grid-template-columns:1fr 1fr;gap:80px;
-  align-items:center;
+/* ── REAL SCREENSHOTS TRACK ── */
+.screens-track-wrap{
+  position:relative;overflow:hidden;
 }
-.showcase-item.reverse{direction:rtl}
-.showcase-item.reverse>*{direction:ltr}
+.screens-track-wrap::before,.screens-track-wrap::after{
+  content:'';position:absolute;top:0;bottom:0;width:100px;z-index:10;pointer-events:none;
+}
+.screens-track-wrap::before{left:0;background:linear-gradient(to right,var(--ink) 0%,transparent 100%)}
+.screens-track-wrap::after{right:0;background:linear-gradient(to left,var(--ink) 0%,transparent 100%)}
 
-.showcase-text .section-label{color:var(--electric-2)}
-.showcase-text .section-label-line{background:var(--electric-2)}
-.showcase-text h3{
-  font-family:var(--f-display);
-  font-size:clamp(28px,3vw,38px);
-  font-weight:400;font-style:italic;
-  line-height:1.15;letter-spacing:-1px;
-  color:var(--text-on-dark);margin-bottom:16px;
+.screens-track{
+  display:flex;gap:28px;
+  padding:24px 80px 48px;
+  overflow-x:auto;
+  scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+  cursor:grab;
+  user-select:none;
 }
-.showcase-text p{font-size:15px;font-weight:300;color:var(--text-on-dark-2);line-height:1.75;margin-bottom:24px}
-.showcase-feature-list{list-style:none;display:flex;flex-direction:column;gap:10px}
-.showcase-feature-list li{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-on-dark-2)}
-.showcase-feature-list li::before{
-  content:'';width:16px;height:16px;border-radius:50%;
-  background:rgba(37,99,235,0.15);border:1px solid var(--electric);
-  flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;
-}
+.screens-track::-webkit-scrollbar{display:none}
+.screens-track:active{cursor:grabbing}
 
-.showcase-visual{
-  border-radius:28px;
+.screen-card{
+  flex:0 0 auto;
+  width:248px;
+  scroll-snap-align:center;
+  display:flex;flex-direction:column;gap:20px;
+  transition:transform 0.4s cubic-bezier(0.16,1,0.3,1),opacity 0.4s ease;
+  opacity:0.7;
+}
+.screen-card.active-card{opacity:1;transform:scale(1.04)}
+.screen-card:not(.active-card):hover{opacity:0.9;transform:translateY(-6px)}
+
+.screen-phone-wrap{
+  position:relative;width:248px;height:506px;
+}
+.screen-phone-frame{
+  position:absolute;inset:0;
+  background:linear-gradient(145deg,#2a2a3a 0%,#18181f 100%);
+  border-radius:46px;
+  padding:5px;
+  box-shadow:
+    0 50px 100px rgba(0,0,0,0.55),
+    0 20px 40px rgba(0,0,0,0.3),
+    0 0 0 1px rgba(255,255,255,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.15);
+}
+.screen-phone-frame::before{
+  content:'';position:absolute;inset:0;border-radius:46px;
+  background:linear-gradient(135deg,rgba(255,255,255,0.12) 0%,transparent 55%);
+  pointer-events:none;z-index:2;
+}
+.screen-phone-frame::after{
+  content:'';position:absolute;bottom:0;left:20px;right:20px;height:50%;border-radius:0 0 46px 46px;
+  background:linear-gradient(to bottom,transparent,rgba(37,99,235,0.06));
+  pointer-events:none;z-index:2;
+}
+.screen-phone-inner{
+  width:100%;height:100%;
+  border-radius:42px;
   overflow:hidden;
-  background:var(--ink-2);
-  border:1px solid var(--border-dark);
+  position:relative;background:#000;
+}
+.screen-img{
+  width:100%;height:100%;
+  object-fit:cover;
+  object-position:top center;
+  display:block;
+  transition:transform 0.6s cubic-bezier(0.16,1,0.3,1);
+  cursor:zoom-in;
+}
+.screen-card:hover .screen-img{transform:scale(1.025)}
+.screen-notch{
+  position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:88px;height:26px;
+  background:linear-gradient(180deg,#18181f,#1a1a25);
+  border-radius:0 0 18px 18px;z-index:5;
+  box-shadow:0 2px 8px rgba(0,0,0,0.4);
+}
+.screen-notch::after{
+  content:'';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:36px;height:4px;border-radius:2px;
+  background:rgba(255,255,255,0.12);
+}
+
+.screen-badge{
+  position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,0.65);border:1px solid rgba(255,255,255,0.12);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-radius:100px;padding:5px 14px;
+  font-size:10px;font-weight:600;color:rgba(255,255,255,0.8);
+  white-space:nowrap;z-index:6;
+  letter-spacing:0.3px;
+}
+
+.screen-info{text-align:center;padding:0 8px}
+.screen-title{font-size:15px;font-weight:700;color:var(--text-on-dark);letter-spacing:-0.3px;margin-bottom:5px}
+.screen-desc{font-size:12px;font-weight:300;color:var(--text-on-dark-2);line-height:1.6}
+
+/* Scroll dots */
+.screens-dots{display:flex;justify-content:center;gap:8px;margin-top:12px;padding-bottom:4px}
+.screen-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:rgba(255,255,255,0.15);
+  transition:all 0.3s;cursor:pointer;border:none;padding:0;
+}
+.screen-dot.active{background:var(--electric-2);width:22px;border-radius:4px}
+
+/* Lightbox */
+.lightbox-overlay{
+  position:fixed;inset:0;z-index:2000;
+  background:rgba(0,0,0,0.94);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  opacity:0;pointer-events:none;
+  transition:opacity 0.3s ease;
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+}
+.lightbox-overlay.open{opacity:1;pointer-events:all}
+.lightbox-img-wrap{
   position:relative;
-  min-height:380px;
+  transform:scale(0.88) translateY(20px);
+  transition:transform 0.4s cubic-bezier(0.16,1,0.3,1);
+}
+.lightbox-overlay.open .lightbox-img-wrap{transform:scale(1) translateY(0)}
+.lightbox-phone-frame{
+  background:linear-gradient(145deg,#2a2a3a,#18181f);
+  border-radius:52px;padding:6px;
+  box-shadow:0 60px 120px rgba(0,0,0,0.7),0 0 0 1px rgba(255,255,255,0.1),inset 0 1px 0 rgba(255,255,255,0.12);
+}
+.lightbox-img{
+  display:block;
+  height:80vh;
+  max-height:700px;
+  width:auto;
+  border-radius:46px;
+}
+.lightbox-close{
+  position:fixed;top:28px;right:28px;
+  width:48px;height:48px;border-radius:50%;
+  background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);
   display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:#fff;
+  transition:all 0.15s;z-index:2001;
 }
-.mock-screen{
-  width:220px;
-  background:#050508;
-  border-radius:36px;
-  border:6px solid #1a1a2e;
-  overflow:hidden;
-  box-shadow:0 30px 80px rgba(0,0,0,0.5);
-}
-.mock-screen-inner{background:#080810;min-height:380px;padding:16px 14px}
+.lightbox-close:hover{background:rgba(255,255,255,0.16);transform:scale(1.05)}
+.lightbox-label{margin-top:20px;font-size:13px;font-weight:500;color:rgba(255,255,255,0.45);letter-spacing:0.2px}
 
-/* Mock content pieces */
-.mock-header{font-size:18px;font-weight:700;color:#fff;letter-spacing:-0.5px;margin:8px 0 4px}
-.mock-sub{font-size:10px;color:rgba(255,255,255,0.35);margin-bottom:16px}
-.mock-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
-.mock-row:last-child{border:none}
-.mock-row-label{font-size:10px;color:rgba(255,255,255,0.4);font-weight:500}
-.mock-row-val{font-size:10px;color:rgba(255,255,255,0.8);font-weight:600;font-family:var(--f-mono)}
-.mock-id-card{background:linear-gradient(135deg,#0d1b3e,#1e2f5e);border-radius:16px;padding:16px;margin:8px 0 12px;border:1px solid rgba(255,255,255,0.08)}
-.mock-id-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.mock-id-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#4f46e5);flex-shrink:0}
-.mock-id-info-name{font-size:13px;font-weight:700;color:#fff;letter-spacing:-0.3px}
-.mock-id-info-id{font-size:9px;color:rgba(255,255,255,0.4);font-family:var(--f-mono)}
-.mock-id-divider{height:1px;background:rgba(255,255,255,0.08);margin:8px 0}
-.mock-id-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.mock-id-field{font-size:8px}
-.mock-id-field-label{color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:1px}
-.mock-id-field-val{color:rgba(255,255,255,0.8);font-weight:600;font-size:9px}
+/* Mock pills kept for hero */
 .mock-google-btn{background:#fff;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;margin:12px 0}
 .mock-google-icon{width:14px;height:14px;flex-shrink:0}
 .mock-google-text{font-size:10px;font-weight:600;color:#1a1a2e}
 .mock-pill{display:inline-flex;align-items:center;gap:4px;background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.2);border-radius:100px;padding:3px 8px;font-size:8px;font-weight:600;color:#60a5fa;margin-bottom:10px}
 .mock-pill-dot{width:4px;height:4px;border-radius:50%;background:#60a5fa}
+.mock-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.mock-row:last-child{border:none}
+.mock-row-label{font-size:10px;color:rgba(255,255,255,0.4);font-weight:500}
+.mock-row-val{font-size:10px;color:rgba(255,255,255,0.8);font-weight:600;font-family:var(--f-mono)}
 
 /* ── TECH STACK ── */
 .tech-section{background:var(--fog);padding:100px 40px}
@@ -576,8 +680,11 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
   nav{padding:0 20px}
   .nav-links{display:none}
   section{padding:70px 24px}
-  .showcase-item{grid-template-columns:1fr;gap:40px}
-  .showcase-item.reverse{direction:ltr}
+  .showcase-section{padding:70px 0}
+  .showcase-header{padding:0 24px}
+  .screens-track{padding:20px 24px 40px;gap:20px}
+  .screen-card{width:220px}
+  .screen-phone-wrap{width:220px;height:448px}
   .roadmap-grid{grid-template-columns:1fr;gap:32px}
   .hero-h1,.hero-h1-sub{font-size:52px}
   .hero{padding:100px 24px 60px}
@@ -595,7 +702,7 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
 <nav>
   <a class="nav-logo" href="#">
     <div class="nav-logo-mark">
-      <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1.5" fill="white"/><rect x="9" y="2" width="5" height="5" rx="1.5" fill="rgba(255,255,255,0.5)"/><rect x="2" y="9" width="5" height="5" rx="1.5" fill="rgba(255,255,255,0.5)"/><rect x="9" y="9" width="5" height="5" rx="1.5" fill="white"/></svg>
+      <img src="icon.png" alt="Campus Hub" style="width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;">
     </div>
     <span class="nav-logo-text">Campus Hub</span>
   </a>
@@ -605,7 +712,7 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
     <li><a href="#tech">Stack</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
   </ul>
-  <a class="nav-cta" href="/CampusHub.apk" download>
+  <a class="nav-cta" href="https://github.com/razzaquecodes/campus-hub/releases/download/v1.0.0/CampusHub.apk" download>
     Download APK
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v7M4 6l3 3 3-3M2 11h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
   </a>
@@ -618,15 +725,13 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
 
   <div class="hero-content">
     <div class="hero-eyebrow">
-      <div class="eyebrow-dot">
-        <svg viewBox="0 0 10 10" fill="none"><path d="M2 5h6M5 2v6" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg>
-      </div>
+      <img src="icon.png" alt="Campus Hub icon" style="width:28px;height:28px;border-radius:7px;object-fit:cover;flex-shrink:0;">
       <span class="eyebrow-text">Built for BBIT Students</span>
     </div>
     <div class="hero-h1">Your Campus.<br><em>Connected</em></div>
     <p class="hero-sub">Campus Hub brings student identity, academic information, digital credentials, and campus resources together in one modern mobile application built for BBIT students.</p>
     <div class="hero-actions">
-      <a class="btn-primary" href="/CampusHub.apk" id="download" download>
+      <a class="btn-primary" href="https://github.com/razzaquecodes/campus-hub/releases/download/v1.0.0/CampusHub.apk" id="download" download>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v8M5 7l3 3 3-3M2 13h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Download APK
       </a>
@@ -656,17 +761,19 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
             <div class="app-header">
               <div class="app-greeting">Good morning</div>
               <div class="app-name-row">
-                <span class="app-name">Rahul Sharma</span>
-                <div class="app-avatar-sm">RS</div>
+                <span class="app-name">A. Razzaque</span>
+                <div class="app-avatar-sm">
+                  <img src="assets/images/profile-avatar.jpg" alt="A. Razzaque">
+                </div>
               </div>
             </div>
             <div class="app-id-card">
               <div class="app-id-label">Digital Student ID</div>
-              <div class="app-id-name">Rahul Kumar Sharma</div>
-              <div class="app-id-meta">Computer Science &amp; Engineering · Sem 5</div>
+              <div class="app-id-name">A. Razzaque</div>
+              <div class="app-id-meta">Computer Science &amp; Engineering · Sem 4</div>
               <div class="app-id-row">
-                <div class="app-id-pill">2024CS0042</div>
-                <div class="app-id-pill">BBIT · MAKAUT</div>
+                <div class="app-id-pill">27600124001</div>
+                <div class="app-id-pill">BBIT · Sec C</div>
               </div>
             </div>
             <div class="app-grid">
@@ -796,162 +903,110 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
 
 <!-- SHOWCASE -->
 <section class="showcase-section" id="showcase">
-  <div class="section-container">
-    <div class="showcase-header reveal">
-      <div class="section-label"><span class="section-label-line"></span>Product Walkthrough</div>
-      <h2 class="section-h2">Every screen, <em>crafted</em></h2>
-      <p class="section-p">A look at the real application — not wireframes, not design mockups. These are the actual product screens.</p>
-    </div>
+  <div class="showcase-header reveal">
+    <div class="section-label"><span class="section-label-line"></span>App Screens</div>
+    <h2 class="section-h2">Real screens, <em>no mockups</em></h2>
+    <p class="section-p">Every screen you see here is a live screenshot from the actual Campus Hub application — not wireframes, not design renderings.</p>
+  </div>
 
-    <div class="showcase-items">
-      <!-- AUTH -->
-      <div class="showcase-item reveal">
-        <div class="showcase-text">
-          <div class="section-label"><span class="section-label-line"></span>Authentication</div>
-          <h3>Secure sign-in, zero friction</h3>
-          <p>Students sign in with their Google account through Supabase Auth. Sessions persist securely across app restarts. Guest login available for exploration.</p>
-          <ul class="showcase-feature-list">
-            <li>Google OAuth 2.0 via Supabase</li>
-            <li>Persistent sessions with secure token storage</li>
-            <li>Guest login for unauthenticated browsing</li>
-            <li>Graceful session expiry and refresh</li>
-          </ul>
-        </div>
-        <div class="showcase-visual">
-          <div class="mock-screen">
-            <div class="mock-screen-inner">
-              <div style="height:20px;background:#050508;margin:-16px -14px 12px;border-radius:30px 30px 0 0;padding:12px 16px 0;display:flex;justify-content:space-between;align-items:center">
-                <span style="font-size:9px;color:rgba(255,255,255,0.4);font-family:var(--f-mono)">9:41</span>
-                <div style="width:20px;height:6px;background:rgba(255,255,255,0.15);border-radius:3px"></div>
-              </div>
-              <div style="padding:8px 0">
-                <div class="mock-pill"><div class="mock-pill-dot"></div>Campus Hub · BBIT</div>
-                <div style="font-size:22px;font-weight:700;color:#fff;letter-spacing:-0.8px;line-height:1.1;margin-bottom:6px">Welcome<br><span style="color:#60a5fa">back.</span></div>
-                <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-bottom:20px">Sign in to your student account</div>
-                <div class="mock-google-btn">
-                  <svg class="mock-google-icon" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908C16.658 14.258 17.64 11.95 17.64 9.2z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
-                  <span class="mock-google-text">Continue with Google</span>
-                </div>
-                <div style="text-align:center;font-size:9px;color:rgba(255,255,255,0.2);margin-top:10px">or continue as guest</div>
-              </div>
+  <div class="screens-track-wrap reveal">
+    <div class="screens-track" id="screensTrack">
+
+      <!-- Screen 1: Student Profile -->
+      <div class="screen-card" data-index="0">
+        <div class="screen-phone-wrap">
+          <div class="screen-phone-frame">
+            <div class="screen-phone-inner">
+              <div class="screen-notch"></div>
+              <img
+                class="screen-img"
+                src="screen1.png"
+                alt="Student Profile screen"
+                loading="lazy"
+                decoding="async"
+                onclick="openLightbox(this,'Student Profile')"
+              />
             </div>
           </div>
+          <div class="screen-badge">Student Profile</div>
+        </div>
+        <div class="screen-info">
+          <div class="screen-title">Student Profile</div>
+          <div class="screen-desc">Your academic identity, achievements, and verified student data — all in one place.</div>
         </div>
       </div>
 
-      <!-- PROFILE -->
-      <div class="showcase-item reverse reveal">
-        <div class="showcase-text">
-          <div class="section-label"><span class="section-label-line"></span>Student Profile</div>
-          <h3>Your identity, cloud-persisted</h3>
-          <p>Student profiles — including photo, contact details, and personal information — are stored in PostgreSQL via Supabase and sync across sessions and devices.</p>
-          <ul class="showcase-feature-list">
-            <li>Full name, email, and phone number</li>
-            <li>Profile photo with cloud storage</li>
-            <li>Editable fields with real-time sync</li>
-            <li>Supabase PostgreSQL persistence</li>
-          </ul>
-        </div>
-        <div class="showcase-visual">
-          <div class="mock-screen">
-            <div class="mock-screen-inner">
-              <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-                <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#4f46e5);flex-shrink:0"></div>
-                <div>
-                  <div style="font-size:14px;font-weight:700;color:#fff;letter-spacing:-0.3px">Rahul Sharma</div>
-                  <div style="font-size:9px;color:rgba(255,255,255,0.35)">rahul.sharma@gmail.com</div>
-                </div>
-              </div>
-              <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px;margin-bottom:8px">
-                <div style="font-size:9px;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">Contact Information</div>
-                <div class="mock-row"><span class="mock-row-label">Email</span><span class="mock-row-val">rahul@gmail.com</span></div>
-                <div class="mock-row"><span class="mock-row-label">Phone</span><span class="mock-row-val">+91 98765 43210</span></div>
-              </div>
-              <div style="background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.15);border-radius:10px;padding:10px;display:flex;align-items:center;justify-content:center;gap:6px">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 6h10M7 2l4 4-4 4" stroke="#60a5fa" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                <span style="font-size:10px;font-weight:600;color:#60a5fa">Edit Profile</span>
-              </div>
+      <!-- Screen 2: BBIT Information -->
+      <div class="screen-card" data-index="1">
+        <div class="screen-phone-wrap">
+          <div class="screen-phone-frame">
+            <div class="screen-phone-inner">
+              <div class="screen-notch"></div>
+              <img
+                class="screen-img"
+                src="screen2.png"
+                alt="BBIT Information screen"
+                loading="lazy"
+                decoding="async"
+                onclick="openLightbox(this,'BBIT Information')"
+              />
             </div>
           </div>
+          <div class="screen-badge">BBIT Info</div>
+        </div>
+        <div class="screen-info">
+          <div class="screen-title">BBIT Information</div>
+          <div class="screen-desc">Institutional accreditation, college mission, and NAAC / NBA details at a glance.</div>
         </div>
       </div>
 
-      <!-- ACADEMIC -->
-      <div class="showcase-item reveal">
-        <div class="showcase-text">
-          <div class="section-label"><span class="section-label-line"></span>Academic Identity</div>
-          <h3>Verified student data, always accurate</h3>
-          <p>Academic details are synced from MAKAUT — not self-entered. Roll number, registration, course, department, semester, section, and batch are all verified at the source.</p>
-          <ul class="showcase-feature-list">
-            <li>Roll number and registration number</li>
-            <li>Course, department, semester, section</li>
-            <li>Batch and academic year</li>
-            <li>MAKAUT-verified identity</li>
-          </ul>
-        </div>
-        <div class="showcase-visual">
-          <div class="mock-screen">
-            <div class="mock-screen-inner">
-              <div style="font-size:16px;font-weight:700;color:#fff;letter-spacing:-0.4px;margin-bottom:4px">Academic Profile</div>
-              <div style="font-size:9px;color:rgba(255,255,255,0.3);margin-bottom:14px;display:flex;align-items:center;gap:4px">
-                <div style="width:5px;height:5px;border-radius:50%;background:#10b981"></div>
-                MAKAUT verified
-              </div>
-              <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:12px;overflow:hidden">
-                <div class="mock-row" style="padding:10px 12px"><span class="mock-row-label">Roll Number</span><span class="mock-row-val">24CSE0042</span></div>
-                <div class="mock-row" style="padding:10px 12px"><span class="mock-row-label">Reg. Number</span><span class="mock-row-val">234570100042</span></div>
-                <div class="mock-row" style="padding:10px 12px"><span class="mock-row-label">Course</span><span class="mock-row-val">B.Tech CSE</span></div>
-                <div class="mock-row" style="padding:10px 12px"><span class="mock-row-label">Semester</span><span class="mock-row-val">5th</span></div>
-                <div class="mock-row" style="padding:10px 12px"><span class="mock-row-label">Section</span><span class="mock-row-val">A</span></div>
-                <div style="padding:10px 12px;display:flex;justify-content:space-between"><span class="mock-row-label">Batch</span><span class="mock-row-val">2022–2026</span></div>
-              </div>
+      <!-- Screen 3: Timetable -->
+      <div class="screen-card" data-index="2">
+        <div class="screen-phone-wrap">
+          <div class="screen-phone-frame">
+            <div class="screen-phone-inner">
+              <div class="screen-notch"></div>
+              <img
+                class="screen-img"
+                src="screen3.png"
+                alt="Timetable screen"
+                loading="lazy"
+                decoding="async"
+                onclick="openLightbox(this,'Timetable')"
+              />
             </div>
           </div>
+          <div class="screen-badge">Timetable</div>
+        </div>
+        <div class="screen-info">
+          <div class="screen-title">Timetable</div>
+          <div class="screen-desc">Daily class schedule for B.Tech CSE — subject, room, teacher, and type, by day.</div>
         </div>
       </div>
 
-      <!-- DIGITAL ID -->
-      <div class="showcase-item reverse reveal">
-        <div class="showcase-text">
-          <div class="section-label"><span class="section-label-line"></span>Digital Student ID</div>
-          <h3>Your credentials, always with you</h3>
-          <p>A fully rendered digital student ID card — carrying photo, name, roll number, registration number, and academic details. Always available, no printing required.</p>
-          <ul class="showcase-feature-list">
-            <li>Student photo from profile</li>
-            <li>Full name and academic identifiers</li>
-            <li>Department and course details</li>
-            <li>Portable and always accessible</li>
-          </ul>
-        </div>
-        <div class="showcase-visual">
-          <div class="mock-screen">
-            <div class="mock-screen-inner">
-              <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px">Digital Student ID</div>
-              <div class="mock-id-card">
-                <div class="mock-id-top">
-                  <div class="mock-id-avatar"></div>
-                  <div>
-                    <div class="mock-id-info-name">Rahul Kumar Sharma</div>
-                    <div class="mock-id-info-id">24CSE0042 · BBIT</div>
-                  </div>
-                </div>
-                <div class="mock-id-divider"></div>
-                <div class="mock-id-grid">
-                  <div class="mock-id-field"><div class="mock-id-field-label">Reg. No.</div><div class="mock-id-field-val">234570100042</div></div>
-                  <div class="mock-id-field"><div class="mock-id-field-label">Course</div><div class="mock-id-field-val">B.Tech CSE</div></div>
-                  <div class="mock-id-field"><div class="mock-id-field-label">Semester</div><div class="mock-id-field-val">5th Sem</div></div>
-                  <div class="mock-id-field"><div class="mock-id-field-label">Section</div><div class="mock-id-field-val">A · 2022–26</div></div>
-                </div>
-                <div class="mock-id-divider"></div>
-                <div style="font-size:8px;color:rgba(255,255,255,0.25);text-align:center">Budge Budge Institute of Technology · MAKAUT</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
+
+  <!-- Dots -->
+  <div class="screens-dots" id="screensDots">
+    <button class="screen-dot active" onclick="scrollToCard(0)" aria-label="Screen 1"></button>
+    <button class="screen-dot" onclick="scrollToCard(1)" aria-label="Screen 2"></button>
+    <button class="screen-dot" onclick="scrollToCard(2)" aria-label="Screen 3"></button>
+  </div>
 </section>
+
+<!-- LIGHTBOX -->
+<div class="lightbox-overlay" id="lightbox" onclick="closeLightbox(event)">
+  <button class="lightbox-close" onclick="closeLightbox()" aria-label="Close">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 2l14 14M16 2L2 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
+  <div class="lightbox-img-wrap" id="lightboxWrap">
+    <div class="lightbox-phone-frame">
+      <img class="lightbox-img" id="lightboxImg" src="" alt="" />
+    </div>
+    <div class="lightbox-label" id="lightboxLabel"></div>
+  </div>
+</div>
 
 <!-- TECH STACK -->
 <section class="tech-section" id="tech">
@@ -1026,6 +1081,7 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
           <div class="roadmap-item live"><div class="roadmap-item-dot"></div>BBIT Information Module</div>
           <div class="roadmap-item live"><div class="roadmap-item-dot"></div>Persistent Sessions</div>
           <div class="roadmap-item live"><div class="roadmap-item-dot"></div>Dashboard &amp; Navigation</div>
+          <div class="roadmap-item live"><div class="roadmap-item-dot"></div>Timetable</div>
           <div class="roadmap-item live"><div class="roadmap-item-dot"></div>Cloud Data Persistence</div>
         </div>
       </div>
@@ -1033,7 +1089,6 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
         <div class="roadmap-col-label soon"><div class="roadmap-dot soon"></div>Coming Soon</div>
         <div class="roadmap-items">
           <div class="roadmap-item soon"><div class="roadmap-item-dot"></div>Attendance Tracking</div>
-          <div class="roadmap-item soon"><div class="roadmap-item-dot"></div>Timetable</div>
           <div class="roadmap-item soon"><div class="roadmap-item-dot"></div>Announcements</div>
           <div class="roadmap-item soon"><div class="roadmap-item-dot"></div>Notes Sharing</div>
           <div class="roadmap-item soon"><div class="roadmap-item-dot"></div>Assignments</div>
@@ -1055,7 +1110,7 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
   <div class="cta-content reveal">
     <h2 class="cta-h2">Ready to explore<br><em>Campus Hub?</em></h2>
     <p class="cta-p">A functioning React Native application with real backend integration, authentication, and cloud persistence — built independently for BBIT students.</p>
-    <a class="btn-primary-light" href="/CampusHub.apk" download>
+    <a class="btn-primary-light" href="https://github.com/razzaquecodes/campus-hub/releases/download/v1.0.0/CampusHub.apk" download>
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2v10M5 8l4 4 4-4M2 15h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Download APK
     </a>
@@ -1077,8 +1132,8 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
     <!-- LEFT: Brand -->
     <div>
       <a class="footer-brand-logo" href="#">
-        <div class="footer-logo-mark">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="white"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="rgba(255,255,255,0.35)"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="rgba(255,255,255,0.35)"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="white"/></svg>
+        <div class="footer-logo-mark" style="background:none;border:none;overflow:hidden;padding:0;">
+          <img src="icon.png" alt="Campus Hub" style="width:30px;height:30px;object-fit:cover;border-radius:9px;display:block;">
         </div>
         <span class="footer-brand-name">Campus Hub</span>
       </a>
@@ -1103,7 +1158,7 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
           </a>
         </li>
         <li>
-          <a href="/CampusHub.apk" download>
+          <a href="https://github.com/razzaquecodes/campus-hub/releases/download/v1.0.0/CampusHub.apk" download>
             Download APK
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </a>
@@ -1123,19 +1178,19 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
       <div class="footer-dev-name">Abdur Razzaque</div>
       <div class="footer-dev-role">Full Stack Mobile Developer</div>
       <div class="footer-social">
-        <a class="footer-social-link" href="https://github.com/" target="_blank" rel="noopener">
+        <a class="footer-social-link" href="https://github.com/razzaquecodes" target="_blank" rel="noopener">
           <div class="footer-social-icon">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1C3.69 1 1 3.69 1 7c0 2.65 1.72 4.9 4.1 5.69.3.05.41-.13.41-.29v-1c-1.67.36-2.02-.8-2.02-.8-.27-.7-.67-.88-.67-.88-.55-.37.04-.37.04-.37.61.04.93.63.93.63.54.92 1.41.66 1.76.5.05-.39.21-.66.38-.81-1.33-.15-2.73-.67-2.73-2.96 0-.65.23-1.19.63-1.6-.06-.15-.27-.76.06-1.58 0 0 .52-.17 1.7.63A5.9 5.9 0 0 1 7 4.84c.52 0 1.05.07 1.54.21 1.18-.8 1.7-.63 1.7-.63.33.82.12 1.43.06 1.58.39.42.63.95.63 1.6 0 2.3-1.4 2.8-2.74 2.95.22.19.41.55.41 1.11v1.65c0 .16.11.34.41.28A6.003 6.003 0 0 0 13 7c0-3.31-2.69-6-6-6z" fill="rgba(255,255,255,0.5)"/></svg>
           </div>
           GitHub
         </a>
-        <a class="footer-social-link" href="https://linkedin.com/" target="_blank" rel="noopener">
+        <a class="footer-social-link" href="https://www.linkedin.com/in/razzaquex/" target="_blank" rel="noopener">
           <div class="footer-social-icon">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" stroke="rgba(255,255,255,0.5)" stroke-width="1.2"/><path d="M4 6v4M4 4.5v.01M6.5 10V7.5c0-.8.7-1.5 1.5-1.5s1.5.7 1.5 1.5V10" stroke="rgba(255,255,255,0.5)" stroke-width="1.2" stroke-linecap="round"/></svg>
           </div>
           LinkedIn
         </a>
-        <a class="footer-social-link" href="mailto:abdur@example.com">
+        <a class="footer-social-link" href="mailto:razzaqueabdur165@gmail.com">
           <div class="footer-social-icon">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="8" rx="1.5" stroke="rgba(255,255,255,0.5)" stroke-width="1.2"/><path d="M1 4l6 4 6-4" stroke="rgba(255,255,255,0.5)" stroke-width="1.2" stroke-linecap="round"/></svg>
           </div>
@@ -1168,6 +1223,70 @@ const observer = new IntersectionObserver((entries) => {
   });
 },{threshold:0.12});
 document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+
+// ── SCREENSHOT TRACK ──
+const track = document.getElementById('screensTrack');
+const cards = track ? Array.from(track.querySelectorAll('.screen-card')) : [];
+const dots  = document.querySelectorAll('.screen-dot');
+
+function updateActive(index) {
+  cards.forEach((c,i) => c.classList.toggle('active-card', i === index));
+  dots.forEach((d,i) => d.classList.toggle('active', i === index));
+}
+updateActive(0);
+
+// Drag scroll
+let isDown = false, startX, scrollLeft;
+if(track) {
+  track.addEventListener('mousedown', e => {
+    isDown = true; track.style.cursor='grabbing';
+    startX = e.pageX - track.offsetLeft;
+    scrollLeft = track.scrollLeft;
+  });
+  ['mouseleave','mouseup'].forEach(ev => track.addEventListener(ev, () => { isDown=false; track.style.cursor='grab'; }));
+  track.addEventListener('mousemove', e => {
+    if(!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - track.offsetLeft;
+    track.scrollLeft = scrollLeft - (x - startX) * 1.5;
+  });
+  track.addEventListener('scroll', () => {
+    const center = track.scrollLeft + track.clientWidth / 2;
+    let closest = 0, minDist = Infinity;
+    cards.forEach((c,i) => {
+      const dist = Math.abs((c.offsetLeft + c.offsetWidth/2) - center);
+      if(dist < minDist) { minDist = dist; closest = i; }
+    });
+    updateActive(closest);
+  });
+}
+
+function scrollToCard(i) {
+  if(!track || !cards[i]) return;
+  const card = cards[i];
+  const offset = card.offsetLeft - (track.clientWidth - card.offsetWidth) / 2;
+  track.scrollTo({left: offset, behavior:'smooth'});
+  updateActive(i);
+}
+
+// ── LIGHTBOX ──
+const overlay = document.getElementById('lightbox');
+const lbImg   = document.getElementById('lightboxImg');
+const lbLabel = document.getElementById('lightboxLabel');
+
+function openLightbox(imgEl, label) {
+  lbImg.src = imgEl.src;
+  lbImg.alt = imgEl.alt;
+  lbLabel.textContent = label;
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox(e) {
+  if(e && e.target !== overlay && !e.target.closest('.lightbox-close')) return;
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if(e.key==='Escape') { overlay.classList.remove('open'); document.body.style.overflow=''; }});
 </script>
 </body>
 </html>
