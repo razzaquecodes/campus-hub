@@ -2,9 +2,9 @@ import '@/global.css';
 import 'react-native-reanimated';
 
 import {
-    DarkTheme as NavigationDarkTheme,
-    DefaultTheme as NavigationLightTheme,
-    ThemeProvider as NavigationThemeProvider,
+  DarkTheme as NavigationDarkTheme,
+  DefaultTheme as NavigationLightTheme,
+  ThemeProvider as NavigationThemeProvider,
 } from '@react-navigation/native';
 import { Stack, router, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -32,10 +32,18 @@ function useAuthGuard() {
     const inAuthGroup = segments[0] === '(auth)';
     const isRoot = segments.length === 0;
 
+    console.info(`[router-decision] Auth guard running - Hydrated: ${isHydrated}, Profile: ${!!profile}, AuthGroup: ${inAuthGroup}, Root: ${isRoot}`);
+
     if (!profile) {
-      if (!inAuthGroup) router.replace('/(auth)/login');
+      if (!inAuthGroup) {
+        console.info('[router-decision] Navigating to login');
+        router.replace('/(auth)/login');
+      }
     } else {
-      if (inAuthGroup || isRoot) router.replace('/(tabs)');
+      if (inAuthGroup || isRoot) {
+        console.info('[router-decision] Navigating to dashboard (tabs)');
+        router.replace('/(tabs)');
+      }
     }
   }, [profile, isHydrated, segments]);
 }

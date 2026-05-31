@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campus Hub — Your Campus. Connected.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,200;0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ── RESET ── */
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+
+/* ── TOKENS ── */
+:root{
+  --ink:#0a0a0f;
+  --ink-2:#1c1c26;
+  --ink-3:#2e2e3e;
+  --fog:#f5f4f1;
+  --fog-2:#ededea;
+  --fog-3:#e2e1dc;
+  --snow:#ffffff;
+  --navy:#0d1b3e;
+  --navy-2:#162248;
+  --navy-3:#1e2f5e;
+  --electric:#2563eb;
+  --electric-2:#3b82f6;
+  --electric-light:#dbeafe;
+  --electric-glow:rgba(37,99,235,0.12);
+  --text-primary:#0a0a0f;
+  --text-secondary:#5a5a6e;
+  --text-muted:#9898a8;
+  --text-on-dark:#f0eff8;
+  --text-on-dark-2:#9da8c2;
+  --border:#e4e3de;
+  --border-dark:rgba(255,255,255,0.08);
+  --border-dark-hi:rgba(255,255,255,0.14);
+  --radius-sm:8px;
+  --radius-md:14px;
+  --radius-lg:22px;
+  --radius-xl:32px;
+  --radius-pill:999px;
+  --f-display:'Instrument Serif',Georgia,serif;
+  --f-body:'DM Sans',system-ui,sans-serif;
+  --f-mono:'Geist Mono',monospace;
+  --shadow-sm:0 1px 3px rgba(10,10,15,0.06),0 1px 2px rgba(10,10,15,0.04);
+  --shadow-md:0 4px 24px rgba(10,10,15,0.08),0 1px 4px rgba(10,10,15,0.04);
+  --shadow-lg:0 20px 60px rgba(10,10,15,0.12),0 4px 16px rgba(10,10,15,0.06);
+  --shadow-phone:0 60px 120px rgba(10,10,15,0.28),0 20px 40px rgba(10,10,15,0.14),0 0 0 1px rgba(10,10,15,0.06);
+}
+
+body{
+  font-family:var(--f-body);
+  background:var(--snow);
+  color:var(--text-primary);
+  font-size:16px;
+  line-height:1.6;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  padding:0 40px;
+  height:64px;display:flex;align-items:center;justify-content:space-between;
+  background:rgba(255,255,255,0.8);
+  backdrop-filter:blur(20px) saturate(1.8);
+  -webkit-backdrop-filter:blur(20px) saturate(1.8);
+  border-bottom:1px solid rgba(228,227,222,0.6);
+  animation:navSlide 0.6s ease both;
+}
+@keyframes navSlide{from{transform:translateY(-100%);opacity:0}to{transform:none;opacity:1}}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-logo-mark{width:30px;height:30px;background:var(--navy);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.nav-logo-mark svg{width:16px;height:16px}
+.nav-logo-text{font-family:var(--f-body);font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-0.3px}
+.nav-links{display:flex;gap:32px;list-style:none}
+.nav-links a{font-size:13px;font-weight:500;color:var(--text-secondary);text-decoration:none;letter-spacing:0.1px;transition:color 0.15s}
+.nav-links a:hover{color:var(--text-primary)}
+.nav-cta{background:var(--navy);color:var(--text-on-dark);border:none;border-radius:var(--radius-pill);padding:9px 20px;font-family:var(--f-body);font-size:13px;font-weight:600;cursor:pointer;letter-spacing:0.1px;transition:all 0.2s;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.nav-cta:hover{background:var(--navy-3);transform:translateY(-1px)}
+
+/* ── HERO ── */
+.hero{
+  min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  position:relative;
+  padding:120px 40px 80px;
+  overflow:hidden;
+  background:var(--snow);
+}
+.hero-bg{
+  position:absolute;inset:0;z-index:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%,rgba(37,99,235,0.06) 0%,transparent 60%),
+    radial-gradient(ellipse 40% 40% at 80% 60%,rgba(13,27,62,0.04) 0%,transparent 60%);
+}
+.hero-grid{
+  position:absolute;inset:0;z-index:0;
+  background-image:
+    linear-gradient(rgba(10,10,15,0.04) 1px, transparent 1px),
+    linear-gradient(90deg,rgba(10,10,15,0.04) 1px, transparent 1px);
+  background-size:60px 60px;
+  mask-image:radial-gradient(ellipse 80% 70% at 50% 50%,black 30%,transparent 80%);
+}
+
+.hero-content{
+  position:relative;z-index:2;
+  text-align:center;
+  max-width:780px;
+  margin-bottom:60px;
+}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--electric-light);
+  border:1px solid rgba(37,99,235,0.2);
+  border-radius:var(--radius-pill);
+  padding:5px 14px 5px 8px;
+  margin-bottom:32px;
+  animation:fadeUp 0.7s 0.2s ease both;
+}
+.eyebrow-dot{width:20px;height:20px;background:var(--electric);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.eyebrow-dot svg{width:10px;height:10px}
+.eyebrow-text{font-size:12px;font-weight:600;color:var(--electric);letter-spacing:0.4px;text-transform:uppercase}
+
+.hero-h1{
+  font-family:var(--f-display);
+  font-size:clamp(56px,7vw,88px);
+  font-weight:400;
+  line-height:1.0;
+  letter-spacing:-2px;
+  color:var(--ink);
+  margin-bottom:8px;
+  animation:fadeUp 0.7s 0.35s ease both;
+}
+.hero-h1 em{font-style:italic;color:var(--navy)}
+.hero-h1-sub{
+  font-family:var(--f-display);
+  font-size:clamp(56px,7vw,88px);
+  font-weight:400;
+  font-style:italic;
+  line-height:1.0;
+  letter-spacing:-2px;
+  color:var(--electric);
+  margin-bottom:28px;
+  animation:fadeUp 0.7s 0.4s ease both;
+}
+.hero-sub{
+  font-size:clamp(16px,2vw,19px);
+  color:var(--text-secondary);
+  font-weight:300;
+  line-height:1.7;
+  max-width:580px;
+  margin:0 auto 40px;
+  animation:fadeUp 0.7s 0.5s ease both;
+}
+.hero-actions{
+  display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap;
+  animation:fadeUp 0.7s 0.6s ease both;
+}
+.btn-primary{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--navy);
+  color:var(--text-on-dark);
+  border:none;border-radius:var(--radius-pill);
+  padding:14px 28px;
+  font-family:var(--f-body);font-size:15px;font-weight:600;
+  cursor:pointer;text-decoration:none;
+  transition:all 0.2s;
+  box-shadow:0 4px 20px rgba(13,27,62,0.25);
+}
+.btn-primary:hover{background:var(--navy-3);transform:translateY(-2px);box-shadow:0 8px 30px rgba(13,27,62,0.3)}
+.btn-secondary{
+  display:inline-flex;align-items:center;gap:8px;
+  background:transparent;
+  color:var(--text-primary);
+  border:1px solid var(--border);border-radius:var(--radius-pill);
+  padding:13px 24px;
+  font-family:var(--f-body);font-size:15px;font-weight:500;
+  cursor:pointer;text-decoration:none;
+  transition:all 0.2s;
+}
+.btn-secondary:hover{background:var(--fog);border-color:var(--fog-3);transform:translateY(-1px)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+
+/* ── PHONE MOCKUP ── */
+.phone-scene{
+  position:relative;z-index:2;
+  display:flex;justify-content:center;
+  animation:phoneReveal 1s 0.7s cubic-bezier(0.16,1,0.3,1) both;
+  perspective:1200px;
+}
+@keyframes phoneReveal{
+  from{opacity:0;transform:translateY(60px) rotateX(8deg)}
+  to{opacity:1;transform:translateY(0) rotateX(0deg)}
+}
+.phone-float{
+  animation:phoneFloat 6s ease-in-out infinite;
+}
+@keyframes phoneFloat{
+  0%,100%{transform:translateY(0) rotate3d(1,0.2,0,2deg)}
+  50%{transform:translateY(-16px) rotate3d(1,0.2,0,-1deg)}
+}
+.phone-body{
+  width:280px;
+  background:var(--ink);
+  border-radius:44px;
+  padding:3px;
+  box-shadow:var(--shadow-phone);
+  position:relative;
+  overflow:visible;
+}
+.phone-body::before{
+  content:'';position:absolute;inset:0;border-radius:44px;
+  background:linear-gradient(135deg,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0) 60%);
+  pointer-events:none;z-index:10;
+}
+.phone-sweep{
+  position:absolute;inset:0;border-radius:44px;
+  background:linear-gradient(105deg,transparent 0%,rgba(255,255,255,0.08) 40%,transparent 60%);
+  animation:sweep 3.5s 1.5s ease-in-out infinite;
+  pointer-events:none;z-index:11;
+}
+@keyframes sweep{
+  0%{opacity:0;transform:translateX(-100%)}
+  20%,80%{opacity:1}
+  100%{opacity:0;transform:translateX(100%)}
+}
+.phone-inner{
+  background:#080810;
+  border-radius:42px;
+  overflow:hidden;
+  position:relative;
+  height:580px;
+}
+.phone-notch{
+  width:100px;height:30px;background:var(--ink);
+  border-radius:0 0 20px 20px;
+  margin:0 auto;
+  position:relative;z-index:20;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.notch-cam{width:8px;height:8px;border-radius:50%;background:#1a1a2e;border:1px solid #2a2a3e}
+.notch-speaker{width:36px;height:4px;border-radius:2px;background:#1a1a2e}
+
+/* ── APP SCREEN INSIDE PHONE ── */
+.app-screen{
+  padding:0 0 80px;
+  background:linear-gradient(180deg,#080810 0%,#0a0a18 100%);
+  height:calc(100% - 30px);
+  overflow:hidden;
+  position:relative;
+}
+.app-status{display:flex;justify-content:space-between;align-items:center;padding:10px 20px 0;font-size:11px;font-weight:600;color:rgba(255,255,255,0.7)}
+.app-time{font-family:var(--f-mono);letter-spacing:0.5px}
+
+.app-header{padding:16px 20px 12px}
+.app-greeting{font-size:11px;font-weight:600;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:2px}
+.app-name-row{display:flex;align-items:center;justify-content:space-between}
+.app-name{font-size:22px;font-weight:700;color:#fff;letter-spacing:-0.6px}
+.app-avatar-sm{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#4f46e5);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff}
+
+.app-id-card{
+  margin:0 16px 14px;
+  background:linear-gradient(135deg,#0d1b3e 0%,#162248 50%,#1e2f5e 100%);
+  border-radius:20px;
+  padding:18px;
+  position:relative;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,0.08);
+}
+.app-id-card::before{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;background:radial-gradient(rgba(37,99,235,0.25),transparent 70%);pointer-events:none}
+.app-id-label{font-size:9px;font-weight:700;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.app-id-name{font-size:17px;font-weight:700;color:#fff;letter-spacing:-0.4px;margin-bottom:4px}
+.app-id-meta{font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:12px}
+.app-id-row{display:flex;gap:8px}
+.app-id-pill{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);border-radius:100px;padding:4px 10px;font-size:9px;font-weight:600;color:rgba(255,255,255,0.6);font-family:var(--f-mono)}
+
+.app-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 16px 14px}
+.app-tile{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:14px;cursor:pointer;transition:all 0.2s}
+.app-tile-icon{width:28px;height:28px;border-radius:8px;margin-bottom:8px;display:flex;align-items:center;justify-content:center;font-size:13px}
+.app-tile-label{font-size:11px;font-weight:600;color:rgba(255,255,255,0.7);letter-spacing:-0.1px}
+.app-tile-sub{font-size:9px;color:rgba(255,255,255,0.3);margin-top:1px}
+
+.phone-glow{
+  position:absolute;
+  width:280px;height:280px;
+  border-radius:50%;
+  background:radial-gradient(rgba(37,99,235,0.18),transparent 70%);
+  bottom:-100px;left:50%;transform:translateX(-50%);
+  filter:blur(30px);
+  pointer-events:none;z-index:1;
+}
+
+/* ── SECTION BASE ── */
+section{padding:100px 40px}
+.section-container{max-width:1120px;margin:0 auto}
+.section-label{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--electric);margin-bottom:16px;
+}
+.section-label-line{width:24px;height:1px;background:var(--electric)}
+.section-h2{
+  font-family:var(--f-display);
+  font-size:clamp(36px,4vw,52px);
+  font-weight:400;
+  line-height:1.1;
+  letter-spacing:-1.5px;
+  color:var(--ink);
+  margin-bottom:16px;
+}
+.section-h2 em{font-style:italic;color:var(--navy)}
+.section-p{
+  font-size:17px;font-weight:300;color:var(--text-secondary);
+  line-height:1.7;max-width:560px;
+}
+
+/* ── FEATURES GRID ── */
+.features-section{background:var(--fog)}
+.features-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  gap:2px;
+  background:var(--border);
+  border-radius:var(--radius-xl);
+  overflow:hidden;
+  margin-top:60px;
+  border:1px solid var(--border);
+}
+.feature-card{
+  background:var(--snow);
+  padding:36px 32px;
+  transition:background 0.2s;
+}
+.feature-card:hover{background:var(--fog-2)}
+.feature-icon{
+  width:44px;height:44px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:20px;
+}
+.feature-title{font-size:17px;font-weight:700;color:var(--ink);margin-bottom:8px;letter-spacing:-0.3px}
+.feature-desc{font-size:14px;color:var(--text-secondary);line-height:1.65;font-weight:400}
+.feature-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+.feature-tag{
+  background:var(--fog);border:1px solid var(--border);
+  border-radius:var(--radius-pill);padding:3px 10px;
+  font-size:11px;font-weight:600;color:var(--text-muted);
+  font-family:var(--f-mono);letter-spacing:0.2px;
+}
+
+/* ── SHOWCASE SECTION ── */
+.showcase-section{background:var(--ink);color:var(--text-on-dark);padding:100px 40px}
+.showcase-header{text-align:center;max-width:680px;margin:0 auto 80px}
+.showcase-header .section-label{justify-content:center;color:var(--electric-2)}
+.showcase-header .section-label-line{background:var(--electric-2)}
+.showcase-header .section-h2{color:var(--text-on-dark)}
+.showcase-header .section-p{color:var(--text-on-dark-2);margin:0 auto}
+
+.showcase-items{display:flex;flex-direction:column;gap:80px}
+.showcase-item{
+  display:grid;grid-template-columns:1fr 1fr;gap:80px;
+  align-items:center;
+}
+.showcase-item.reverse{direction:rtl}
+.showcase-item.reverse>*{direction:ltr}
+
+.showcase-text .section-label{color:var(--electric-2)}
+.showcase-text .section-label-line{background:var(--electric-2)}
+.showcase-text h3{
+  font-family:var(--f-display);
+  font-size:clamp(28px,3vw,38px);
+  font-weight:400;font-style:italic;
+  line-height:1.15;letter-spacing:-1px;
+  color:var(--text-on-dark);margin-bottom:16px;
+}
+.showcase-text p{font-size:15px;font-weight:300;color:var(--text-on-dark-2);line-height:1.75;margin-bottom:24px}
+.showcase-feature-list{list-style:none;display:flex;flex-direction:column;gap:10px}
+.showcase-feature-list li{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-on-dark-2)}
+.showcase-feature-list li::before{
+  content:'';width:16px;height:16px;border-radius:50%;
+  background:rgba(37,99,235,0.15);border:1px solid var(--electric);
+  flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;
+}
+
+.showcase-visual{
+  border-radius:28px;
+  overflow:hidden;
+  background:var(--ink-2);
+  border:1px solid var(--border-dark);
+  position:relative;
+  min-height:380px;
+  display:flex;align-items:center;justify-content:center;
+}
+.mock-screen{
+  width:220px;
+  background:#050508;
+  border-radius:36px;
+  border:6px solid #1a1a2e;
+  overflow:hidden;
+  box-shadow:0 30px 80px rgba(0,0,0,0.5);
+}
+.mock-screen-inner{background:#080810;min-height:380px;padding:16px 14px}
+
+/* Mock content pieces */
+.mock-header{font-size:18px;font-weight:700;color:#fff;letter-spacing:-0.5px;margin:8px 0 4px}
+.mock-sub{font-size:10px;color:rgba(255,255,255,0.35);margin-bottom:16px}
+.mock-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.mock-row:last-child{border:none}
+.mock-row-label{font-size:10px;color:rgba(255,255,255,0.4);font-weight:500}
+.mock-row-val{font-size:10px;color:rgba(255,255,255,0.8);font-weight:600;font-family:var(--f-mono)}
+.mock-id-card{background:linear-gradient(135deg,#0d1b3e,#1e2f5e);border-radius:16px;padding:16px;margin:8px 0 12px;border:1px solid rgba(255,255,255,0.08)}
+.mock-id-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.mock-id-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#4f46e5);flex-shrink:0}
+.mock-id-info-name{font-size:13px;font-weight:700;color:#fff;letter-spacing:-0.3px}
+.mock-id-info-id{font-size:9px;color:rgba(255,255,255,0.4);font-family:var(--f-mono)}
+.mock-id-divider{height:1px;background:rgba(255,255,255,0.08);margin:8px 0}
+.mock-id-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mock-id-field{font-size:8px}
+.mock-id-field-label{color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:1px}
+.mock-id-field-val{color:rgba(255,255,255,0.8);font-weight:600;font-size:9px}
+.mock-google-btn{background:#fff;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;margin:12px 0}
+.mock-google-icon{width:14px;height:14px;flex-shrink:0}
+.mock-google-text{font-size:10px;font-weight:600;color:#1a1a2e}
+.mock-pill{display:inline-flex;align-items:center;gap:4px;background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.2);border-radius:100px;padding:3px 8px;font-size:8px;font-weight:600;color:#60a5fa;margin-bottom:10px}
+.mock-pill-dot{width:4px;height:4px;border-radius:50%;background:#60a5fa}
+
+/* ── TECH STACK ── */
+.tech-section{background:var(--fog);padding:100px 40px}
+.tech-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:60px}
+.tech-card{
+  background:var(--snow);border:1px solid var(--border);
+  border-radius:var(--radius-lg);padding:28px 28px;
+  transition:all 0.2s;
+}
+.tech-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.tech-card-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.tech-layer-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--electric);margin-bottom:6px}
+.tech-card-title{font-size:18px;font-weight:700;color:var(--ink);letter-spacing:-0.4px}
+.tech-card-desc{font-size:14px;color:var(--text-secondary);line-height:1.65}
+.tech-packages{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px}
+.tech-pkg{
+  background:var(--fog);border:1px solid var(--border);
+  border-radius:var(--radius-pill);padding:3px 10px;
+  font-size:11px;font-weight:500;color:var(--text-secondary);
+  font-family:var(--f-mono);
+}
+
+/* ── ROADMAP ── */
+.roadmap-section{background:var(--snow);padding:100px 40px}
+.roadmap-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:60px;max-width:900px;margin-left:auto;margin-right:auto}
+.roadmap-col-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+.roadmap-col-label.live{color:#059669}
+.roadmap-col-label.soon{color:var(--text-muted)}
+.roadmap-dot{width:8px;height:8px;border-radius:50%}
+.roadmap-dot.live{background:#059669}
+.roadmap-dot.soon{background:var(--border)}
+.roadmap-items{display:flex;flex-direction:column;gap:10px}
+.roadmap-item{
+  display:flex;align-items:center;gap:12px;
+  background:var(--fog);border:1px solid var(--border);
+  border-radius:var(--radius-md);padding:12px 16px;
+  font-size:14px;font-weight:500;color:var(--text-secondary);
+}
+.roadmap-item.live{
+  background:rgba(5,150,105,0.04);
+  border-color:rgba(5,150,105,0.15);
+  color:var(--text-primary);
+}
+.roadmap-item-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.roadmap-item.live .roadmap-item-dot{background:#059669}
+.roadmap-item.soon .roadmap-item-dot{background:var(--border)}
+
+/* ── FINAL CTA ── */
+.cta-section{
+  background:var(--navy);padding:120px 40px;text-align:center;
+  position:relative;overflow:hidden;
+}
+.cta-bg{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 50%,rgba(37,99,235,0.2) 0%,transparent 60%),
+    radial-gradient(ellipse 40% 40% at 20% 80%,rgba(79,70,229,0.15) 0%,transparent 60%);
+}
+.cta-grid-lines{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,0.03) 1px,transparent 1px);
+  background-size:50px 50px;
+}
+.cta-content{position:relative;z-index:1;max-width:680px;margin:0 auto}
+.cta-h2{
+  font-family:var(--f-display);
+  font-size:clamp(42px,5vw,64px);
+  font-weight:400;line-height:1.05;letter-spacing:-2px;
+  color:var(--text-on-dark);margin-bottom:16px;
+}
+.cta-h2 em{font-style:italic;color:#60a5fa}
+.cta-p{font-size:16px;font-weight:300;color:var(--text-on-dark-2);margin-bottom:40px;line-height:1.7}
+.btn-primary-light{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--snow);color:var(--navy);
+  border:none;border-radius:var(--radius-pill);
+  padding:16px 32px;
+  font-family:var(--f-body);font-size:15px;font-weight:700;
+  cursor:pointer;text-decoration:none;
+  transition:all 0.2s;
+  box-shadow:0 4px 24px rgba(0,0,0,0.3);
+}
+.btn-primary-light:hover{transform:translateY(-2px);box-shadow:0 8px 40px rgba(0,0,0,0.4)}
+.cta-stack{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:16px;margin-top:48px;
+}
+.cta-stack-item{
+  background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
+  border-radius:var(--radius-pill);padding:6px 16px;
+  font-size:12px;font-weight:500;color:var(--text-on-dark-2);
+  font-family:var(--f-mono);letter-spacing:0.3px;
+}
+
+/* ── FOOTER ── */
+/* ── FOOTER ── */
+footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
+.footer-main{
+  max-width:1120px;margin:0 auto;
+  padding:72px 40px 56px;
+  display:grid;grid-template-columns:1.8fr 1fr 1.2fr;gap:60px;
+}
+.footer-brand-logo{display:flex;align-items:center;gap:10px;margin-bottom:16px;text-decoration:none}
+.footer-logo-mark{width:30px;height:30px;background:var(--navy-2);border:1px solid rgba(255,255,255,0.08);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.footer-brand-name{font-family:var(--f-body);font-size:15px;font-weight:700;color:rgba(255,255,255,0.85);letter-spacing:-0.2px}
+.footer-tagline{font-family:var(--f-display);font-size:16px;font-style:italic;color:rgba(255,255,255,0.45);margin-bottom:12px;line-height:1.4;letter-spacing:-0.2px}
+.footer-desc{font-size:13px;color:rgba(255,255,255,0.28);line-height:1.7;font-weight:300;max-width:300px}
+
+.footer-col-label{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:20px}
+.footer-links{list-style:none;display:flex;flex-direction:column;gap:12px}
+.footer-links a{font-size:14px;font-weight:400;color:rgba(255,255,255,0.45);text-decoration:none;transition:color 0.15s;display:inline-flex;align-items:center;gap:6px}
+.footer-links a:hover{color:rgba(255,255,255,0.8)}
+.footer-links a svg{opacity:0;transform:translateX(-4px);transition:all 0.15s}
+.footer-links a:hover svg{opacity:1;transform:none}
+
+.footer-dev-name{font-size:17px;font-weight:600;color:rgba(255,255,255,0.82);letter-spacing:-0.4px;margin-bottom:4px}
+.footer-dev-role{font-size:13px;color:rgba(255,255,255,0.3);font-weight:300;margin-bottom:20px}
+.footer-social{display:flex;flex-direction:column;gap:10px}
+.footer-social-link{
+  display:inline-flex;align-items:center;gap:10px;
+  font-size:13px;font-weight:500;color:rgba(255,255,255,0.4);
+  text-decoration:none;transition:color 0.15s;
+  padding:8px 0;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+.footer-social-link:last-child{border-bottom:none}
+.footer-social-link:hover{color:rgba(255,255,255,0.75)}
+.footer-social-icon{width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.15s}
+.footer-social-link:hover .footer-social-icon{background:rgba(255,255,255,0.08)}
+
+.footer-bottom{
+  max-width:1120px;margin:0 auto;
+  padding:20px 40px 28px;
+  border-top:1px solid rgba(255,255,255,0.05);
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+}
+.footer-copyright{font-size:12px;color:rgba(255,255,255,0.2);font-weight:400}
+.footer-credit{font-size:12px;color:rgba(255,255,255,0.18);display:flex;align-items:center;gap:5px}
+.footer-credit-heart{color:rgba(220,80,80,0.6);font-size:11px}
+
+/* ── SCROLL REVEAL ── */
+.reveal{opacity:0;transform:translateY(30px);transition:opacity 0.7s ease,transform 0.7s ease}
+.reveal.visible{opacity:1;transform:none}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  nav{padding:0 20px}
+  .nav-links{display:none}
+  section{padding:70px 24px}
+  .showcase-item{grid-template-columns:1fr;gap:40px}
+  .showcase-item.reverse{direction:ltr}
+  .roadmap-grid{grid-template-columns:1fr;gap:32px}
+  .hero-h1,.hero-h1-sub{font-size:52px}
+  .hero{padding:100px 24px 60px}
+  .phone-body{width:240px}
+  .phone-inner{height:500px}
+  .footer-main{grid-template-columns:1fr;gap:40px;padding:48px 24px 36px}
+  .footer-desc{max-width:100%}
+  .footer-bottom{flex-direction:column;text-align:center;padding:16px 24px 24px;gap:8px}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">
+    <div class="nav-logo-mark">
+      <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1.5" fill="white"/><rect x="9" y="2" width="5" height="5" rx="1.5" fill="rgba(255,255,255,0.5)"/><rect x="2" y="9" width="5" height="5" rx="1.5" fill="rgba(255,255,255,0.5)"/><rect x="9" y="9" width="5" height="5" rx="1.5" fill="white"/></svg>
+    </div>
+    <span class="nav-logo-text">Campus Hub</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#showcase">Product</a></li>
+    <li><a href="#tech">Stack</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+  </ul>
+  <a class="nav-cta" href="/CampusHub.apk" download>
+    Download APK
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v7M4 6l3 3 3-3M2 11h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </a>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="top">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+
+  <div class="hero-content">
+    <div class="hero-eyebrow">
+      <div class="eyebrow-dot">
+        <svg viewBox="0 0 10 10" fill="none"><path d="M2 5h6M5 2v6" stroke="white" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </div>
+      <span class="eyebrow-text">Built for BBIT Students</span>
+    </div>
+    <div class="hero-h1">Your Campus.<br><em>Connected</em></div>
+    <p class="hero-sub">Campus Hub brings student identity, academic information, digital credentials, and campus resources together in one modern mobile application built for BBIT students.</p>
+    <div class="hero-actions">
+      <a class="btn-primary" href="/CampusHub.apk" id="download" download>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v8M5 7l3 3 3-3M2 13h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Download APK
+      </a>
+      <a class="btn-secondary" href="#showcase">
+        View Features
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- PHONE MOCKUP -->
+  <div class="phone-scene">
+    <div class="phone-glow"></div>
+    <div class="phone-float">
+      <div class="phone-body">
+        <div class="phone-sweep"></div>
+        <div class="phone-inner">
+          <div class="phone-notch">
+            <div class="notch-speaker"></div>
+            <div class="notch-cam"></div>
+          </div>
+          <div class="app-screen">
+            <div class="app-status">
+              <span class="app-time">9:41</span>
+              <svg width="40" height="12" viewBox="0 0 40 12" fill="none"><path d="M0 5h4M7 3h4M14 1h4" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" stroke-linecap="round"/><rect x="22" y="2" width="12" height="8" rx="2" fill="rgba(255,255,255,0.2)"/><rect x="23" y="3" width="7" height="6" rx="1" fill="white"/></svg>
+            </div>
+            <div class="app-header">
+              <div class="app-greeting">Good morning</div>
+              <div class="app-name-row">
+                <span class="app-name">Rahul Sharma</span>
+                <div class="app-avatar-sm">RS</div>
+              </div>
+            </div>
+            <div class="app-id-card">
+              <div class="app-id-label">Digital Student ID</div>
+              <div class="app-id-name">Rahul Kumar Sharma</div>
+              <div class="app-id-meta">Computer Science &amp; Engineering · Sem 5</div>
+              <div class="app-id-row">
+                <div class="app-id-pill">2024CS0042</div>
+                <div class="app-id-pill">BBIT · MAKAUT</div>
+              </div>
+            </div>
+            <div class="app-grid">
+              <div class="app-tile">
+                <div class="app-tile-icon" style="background:rgba(37,99,235,0.15)">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="4" r="2.5" stroke="#60a5fa" stroke-width="1.3"/><path d="M2 12c0-2.8 2.2-5 5-5s5 2.2 5 5" stroke="#60a5fa" stroke-width="1.3" stroke-linecap="round"/></svg>
+                </div>
+                <div class="app-tile-label">Profile</div>
+                <div class="app-tile-sub">Manage info</div>
+              </div>
+              <div class="app-tile">
+                <div class="app-tile-icon" style="background:rgba(16,185,129,0.15)">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="1" width="10" height="12" rx="1.5" stroke="#34d399" stroke-width="1.3"/><path d="M4 5h6M4 7.5h6M4 10h4" stroke="#34d399" stroke-width="1.2" stroke-linecap="round"/></svg>
+                </div>
+                <div class="app-tile-label">Academic</div>
+                <div class="app-tile-sub">Verified data</div>
+              </div>
+              <div class="app-tile">
+                <div class="app-tile-icon" style="background:rgba(245,158,11,0.15)">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="9" rx="1.5" stroke="#fbbf24" stroke-width="1.3"/><path d="M4 3V2M10 3V2M1 6h12" stroke="#fbbf24" stroke-width="1.2" stroke-linecap="round"/></svg>
+                </div>
+                <div class="app-tile-label">Student ID</div>
+                <div class="app-tile-sub">Digital card</div>
+              </div>
+              <div class="app-tile">
+                <div class="app-tile-icon" style="background:rgba(139,92,246,0.15)">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#a78bfa" stroke-width="1.3"/><path d="M7 4v4l2.5 2" stroke="#a78bfa" stroke-width="1.2" stroke-linecap="round"/></svg>
+                </div>
+                <div class="app-tile-label">BBIT Info</div>
+                <div class="app-tile-sub">Institution</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features-section" id="features">
+  <div class="section-container">
+    <div class="reveal">
+      <div class="section-label"><span class="section-label-line"></span>Core Features</div>
+      <h2 class="section-h2">Everything a student needs,<br><em>in one place</em></h2>
+      <p class="section-p">Built with real infrastructure. Not mockups, not prototypes — a fully functional application with live data.</p>
+    </div>
+
+    <div class="features-grid reveal">
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(37,99,235,0.08)">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 3C6.6 3 3 6.6 3 11s3.6 8 8 8 8-3.6 8-8" stroke="#2563eb" stroke-width="1.6" stroke-linecap="round"/><path d="M15 7l2-4 2 1-1.5 4" stroke="#2563eb" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="11" cy="11" r="2.5" stroke="#2563eb" stroke-width="1.4"/></svg>
+        </div>
+        <div class="feature-title">Secure Authentication</div>
+        <div class="feature-desc">Google OAuth via Supabase Auth with persistent sessions and secure token management. Students sign in once and stay connected.</div>
+        <div class="feature-tags">
+          <span class="feature-tag">Google OAuth</span>
+          <span class="feature-tag">Supabase Auth</span>
+          <span class="feature-tag">Guest Login</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(5,150,105,0.08)">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="7" r="4" stroke="#059669" stroke-width="1.6"/><path d="M4 19c0-3.9 3.1-7 7-7s7 3.1 7 7" stroke="#059669" stroke-width="1.6" stroke-linecap="round"/><path d="M16 13l1.5 1.5L20 12" stroke="#059669" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="feature-title">Student Profile</div>
+        <div class="feature-desc">Full name, email, phone, and profile photo — all cloud-persisted via Supabase. Profile edits sync across devices in real time.</div>
+        <div class="feature-tags">
+          <span class="feature-tag">Cloud Sync</span>
+          <span class="feature-tag">Photo Upload</span>
+          <span class="feature-tag">Editable</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(245,158,11,0.08)">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="2" width="16" height="18" rx="3" stroke="#d97706" stroke-width="1.6"/><path d="M7 7h8M7 11h8M7 15h5" stroke="#d97706" stroke-width="1.4" stroke-linecap="round"/></svg>
+        </div>
+        <div class="feature-title">Academic Identity</div>
+        <div class="feature-desc">Roll number, registration number, course, department, semester, section, and batch — all verified through MAKAUT integration.</div>
+        <div class="feature-tags">
+          <span class="feature-tag">MAKAUT</span>
+          <span class="feature-tag">Verified</span>
+          <span class="feature-tag">PostgreSQL</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(124,58,237,0.08)">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="5" width="16" height="12" rx="3" stroke="#7c3aed" stroke-width="1.6"/><circle cx="8" cy="11" r="2.5" stroke="#7c3aed" stroke-width="1.4"/><path d="M13 9h4M13 11h3M13 13h4" stroke="#7c3aed" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </div>
+        <div class="feature-title">Digital Student ID</div>
+        <div class="feature-desc">A portable digital credential containing photo, name, roll number, registration number, and full academic details — always in your pocket.</div>
+        <div class="feature-tags">
+          <span class="feature-tag">Digital Credential</span>
+          <span class="feature-tag">Portable</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(220,38,38,0.08)">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 3L4 7v5c0 4 3.1 7.7 7 8.9 3.9-1.2 7-4.9 7-8.9V7l-7-4Z" stroke="#dc2626" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 11l2 2 4-4" stroke="#dc2626" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div class="feature-title">MAKAUT Integration</div>
+        <div class="feature-desc">Direct sync with student university data. Academic identity is verified against MAKAUT records, not self-reported.</div>
+        <div class="feature-tags">
+          <span class="feature-tag">Data Sync</span>
+          <span class="feature-tag">Verified</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(13,27,62,0.06)">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="2" y="4" width="18" height="14" rx="3" stroke="#0d1b3e" stroke-width="1.6"/><path d="M7 9h8M7 13h5" stroke="#0d1b3e" stroke-width="1.4" stroke-linecap="round"/><circle cx="17" cy="7" r="3" fill="#2563eb"/><path d="M16 7h2M17 6v2" stroke="white" stroke-width="1" stroke-linecap="round"/></svg>
+        </div>
+        <div class="feature-title">BBIT Information</div>
+        <div class="feature-desc">Institutional overview, accreditation information, and college details — all accessible without leaving the app.</div>
+        <div class="feature-tags">
+          <span class="feature-tag">Institution</span>
+          <span class="feature-tag">Accreditation</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SHOWCASE -->
+<section class="showcase-section" id="showcase">
+  <div class="section-container">
+    <div class="showcase-header reveal">
+      <div class="section-label"><span class="section-label-line"></span>Product Walkthrough</div>
+      <h2 class="section-h2">Every screen, <em>crafted</em></h2>
+      <p class="section-p">A look at the real application — not wireframes, not design mockups. These are the actual product screens.</p>
+    </div>
+
+    <div class="showcase-items">
+      <!-- AUTH -->
+      <div class="showcase-item reveal">
+        <div class="showcase-text">
+          <div class="section-label"><span class="section-label-line"></span>Authentication</div>
+          <h3>Secure sign-in, zero friction</h3>
+          <p>Students sign in with their Google account through Supabase Auth. Sessions persist securely across app restarts. Guest login available for exploration.</p>
+          <ul class="showcase-feature-list">
+            <li>Google OAuth 2.0 via Supabase</li>
+            <li>Persistent sessions with secure token storage</li>
+            <li>Guest login for unauthenticated browsing</li>
+            <li>Graceful session expiry and refresh</li>
+          </ul>
+        </div>
+        <div class="showcase-visual">
+          <div class="mock-screen">
+            <div class="mock-screen-inner">
+              <div style="height:20px;background:#050508;margin:-16px -14px 12px;border-radius:30px 30px 0 0;padding:12px 16px 0;display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:9px;color:rgba(255,255,255,0.4);font-family:var(--f-mono)">9:41</span>
+                <div style="width:20px;height:6px;background:rgba(255,255,255,0.15);border-radius:3px"></div>
+              </div>
+              <div style="padding:8px 0">
+                <div class="mock-pill"><div class="mock-pill-dot"></div>Campus Hub · BBIT</div>
+                <div style="font-size:22px;font-weight:700;color:#fff;letter-spacing:-0.8px;line-height:1.1;margin-bottom:6px">Welcome<br><span style="color:#60a5fa">back.</span></div>
+                <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-bottom:20px">Sign in to your student account</div>
+                <div class="mock-google-btn">
+                  <svg class="mock-google-icon" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908C16.658 14.258 17.64 11.95 17.64 9.2z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+                  <span class="mock-google-text">Continue with Google</span>
+                </div>
+                <div style="text-align:center;font-size:9px;color:rgba(255,255,255,0.2);margin-top:10px">or continue as guest</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div class="showcase-item reverse reveal">
+        <div class="showcase-text">
+          <div class="section-label"><span class="section-label-line"></span>Student Profile</div>
+          <h3>Your identity, cloud-persisted</h3>
+          <p>Student profiles — including photo, contact details, and personal information — are stored in PostgreSQL via Supabase and sync across sessions and devices.</p>
+          <ul class="showcase-feature-list">
+            <li>Full name, email, and phone number</li>
+            <li>Profile photo with cloud storage</li>
+            <li>Editable fields with real-time sync</li>
+            <li>Supabase PostgreSQL persistence</li>
+          </ul>
+        </div>
+        <div class="showcase-visual">
+          <div class="mock-screen">
+            <div class="mock-screen-inner">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+                <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#4f46e5);flex-shrink:0"></div>
+                <div>
+                  <div style="font-size:14px;font-weight:700;color:#fff;letter-spacing:-0.3px">Rahul Sharma</div>
+                  <div style="font-size:9px;color:rgba(255,255,255,0.35)">rahul.sharma@gmail.com</div>
+                </div>
+              </div>
+              <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px;margin-bottom:8px">
+                <div style="font-size:9px;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">Contact Information</div>
+                <div class="mock-row"><span class="mock-row-label">Email</span><span class="mock-row-val">rahul@gmail.com</span></div>
+                <div class="mock-row"><span class="mock-row-label">Phone</span><span class="mock-row-val">+91 98765 43210</span></div>
+              </div>
+              <div style="background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.15);border-radius:10px;padding:10px;display:flex;align-items:center;justify-content:center;gap:6px">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 6h10M7 2l4 4-4 4" stroke="#60a5fa" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span style="font-size:10px;font-weight:600;color:#60a5fa">Edit Profile</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACADEMIC -->
+      <div class="showcase-item reveal">
+        <div class="showcase-text">
+          <div class="section-label"><span class="section-label-line"></span>Academic Identity</div>
+          <h3>Verified student data, always accurate</h3>
+          <p>Academic details are synced from MAKAUT — not self-entered. Roll number, registration, course, department, semester, section, and batch are all verified at the source.</p>
+          <ul class="showcase-feature-list">
+            <li>Roll number and registration number</li>
+            <li>Course, department, semester, section</li>
+            <li>Batch and academic year</li>
+            <li>MAKAUT-verified identity</li>
+          </ul>
+        </div>
+        <div class="showcase-visual">
+          <div class="mock-screen">
+            <div class="mock-screen-inner">
+              <div style="font-size:16px;font-weight:700;color:#fff;letter-spacing:-0.4px;margin-bottom:4px">Academic Profile</div>
+              <div style="font-size:9px;color:rgba(255,255,255,0.3);margin-bottom:14px;display:flex;align-items:center;gap:4px">
+                <div style="width:5px;height:5px;border-radius:50%;background:#10b981"></div>
+                MAKAUT verified
+              </div>
+              <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:12px;overflow:hidden">
+                <div class="mock-row" style="padding:10px 12px"><span class="mock-row-label">Roll Number</span><span class="mock-row-val">24CSE0042</span></div>
+                <div class="mock-row" style="padding:10px 12px"><span class="mock-row-label">Reg. Number</span><span class="mock-row-val">234570100042</span></div>
+                <div class="mock-row" style="padding:10px 12px"><span class="mock-row-label">Course</span><span class="mock-row-val">B.Tech CSE</span></div>
+                <div class="mock-row" style="padding:10px 12px"><span class="mock-row-label">Semester</span><span class="mock-row-val">5th</span></div>
+                <div class="mock-row" style="padding:10px 12px"><span class="mock-row-label">Section</span><span class="mock-row-val">A</span></div>
+                <div style="padding:10px 12px;display:flex;justify-content:space-between"><span class="mock-row-label">Batch</span><span class="mock-row-val">2022–2026</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DIGITAL ID -->
+      <div class="showcase-item reverse reveal">
+        <div class="showcase-text">
+          <div class="section-label"><span class="section-label-line"></span>Digital Student ID</div>
+          <h3>Your credentials, always with you</h3>
+          <p>A fully rendered digital student ID card — carrying photo, name, roll number, registration number, and academic details. Always available, no printing required.</p>
+          <ul class="showcase-feature-list">
+            <li>Student photo from profile</li>
+            <li>Full name and academic identifiers</li>
+            <li>Department and course details</li>
+            <li>Portable and always accessible</li>
+          </ul>
+        </div>
+        <div class="showcase-visual">
+          <div class="mock-screen">
+            <div class="mock-screen-inner">
+              <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px">Digital Student ID</div>
+              <div class="mock-id-card">
+                <div class="mock-id-top">
+                  <div class="mock-id-avatar"></div>
+                  <div>
+                    <div class="mock-id-info-name">Rahul Kumar Sharma</div>
+                    <div class="mock-id-info-id">24CSE0042 · BBIT</div>
+                  </div>
+                </div>
+                <div class="mock-id-divider"></div>
+                <div class="mock-id-grid">
+                  <div class="mock-id-field"><div class="mock-id-field-label">Reg. No.</div><div class="mock-id-field-val">234570100042</div></div>
+                  <div class="mock-id-field"><div class="mock-id-field-label">Course</div><div class="mock-id-field-val">B.Tech CSE</div></div>
+                  <div class="mock-id-field"><div class="mock-id-field-label">Semester</div><div class="mock-id-field-val">5th Sem</div></div>
+                  <div class="mock-id-field"><div class="mock-id-field-label">Section</div><div class="mock-id-field-val">A · 2022–26</div></div>
+                </div>
+                <div class="mock-id-divider"></div>
+                <div style="font-size:8px;color:rgba(255,255,255,0.25);text-align:center">Budge Budge Institute of Technology · MAKAUT</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TECH STACK -->
+<section class="tech-section" id="tech">
+  <div class="section-container">
+    <div class="reveal">
+      <div class="section-label"><span class="section-label-line"></span>Technology</div>
+      <h2 class="section-h2">Built with a <em>production</em> stack</h2>
+      <p class="section-p">Every technology choice made intentionally — for performance, scalability, and developer experience.</p>
+    </div>
+    <div class="tech-grid">
+      <div class="tech-card reveal">
+        <div class="tech-layer-label">Mobile · Frontend</div>
+        <div class="tech-card-title">React Native &amp; Expo</div>
+        <p class="tech-card-desc">Cross-platform mobile development with Expo SDK 54 and Expo Router for file-based navigation. TypeScript throughout for type safety.</p>
+        <div class="tech-packages">
+          <span class="tech-pkg">react-native</span>
+          <span class="tech-pkg">expo SDK 54</span>
+          <span class="tech-pkg">expo-router</span>
+          <span class="tech-pkg">typescript</span>
+        </div>
+      </div>
+      <div class="tech-card reveal">
+        <div class="tech-layer-label">State · Data</div>
+        <div class="tech-card-title">Zustand &amp; React Query</div>
+        <p class="tech-card-desc">Lightweight global state with Zustand. Server state, caching, and async data management handled by TanStack React Query.</p>
+        <div class="tech-packages">
+          <span class="tech-pkg">zustand</span>
+          <span class="tech-pkg">@tanstack/react-query</span>
+        </div>
+      </div>
+      <div class="tech-card reveal">
+        <div class="tech-layer-label">Backend · Database</div>
+        <div class="tech-card-title">Supabase &amp; PostgreSQL</div>
+        <p class="tech-card-desc">Managed PostgreSQL database with Supabase. Real-time capabilities, row-level security, and built-in authentication infrastructure.</p>
+        <div class="tech-packages">
+          <span class="tech-pkg">@supabase/supabase-js</span>
+          <span class="tech-pkg">postgresql</span>
+          <span class="tech-pkg">rls policies</span>
+        </div>
+      </div>
+      <div class="tech-card reveal">
+        <div class="tech-layer-label">Auth · Identity</div>
+        <div class="tech-card-title">Google OAuth &amp; Supabase Auth</div>
+        <p class="tech-card-desc">OAuth 2.0 sign-in via Google, managed through Supabase Auth. Persistent sessions with expo-secure-store and async storage.</p>
+        <div class="tech-packages">
+          <span class="tech-pkg">google oauth</span>
+          <span class="tech-pkg">expo-secure-store</span>
+          <span class="tech-pkg">async-storage</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section class="roadmap-section" id="roadmap">
+  <div class="section-container">
+    <div class="reveal" style="text-align:center;max-width:560px;margin:0 auto 60px">
+      <div class="section-label" style="justify-content:center"><span class="section-label-line"></span>Roadmap</div>
+      <h2 class="section-h2">Where Campus Hub is <em>headed</em></h2>
+      <p class="section-p" style="margin:0 auto">A clear picture of what's built, and what's coming next.</p>
+    </div>
+    <div class="roadmap-grid reveal">
+      <div>
+        <div class="roadmap-col-label live"><div class="roadmap-dot live"></div>Available Now</div>
+        <div class="roadmap-items">
+          <div class="roadmap-item live"><div class="roadmap-item-dot"></div>Google OAuth Sign In</div>
+          <div class="roadmap-item live"><div class="roadmap-item-dot"></div>Student Profile</div>
+          <div class="roadmap-item live"><div class="roadmap-item-dot"></div>Academic Identity</div>
+          <div class="roadmap-item live"><div class="roadmap-item-dot"></div>Digital Student ID</div>
+          <div class="roadmap-item live"><div class="roadmap-item-dot"></div>MAKAUT Integration</div>
+          <div class="roadmap-item live"><div class="roadmap-item-dot"></div>BBIT Information Module</div>
+          <div class="roadmap-item live"><div class="roadmap-item-dot"></div>Persistent Sessions</div>
+          <div class="roadmap-item live"><div class="roadmap-item-dot"></div>Dashboard &amp; Navigation</div>
+          <div class="roadmap-item live"><div class="roadmap-item-dot"></div>Cloud Data Persistence</div>
+        </div>
+      </div>
+      <div>
+        <div class="roadmap-col-label soon"><div class="roadmap-dot soon"></div>Coming Soon</div>
+        <div class="roadmap-items">
+          <div class="roadmap-item soon"><div class="roadmap-item-dot"></div>Attendance Tracking</div>
+          <div class="roadmap-item soon"><div class="roadmap-item-dot"></div>Timetable</div>
+          <div class="roadmap-item soon"><div class="roadmap-item-dot"></div>Announcements</div>
+          <div class="roadmap-item soon"><div class="roadmap-item-dot"></div>Notes Sharing</div>
+          <div class="roadmap-item soon"><div class="roadmap-item-dot"></div>Assignments</div>
+          <div class="roadmap-item soon"><div class="roadmap-item-dot"></div>Events</div>
+          <div class="roadmap-item soon"><div class="roadmap-item-dot"></div>Student Community</div>
+          <div class="roadmap-item soon"><div class="roadmap-item-dot"></div>Messaging</div>
+          <div class="roadmap-item soon"><div class="roadmap-item-dot"></div>Marketplace</div>
+          <div class="roadmap-item soon"><div class="roadmap-item-dot"></div>Push Notifications</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="cta-section">
+  <div class="cta-bg"></div>
+  <div class="cta-grid-lines"></div>
+  <div class="cta-content reveal">
+    <h2 class="cta-h2">Ready to explore<br><em>Campus Hub?</em></h2>
+    <p class="cta-p">A functioning React Native application with real backend integration, authentication, and cloud persistence — built independently for BBIT students.</p>
+    <a class="btn-primary-light" href="/CampusHub.apk" download>
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2v10M5 8l4 4 4-4M2 15h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Download APK
+    </a>
+    <div class="cta-stack">
+      <span class="cta-stack-item">React Native</span>
+      <span class="cta-stack-item">Expo SDK 54</span>
+      <span class="cta-stack-item">TypeScript</span>
+      <span class="cta-stack-item">Supabase</span>
+      <span class="cta-stack-item">PostgreSQL</span>
+      <span class="cta-stack-item">Google OAuth</span>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-main">
+
+    <!-- LEFT: Brand -->
+    <div>
+      <a class="footer-brand-logo" href="#">
+        <div class="footer-logo-mark">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="white"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="rgba(255,255,255,0.35)"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="rgba(255,255,255,0.35)"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="white"/></svg>
+        </div>
+        <span class="footer-brand-name">Campus Hub</span>
+      </a>
+      <div class="footer-tagline">Your Campus. Connected.</div>
+      <p class="footer-desc">Built for students of Budge Budge Institute of Technology (BBIT). A fully functional mobile application bringing student identity, academic data, and digital credentials together.</p>
+    </div>
+
+    <!-- CENTER: Quick Links -->
+    <div>
+      <div class="footer-col-label">Quick Links</div>
+      <ul class="footer-links">
+        <li>
+          <a href="#features">
+            Features
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+        </li>
+        <li>
+          <a href="#showcase">
+            Screenshots
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+        </li>
+        <li>
+          <a href="/CampusHub.apk" download>
+            Download APK
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+        </li>
+        <li>
+          <a href="#roadmap">
+            Roadmap
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M6 2l4 4-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- RIGHT: Developer -->
+    <div>
+      <div class="footer-col-label">Developer</div>
+      <div class="footer-dev-name">Abdur Razzaque</div>
+      <div class="footer-dev-role">Full Stack Mobile Developer</div>
+      <div class="footer-social">
+        <a class="footer-social-link" href="https://github.com/" target="_blank" rel="noopener">
+          <div class="footer-social-icon">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1C3.69 1 1 3.69 1 7c0 2.65 1.72 4.9 4.1 5.69.3.05.41-.13.41-.29v-1c-1.67.36-2.02-.8-2.02-.8-.27-.7-.67-.88-.67-.88-.55-.37.04-.37.04-.37.61.04.93.63.93.63.54.92 1.41.66 1.76.5.05-.39.21-.66.38-.81-1.33-.15-2.73-.67-2.73-2.96 0-.65.23-1.19.63-1.6-.06-.15-.27-.76.06-1.58 0 0 .52-.17 1.7.63A5.9 5.9 0 0 1 7 4.84c.52 0 1.05.07 1.54.21 1.18-.8 1.7-.63 1.7-.63.33.82.12 1.43.06 1.58.39.42.63.95.63 1.6 0 2.3-1.4 2.8-2.74 2.95.22.19.41.55.41 1.11v1.65c0 .16.11.34.41.28A6.003 6.003 0 0 0 13 7c0-3.31-2.69-6-6-6z" fill="rgba(255,255,255,0.5)"/></svg>
+          </div>
+          GitHub
+        </a>
+        <a class="footer-social-link" href="https://linkedin.com/" target="_blank" rel="noopener">
+          <div class="footer-social-icon">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" stroke="rgba(255,255,255,0.5)" stroke-width="1.2"/><path d="M4 6v4M4 4.5v.01M6.5 10V7.5c0-.8.7-1.5 1.5-1.5s1.5.7 1.5 1.5V10" stroke="rgba(255,255,255,0.5)" stroke-width="1.2" stroke-linecap="round"/></svg>
+          </div>
+          LinkedIn
+        </a>
+        <a class="footer-social-link" href="mailto:abdur@example.com">
+          <div class="footer-social-icon">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="8" rx="1.5" stroke="rgba(255,255,255,0.5)" stroke-width="1.2"/><path d="M1 4l6 4 6-4" stroke="rgba(255,255,255,0.5)" stroke-width="1.2" stroke-linecap="round"/></svg>
+          </div>
+          Email
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="footer-bottom">
+    <span class="footer-copyright">© 2026 Campus Hub. All rights reserved.</span>
+    <span class="footer-credit">
+      From a BBIT student, for BBIT students
+      <span class="footer-credit-heart">❤</span>
+      Abdur Razzaque
+    </span>
+  </div>
+</footer>
+
+<script>
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if(e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+},{threshold:0.12});
+document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+</script>
+</body>
+</html>

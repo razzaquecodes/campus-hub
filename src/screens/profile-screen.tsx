@@ -6,38 +6,38 @@ import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-    Award,
-    BookOpen,
-    Camera,
-    Check,
-    Edit2,
-    GraduationCap,
-    LogOut,
-    Mail,
-    MailCheck,
-    MapPin,
-    Phone,
-    ShieldCheck,
-    Star,
-    Trophy,
-    X,
+  Award,
+  BookOpen,
+  Camera,
+  Check,
+  Edit2,
+  GraduationCap,
+  LogOut,
+  Mail,
+  MailCheck,
+  MapPin,
+  Phone,
+  ShieldCheck,
+  Star,
+  Trophy,
+  X,
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
-    Alert,
-    Image,
-    Modal,
-    Pressable,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  Alert,
+  Image,
+  Modal,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
 import Animated, {
-    FadeInDown,
-    FadeInUp,
+  FadeInDown,
+  FadeInUp,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -95,37 +95,41 @@ export function ProfileScreen() {
   const handleSaveProfile = async () => {
     try {
       setSaving(true);
+      console.info('[profile-save] Starting update for user_id:', profile?.id);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
 
-      const updates = {
+      const dbUpdates = {
         full_name: editFullName,
-        phone: editPhone,
-        semester: editSemester,
-        section: editSection,
-        advisor: editAdvisor,
-        hostel_block: editHostelBlock,
-        hostel_room: editHostelRoom,
+        mobile: editPhone,
       };
 
       const { error } = await supabase!
-        .from('users')
-        .update(updates)
-        .eq('id', profile?.id);
+        .from('student_profiles')
+        .update(dbUpdates)
+        .eq('user_id', profile?.id);
 
       if (error) throw error;
+      console.info('[profile-save] Update succeeded');
 
       // Immediately update the in-memory Zustand profile so the UI reflects
       // the change without waiting for next auth event or app restart.
       if (profile) {
         setProfile({
           ...profile,
-          ...updates,
+          full_name: editFullName,
+          phone: editPhone,
+          semester: editSemester,
+          section: editSection,
+          advisor: editAdvisor,
+          hostel_block: editHostelBlock,
+          hostel_room: editHostelRoom,
         });
       }
 
       setEditModalVisible(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     } catch (e: any) {
+      console.error('[profile-save] Update failed', e);
       Alert.alert('Save Failed', e.message);
     } finally {
       setSaving(false);
@@ -134,6 +138,7 @@ export function ProfileScreen() {
 
   const handleAvatarUpload = async () => {
     try {
+      console.info('[profile-update] Starting avatar upload');
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsEditing: true,
@@ -155,9 +160,20 @@ export function ProfileScreen() {
       if (uploadError) throw uploadError;
 
       const { data } = supabase!.storage.from('avatars').getPublicUrl(filePath);
-      await supabase!.from('users').update({ avatar_url: data.publicUrl }).eq('id', profile?.id);
+      console.info('[profile-update] Avatar uploaded to storage, updating student_profiles DB', data.publicUrl);
+      const { error: dbError } = await supabase!.from('student_profiles').update({ photo_url: data.publicUrl }).eq('user_id', profile?.id);
+      if (dbError) throw dbError;
+
+      if (profile) {
+         setProfile({
+            ...profile,
+            avatar_url: data.publicUrl
+         });
+      }
+      console.info('[profile-update] Avatar update succeeded');
       // Profile will be updated on next sync via listener
     } catch (error: any) {
+      console.error('[profile-update] Update failed', error);
       Alert.alert('Upload Error', error.message);
     } finally {
       setUploading(false);

@@ -1,6 +1,6 @@
 -- CampusHub Migration 003
 -- Adds: notifications, achievements, user_assignments, student_stats
--- Adds: missing columns to users table
+-- Adds: missing columns to student_profiles table
 -- Adds: full RLS policies
 
 -- ─── Notifications ──────────────────────────────────────────────────────────
