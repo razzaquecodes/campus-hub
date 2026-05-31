@@ -2,10 +2,10 @@
 // CampusHub BBIT — Premium Login Screen Redesigned
 // Apple-polished AMOLED dark theme with glassmorphic cards, custom logo animations, and official CTAs.
 
+import { router } from 'expo-router';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-// router import removed — navigation is 100% reactive via index.tsx <Redirect>
 import { ArrowRight, LogIn, ShieldCheck } from 'lucide-react-native';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -173,11 +173,16 @@ export function LoginScreen() {
 
     try {
       await signInWithGoogle();
-      // DO NOT call router.replace here.
-      // Navigation is driven reactively by index.tsx based on store state.
-      // AuthHydrator.onAuthStateChange(SIGNED_IN) sets the profile → index.tsx
-      // sees profile is set → redirects to /(tabs) or /(auth)/connect-makaut.
-      console.info('[login] signInWithGoogle completed — waiting for reactive navigation');
+      const profile = useAuthStore.getState().profile;
+      console.info('[login] signInWithGoogle completed — navigation check', {
+        hasProfile: Boolean(profile),
+        userId: profile?.id ?? null,
+      });
+
+      if (profile) {
+        console.info('[login] navigation triggered — replacing with /(tabs)');
+        router.replace('/(tabs)');
+      }
     } catch (e) {
       // User cancelled or error — show alert. User stays on login screen.
       const message = e instanceof Error ? e.message : 'Google sign-in failed';

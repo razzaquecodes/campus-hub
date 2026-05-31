@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 
-import { signInWithGoogle as authSignInWithGoogle, signOut as authSignOut } from '@/services/auth.service';
+import { queryClient } from '@/lib/query-client';
+import { getPersistedSession, signInWithGoogle as authSignInWithGoogle, signOut as authSignOut } from '@/services/auth.service';
+import { getMakautProfile } from '@/services/makaut.service';
 import type { StudentProfile, UserProfile } from '@/types/database';
 
 const storeLog = function (message: string, details?: Record<string, unknown>) {
@@ -19,6 +21,7 @@ interface AuthState {
   setProfile: (profile: UserProfile | null) => void;
   setMakautProfile: (profile: StudentProfile | null) => void;
   setIsHydrated: (isHydrated: boolean) => void;
+  hydrateAuthenticatedSession: (source: string) => Promise<UserProfile>;
   signInWithGoogle: () => Promise<void>;
   signInAsGuest: () => void;
   signOut: () => Promise<void>;
@@ -53,24 +56,58 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isHydrated });
   },
 
+  hydrateAuthenticatedSession: async (source: string) => {
+    storeLog('hydrateAuthenticatedSession: starting', { source });
+    const profile = await getPersistedSession();
+
+    if (!profile) {
+      storeLog('hydrateAuthenticatedSession: no profile returned', { source });
+      throw new Error('Authenticated session exists, but user profile could not be loaded');
+    }
+
+    storeLog('hydrateAuthenticatedSession: profile loaded', {
+      source,
+      userId: profile.id,
+      email: profile.email,
+    });
+    set({ profile, isHydrated: true, error: null });
+
+    try {
+      const makautProfile = await getMakautProfile(profile.id);
+      storeLog('hydrateAuthenticatedSession: MAKAUT profile loaded', {
+        source,
+        hasMakautProfile: Boolean(makautProfile),
+      });
+      set({ makautProfile });
+    } catch (e) {
+      storeLog('hydrateAuthenticatedSession: MAKAUT load failed (non-fatal)', {
+        source,
+        error: e instanceof Error ? e.message : String(e),
+      });
+      set({ makautProfile: null });
+    }
+
+    await queryClient.invalidateQueries();
+    storeLog('hydrateAuthenticatedSession: React Query invalidated', { source });
+
+    return profile;
+  },
+
   signInWithGoogle: async () => {
     storeLog('signInWithGoogle: starting');
     set({ isLoading: true, isSigningIn: true, error: null });
 
     try {
-      // signInWithGoogle (auth.service) handles the OAuth flow and session exchange.
-      // It returns void. The profile is set reactively by AuthHydrator.onAuthStateChange(SIGNED_IN).
       await authSignInWithGoogle();
 
       storeLog('signInWithGoogle: OAuth flow completed, session created');
 
-      // The profile will be set by AuthHydrator.onAuthStateChange(SIGNED_IN) which
-      // fires automatically after exchangeCodeForSession() / setSession() succeeds.
-      // We don't need to poll for it; the subscription handles it reactively.
-      
+      const profile = await get().hydrateAuthenticatedSession('google-login');
+
       set({ isLoading: false, isSigningIn: false, error: null });
       storeLog('signInWithGoogle: complete', {
-        hasProfile: Boolean(get().profile),
+        hasProfile: Boolean(profile),
+        userId: profile.id,
       });
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Google Sign in failed';

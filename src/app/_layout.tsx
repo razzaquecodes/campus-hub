@@ -30,17 +30,25 @@ function useAuthGuard() {
     if (!isHydrated) return;
 
     const inAuthGroup = segments[0] === '(auth)';
-    const isRoot = segments.length === 0;
+    const isOAuthCallback = segments[0] === 'oauth-callback';
+    const isRoot = segments[0] == null;
 
-    console.info(`[router-decision] Auth guard running - Hydrated: ${isHydrated}, Profile: ${!!profile}, AuthGroup: ${inAuthGroup}, Root: ${isRoot}`);
+    console.info('[router-decision] Auth guard running', {
+      isHydrated,
+      hasProfile: Boolean(profile),
+      inAuthGroup,
+      isOAuthCallback,
+      isRoot,
+      segments,
+    });
 
     if (!profile) {
-      if (!inAuthGroup) {
+      if (!inAuthGroup && !isOAuthCallback) {
         console.info('[router-decision] Navigating to login');
         router.replace('/(auth)/login');
       }
     } else {
-      if (inAuthGroup || isRoot) {
+      if (inAuthGroup || isOAuthCallback || isRoot) {
         console.info('[router-decision] Navigating to dashboard (tabs)');
         router.replace('/(tabs)');
       }

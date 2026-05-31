@@ -1,5 +1,6 @@
 // WebBrowser.maybeCompleteAuthSession() was moved to _layout.tsx for global execution context
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/store/auth.store';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -94,9 +95,21 @@ export default function OAuthCallbackScreen() {
             setErrorMessage(error.message);
             return;
           }
-          callbackLog('PKCE exchange succeeded from deep link — navigating to tabs');
-          // onAuthStateChange(SIGNED_IN) fires → AuthHydrator updates store
+          const { data: sessionData } = await supabase.auth.getSession();
+          callbackLog('PKCE exchange succeeded from deep link — session received', {
+            hasSession: Boolean(sessionData.session),
+            userId: sessionData.session?.user.id ?? null,
+            email: sessionData.session?.user.email ?? null,
+          });
+          const profile = await useAuthStore
+            .getState()
+            .hydrateAuthenticatedSession('oauth-callback-pkce');
+          callbackLog('Auth state updated from deep-link PKCE session', {
+            userId: profile.id,
+            email: profile.email,
+          });
           clearTimeout(timeoutId);
+          callbackLog('Navigation triggered — replacing with /(tabs)');
           router.replace('/(tabs)');
           return;
         } catch (e) {
@@ -126,8 +139,21 @@ export default function OAuthCallbackScreen() {
             setErrorMessage(error.message);
             return;
           }
-          callbackLog('Implicit session set succeeded — navigating to tabs');
+          const { data: sessionData } = await supabase.auth.getSession();
+          callbackLog('Implicit session set succeeded — session received', {
+            hasSession: Boolean(sessionData.session),
+            userId: sessionData.session?.user.id ?? null,
+            email: sessionData.session?.user.email ?? null,
+          });
+          const profile = await useAuthStore
+            .getState()
+            .hydrateAuthenticatedSession('oauth-callback-implicit');
+          callbackLog('Auth state updated from deep-link implicit session', {
+            userId: profile.id,
+            email: profile.email,
+          });
           clearTimeout(timeoutId);
+          callbackLog('Navigation triggered — replacing with /(tabs)');
           router.replace('/(tabs)');
           return;
         } catch (e) {
@@ -148,10 +174,19 @@ export default function OAuthCallbackScreen() {
       try {
         const { data } = await supabase.auth.getSession();
         if (data?.session) {
-          callbackLog('Session exists — navigating to tabs', {
+          callbackLog('Session exists — hydrating auth state', {
             userId: data.session.user.id,
+            email: data.session.user.email,
+          });
+          const profile = await useAuthStore
+            .getState()
+            .hydrateAuthenticatedSession('oauth-callback-existing-session');
+          callbackLog('Auth state updated from existing callback session', {
+            userId: profile.id,
+            email: profile.email,
           });
           clearTimeout(timeoutId);
+          callbackLog('Navigation triggered — replacing with /(tabs)');
           router.replace('/(tabs)');
         } else {
           callbackLog('No session found and no params — redirecting to login');

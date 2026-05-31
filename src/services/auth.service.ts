@@ -212,17 +212,21 @@ export async function signInWithGoogle(): Promise<void> {
   // Step 4a: PKCE (preferred) — exchange the code for a session.
   if (params.code) {
     authLog('Step 4: Exchanging PKCE code for session...');
-    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(params.code);
+    const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(params.code);
     if (exchangeError) {
       authLog('✗ PKCE code exchange failed', { message: exchangeError.message });
       throw exchangeError;
     }
-    authLog('Step 4 ✓ PKCE code exchange succeeded — onAuthStateChange(SIGNED_IN) will fire');
+    authLog('Step 4 ✓ PKCE code exchange succeeded — session received', {
+      hasSession: Boolean(exchangeData.session),
+      userId: exchangeData.session?.user.id ?? null,
+      email: exchangeData.session?.user.email ?? null,
+    });
   }
   // Step 4b: Implicit fallback — tokens arrived in hash fragment.
   else if (params.access_token && params.refresh_token) {
     authLog('Step 4: Setting session from implicit tokens...');
-    const { error: sessionError } = await supabase.auth.setSession({
+    const { data: sessionSetData, error: sessionError } = await supabase.auth.setSession({
       access_token: params.access_token,
       refresh_token: params.refresh_token,
     });
@@ -230,7 +234,11 @@ export async function signInWithGoogle(): Promise<void> {
       authLog('✗ Implicit token session set failed', { message: sessionError.message });
       throw sessionError;
     }
-    authLog('Step 4 ✓ Implicit session set succeeded — onAuthStateChange(SIGNED_IN) will fire');
+    authLog('Step 4 ✓ Implicit session set succeeded — session received', {
+      hasSession: Boolean(sessionSetData.session),
+      userId: sessionSetData.session?.user.id ?? null,
+      email: sessionSetData.session?.user.email ?? null,
+    });
   } else {
     authLog('✗ No tokens or code in callback URL');
     throw new Error(

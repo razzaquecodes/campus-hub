@@ -3,13 +3,19 @@
     "name": "Campus Hub",
     "slug": "campus-hub",
     "scheme": "campushub",
-    "extra": {
-      "router": {
-        "root": "./src/app"
-      },
-      "eas": {
-        "projectId": "784cbc6f-57a3-4b12-b890-f4f7556f5cf5"
+
+    "icon": "./docs/assets/images/icon.png",
+
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./docs/assets/images/android-icon-foreground.png",
+        "backgroundColor": "#020617",
+        "monochromeImage": "./docs/assets/images/android-icon-monochrome.png"
       }
+    },
+
+    "extra": {
+      ...
     }
   }
 }
