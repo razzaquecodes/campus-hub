@@ -1,31 +1,28 @@
 // screens/profile-screen.tsx
-// CampusHub BBIT — Premium Profile Screen Redesigned
-// Apple VisionOS + Linear aesthetics. Features a glassmorphic Student ID Card, connected Google Workspace accounts, and editable profile properties synced with Supabase.
+// CampusHub — Student Profile Screen
+// Visual hierarchy: Hero → Digital ID Card shortcut → Student Identity → Contact → Accounts → Curriculum → Logout
 
 import * as Haptics from 'expo-haptics';
-import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import {
-  Award,
   BookOpen,
-  Camera,
   Check,
+  ChevronRight,
+  CreditCard,
   Edit2,
   GraduationCap,
   LogOut,
   Mail,
   MailCheck,
-  MapPin,
   Phone,
   ShieldCheck,
-  Star,
-  Trophy,
   X,
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
   Alert,
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -35,457 +32,589 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import Animated, {
-  FadeInDown,
-  FadeInUp,
-} from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SpringButton } from '@/components/ui';
+import { Badge, SpringButton } from '@/components/ui';
 import { SEMESTER_SUBJECTS } from '@/constants/routine';
 import { Radius, Shadows } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
-
-const ACHIEVEMENTS = [
-  { icon: Trophy, label: 'Consistent',     color: '#F59E0B', desc: '90%+ attendance' },
-  { icon: Star,   label: 'Active Learner', color: '#818CF8', desc: 'All assignments' },
-  { icon: Award,  label: 'Topper',         color: '#10B981', desc: 'Top in section' },
-];
+import { useStudentStore } from '@/store/student.store';
 
 const TYPE_COLORS: Record<string, string> = {
-  Theory:    '#6366F1',
+  Theory: '#6366F1',
   Practical: '#3B82F6',
 };
 
 export function ProfileScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const profile = useAuthStore((s) => s.profile);
-  const signOut = useAuthStore((s) => s.signOut);
 
-  const [uploading, setUploading] = useState(false);
+  const profile = useAuthStore((s) => s.profile);
+  const setProfile = useAuthStore((s) => s.setProfile);
+  const signOut = useAuthStore((s) => s.signOut);
+  const student = useStudentStore((s) => s.student);
+  const studentLogout = useStudentStore((s) => s.logout);
+
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Edit fields local state
+  // Edit fields
   const [editFullName, setEditFullName] = useState(profile?.full_name || '');
   const [editPhone, setEditPhone] = useState(profile?.phone || '');
-  const [editSemester, setEditSemester] = useState(profile?.semester || '4');
-  const [editSection, setEditSection] = useState(profile?.section || 'C');
-  const [editAdvisor, setEditAdvisor] = useState(profile?.advisor || '');
-  const [editHostelBlock, setEditHostelBlock] = useState(profile?.hostel_block || '');
-  const [editHostelRoom, setEditHostelRoom] = useState(profile?.hostel_room || '');
 
+  // ── Derived display values ─────────────────────────────────────────────────
+  const displayName = profile?.full_name || student?.fullName || 'Student';
+  const displayProgram =
+    student?.courseName || profile?.branch || 'Computer Science & Engineering';
+  const displaySemester = profile?.semester || '4';
+  const displaySection = profile?.section || 'C';
+  const displayBatch = profile?.batch || '';
+
+  // ── Open edit modal ────────────────────────────────────────────────────────
   const openEditModal = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setEditFullName(profile?.full_name || '');
     setEditPhone(profile?.phone || '');
-    setEditSemester(profile?.semester || '4');
-    setEditSection(profile?.section || 'C');
-    setEditAdvisor(profile?.advisor || '');
-    setEditHostelBlock(profile?.hostel_block || '');
-    setEditHostelRoom(profile?.hostel_room || '');
     setEditModalVisible(true);
   };
 
-  const setProfile = useAuthStore((s) => s.setProfile);
-
+  // ── Save profile ───────────────────────────────────────────────────────────
   const handleSaveProfile = async () => {
     try {
       setSaving(true);
-      console.info('[profile-save] Starting update for user_id:', profile?.id);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-
-      const dbUpdates = {
-        full_name: editFullName,
-        mobile: editPhone,
-      };
 
       const { error } = await supabase!
         .from('student_profiles')
-        .update(dbUpdates)
+        .update({ full_name: editFullName, mobile: editPhone })
         .eq('user_id', profile?.id);
 
       if (error) throw error;
-      console.info('[profile-save] Update succeeded');
 
-      // Immediately update the in-memory Zustand profile so the UI reflects
-      // the change without waiting for next auth event or app restart.
       if (profile) {
-        setProfile({
-          ...profile,
-          full_name: editFullName,
-          phone: editPhone,
-          semester: editSemester,
-          section: editSection,
-          advisor: editAdvisor,
-          hostel_block: editHostelBlock,
-          hostel_room: editHostelRoom,
-        });
+        setProfile({ ...profile, full_name: editFullName, phone: editPhone });
       }
 
       setEditModalVisible(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     } catch (e: any) {
-      console.error('[profile-save] Update failed', e);
       Alert.alert('Save Failed', e.message);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleAvatarUpload = async () => {
-    try {
-      console.info('[profile-update] Starting avatar upload');
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-      if (result.canceled || !result.assets[0]) return;
-      setUploading(true);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+  // ── Derived photo url ──────────────────────────────────────────────────────
+  const profilePhoto = profile?.avatar_url || student?.profilePhotoUrl;
 
-      const photo = result.assets[0];
-      const fileExt = photo.uri.split('.').pop() || 'jpeg';
-      const fileName = `${profile?.id}-${Date.now()}.${fileExt}`;
-      const filePath = `public/${fileName}`;
-      const formData = new FormData();
-      formData.append('file', { uri: photo.uri, name: fileName, type: photo.mimeType || 'image/jpeg' } as any);
-
-      const { error: uploadError } = await supabase!.storage.from('avatars').upload(filePath, formData);
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase!.storage.from('avatars').getPublicUrl(filePath);
-      console.info('[profile-update] Avatar uploaded to storage, updating student_profiles DB', data.publicUrl);
-      const { error: dbError } = await supabase!.from('student_profiles').update({ photo_url: data.publicUrl }).eq('user_id', profile?.id);
-      if (dbError) throw dbError;
-
-      if (profile) {
-         setProfile({
-            ...profile,
-            avatar_url: data.publicUrl
-         });
-      }
-      console.info('[profile-update] Avatar update succeeded');
-      // Profile will be updated on next sync via listener
-    } catch (error: any) {
-      console.error('[profile-update] Update failed', error);
-      Alert.alert('Upload Error', error.message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const ACADEMIC_INFO = [
-    { label: 'Roll Number',       value: profile?.roll_number || 'N/A' },
-    { label: 'Department',        value: profile?.branch || 'Computer Science & Engineering' },
-    { label: 'Year / Semester',   value: `${profile?.year || '2nd Year'} · Sem ${profile?.semester || '4'}` },
-    { label: 'Section',           value: profile?.section || 'C' },
-    { label: 'Batch Group',       value: profile?.batch || '2024-2028' },
-    { label: 'Faculty Advisor',   value: profile?.advisor || 'Prof. Arjun Chatterjee' },
-  ];
-
-  const CONTACT_INFO = [
-    { icon: Mail,   label: 'Email Address',   value: profile?.email || 'N/A',   color: '#3B82F6' },
-    { icon: Phone,  label: 'Phone Contact',   value: profile?.phone || 'N/A',   color: '#10B981' },
-    { icon: MapPin, label: 'Hostel Info',  value: profile?.hostel_block && profile?.hostel_room
-        ? `Hostel Block ${profile.hostel_block}, Room ${profile.hostel_room}`
-        : profile?.hostel_block ? `Hostel Block ${profile.hostel_block}` : 'Day Scholar',
-      color: '#A78BFA',
+  // ── Identity rows ──────────────────────────────────────────────────────────
+  const IDENTITY_ROWS = [
+    {
+      label: 'Roll Number',
+      value: student?.rollNumber || profile?.roll_number || 'N/A',
     },
-  ];
+    {
+      label: 'Registration No.',
+      value: student?.registrationNumber || 'N/A',
+    },
+    {
+      label: 'ABC ID',
+      value: student?.abcId || 'N/A',
+    },
+    {
+      label: 'Course / Branch',
+      value: student?.courseName || profile?.branch || 'N/A',
+    },
+    {
+      label: 'Institute',
+      value: student?.instituteName || profile?.college || 'N/A',
+    },
+  ] as const;
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.void }}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.void} />
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={theme.colors.void}
+      />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 110 + insets.bottom }}
       >
-        {/* ── Visual VisionOS-Style Header & Background Glows ── */}
+
+        {/* ── Hero Section ── */}
         <View style={[ps.heroContainer, { paddingTop: insets.top + 16 }]}>
-          {isDark ? (
-            <LinearGradient
-              colors={['#050e1e', '#01050a', theme.colors.void]}
-              locations={[0, 0.5, 1]}
-              style={StyleSheet.absoluteFillObject}
-            />
-          ) : (
-            <LinearGradient
-              colors={['#e3ebf8', '#f2f2f7', theme.colors.void]}
-              locations={[0, 0.5, 1]}
-              style={StyleSheet.absoluteFillObject}
-            />
-          )}
+          {/* Background gradient */}
+          <LinearGradient
+            colors={
+              isDark
+                ? ['#050e1e', '#01050a', theme.colors.void]
+                : ['#e3ebf8', '#f2f2f7', theme.colors.void]
+            }
+            locations={[0, 0.5, 1]}
+            style={StyleSheet.absoluteFillObject}
+          />
 
           {/* Ambient glow orbs */}
-          <View style={[ps.glowBig, { backgroundColor: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(79,70,229,0.04)' }]} />
-          <View style={[ps.glowSmall, { backgroundColor: isDark ? 'rgba(167,139,250,0.06)' : 'rgba(124,58,237,0.03)' }]} />
+          <View
+            style={[
+              ps.glowBig,
+              {
+                backgroundColor: isDark
+                  ? 'rgba(99,102,241,0.08)'
+                  : 'rgba(79,70,229,0.04)',
+              },
+            ]}
+          />
+          <View
+            style={[
+              ps.glowSmall,
+              {
+                backgroundColor: isDark
+                  ? 'rgba(167,139,250,0.06)'
+                  : 'rgba(124,58,237,0.03)',
+              },
+            ]}
+          />
 
-          {/* Action Row */}
+          {/* Top action row */}
           <View style={ps.topActionRow}>
-            <Text style={[ps.screenTitle, { color: theme.colors.textPrimary }]}>Student Profile</Text>
+            <Text style={[ps.screenTitle, { color: theme.colors.textPrimary }]}>
+              My Profile
+            </Text>
             <SpringButton
               onPress={openEditModal}
               scaleDown={0.9}
-              style={[ps.editProfileBtn, {
-                backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-                borderColor: theme.colors.glassBorder,
-              }]}
+              style={[
+                ps.editBtn,
+                {
+                  backgroundColor: isDark
+                    ? 'rgba(255,255,255,0.06)'
+                    : 'rgba(0,0,0,0.04)',
+                  borderColor: theme.colors.glassBorder,
+                },
+              ]}
             >
-              <Edit2 color={theme.colors.textPrimary} size={15} strokeWidth={2} />
-              <Text style={[ps.editProfileText, { color: theme.colors.textPrimary }]}>Edit</Text>
+              <Edit2 color={theme.colors.textPrimary} size={14} strokeWidth={2} />
+              <Text style={[ps.editBtnText, { color: theme.colors.textPrimary }]}>
+                Edit
+              </Text>
             </SpringButton>
           </View>
 
-          {/* ── Premium BBIT Student ID Card ── */}
-          <Animated.View entering={FadeInUp.duration(600).delay(100)} style={ps.cardSpacing}>
-            <LinearGradient
-              colors={isDark ? ['#0b162c', '#060b14'] : ['#ffffff', '#f4f6fa']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[ps.studentIdCard, {
-                borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-                shadowColor: isDark ? '#000000' : '#1e293b',
-              }]}
-            >
-              {/* BBIT Branded Header Bar */}
-              <View style={[ps.idCardHeader, { borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }]}>
-                <View style={ps.idCardBrandRow}>
-                  {/* Neon Gold Accent Emblem */}
-                  <View style={ps.emblemRing}>
-                    <View style={ps.emblemInner} />
-                  </View>
-                  <View>
-                    <Text style={[ps.bbitTitle, { color: theme.colors.textPrimary }]}>BBIT</Text>
-                    <Text style={ps.bbitSub}>Budge Budge Institute of Technology</Text>
-                  </View>
-                </View>
-                <View style={[ps.bbitTag, { backgroundColor: isDark ? 'rgba(245,158,11,0.12)' : 'rgba(180,83,9,0.08)' }]}>
-                  <Text style={[ps.bbitTagText, { color: isDark ? '#F59E0B' : '#B45309' }]}>IDENTITY CARD</Text>
-                </View>
-              </View>
-
-              {/* ID Card Body */}
-              <View style={ps.idCardBody}>
-                {/* Google Avatar Photo Container */}
-                <View style={ps.avatarCol}>
-                  <LinearGradient
-                    colors={['#818CF8', '#A78BFA']}
-                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                    style={ps.avatarRing}
-                  >
-                    <View style={[ps.avatarInner, { backgroundColor: isDark ? '#0A1628' : '#ffffff' }]}>
-                      {profile?.avatar_url ? (
-                        <Image source={{ uri: profile.avatar_url }} style={ps.avatarImg} />
-                      ) : (
-                        <Text style={[ps.avatarInitial, { color: theme.colors.primaryLight }]}>
-                          {profile?.full_name?.charAt(0) ?? 'U'}
-                        </Text>
-                      )}
-                    </View>
-                  </LinearGradient>
-                  <Pressable
-                    onPress={handleAvatarUpload}
-                    disabled={uploading}
-                    style={[ps.cameraBadge, {
-                      backgroundColor: theme.colors.primary,
-                      borderColor: isDark ? '#0a101d' : '#ffffff',
-                    }]}
-                  >
-                    <Camera color="#fff" size={12} strokeWidth={2.5} />
-                  </Pressable>
-                </View>
-
-                {/* Main Identity Information */}
-                <View style={ps.idDetails}>
-                  <View style={ps.verifiedRow}>
-                    <Text style={[ps.studentName, { color: theme.colors.textPrimary }]} numberOfLines={1}>
-                      {profile?.full_name || 'Student Name'}
+          {/* Avatar + name hero */}
+          <Animated.View
+            entering={FadeInUp.duration(600).delay(80)}
+            style={ps.heroBody}
+          >
+            {/* Avatar with gradient ring */}
+            <View style={ps.avatarWrapper}>
+              <LinearGradient
+                colors={['#818CF8', '#A78BFA', '#F472B6']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={ps.avatarRing}
+              >
+                <View
+                  style={[
+                    ps.avatarInner,
+                    { backgroundColor: isDark ? '#0A1628' : '#ffffff' },
+                  ]}
+                >
+                  {profilePhoto ? (
+                    <Image
+                      source={{ uri: profilePhoto }}
+                      style={ps.avatarImg}
+                      contentFit="cover"
+                      transition={200}
+                    />
+                  ) : (
+                    <Text
+                      style={[
+                        ps.avatarInitial,
+                        { color: theme.colors.primaryLight },
+                      ]}
+                    >
+                      {displayName.charAt(0).toUpperCase()}
                     </Text>
-                    <ShieldCheck color={theme.colors.success} size={15} strokeWidth={2.5} />
-                  </View>
-                  <Text style={[ps.studentProgram, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-                    {profile?.branch || 'Computer Science & Engineering'}
-                  </Text>
-
-                  <View style={ps.idGrid}>
-                    <View style={ps.idGridItem}>
-                      <Text style={ps.gridKey}>Roll No</Text>
-                      <Text style={[ps.gridVal, { color: theme.colors.textPrimary }]} numberOfLines={1}>
-                        {profile?.roll_number || 'N/A'}
-                      </Text>
-                    </View>
-                    <View style={ps.idGridItem}>
-                      <Text style={ps.gridKey}>Semester</Text>
-                      <Text style={[ps.gridVal, { color: theme.colors.textPrimary }]}>
-                        Sem {profile?.semester || '4'}
-                      </Text>
-                    </View>
-                    <View style={ps.idGridItem}>
-                      <Text style={ps.gridKey}>Section</Text>
-                      <Text style={[ps.gridVal, { color: theme.colors.textPrimary }]}>
-                        Sec {profile?.section || 'C'}
-                      </Text>
-                    </View>
-                    <View style={ps.idGridItem}>
-                      <Text style={ps.gridKey}>Batch</Text>
-                      <Text style={[ps.gridVal, { color: theme.colors.textPrimary }]}>
-                        {profile?.batch?.split('-')[0] || '2024'}
-                      </Text>
-                    </View>
-                  </View>
+                  )}
                 </View>
+              </LinearGradient>
+            </View>
+
+            {/* Name + program + pills */}
+            <View style={ps.heroText}>
+              <View style={ps.nameRow}>
+                <Text
+                  style={[ps.heroName, { color: theme.colors.textPrimary }]}
+                  numberOfLines={1}
+                >
+                  {displayName}
+                </Text>
+                <ShieldCheck
+                  color={theme.colors.success}
+                  size={16}
+                  strokeWidth={2.5}
+                />
               </View>
-            </LinearGradient>
+              <Text
+                style={[ps.heroProgram, { color: theme.colors.textSecondary }]}
+                numberOfLines={2}
+              >
+                {displayProgram}
+              </Text>
+
+              {/* Sem + Section pills */}
+              <View style={ps.heroPills}>
+                <View
+                  style={[
+                    ps.pill,
+                    { backgroundColor: isDark ? 'rgba(99,102,241,0.18)' : 'rgba(79,70,229,0.10)' },
+                  ]}
+                >
+                  <Text style={[ps.pillText, { color: theme.colors.primaryLight }]}>
+                    Sem {displaySemester}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    ps.pill,
+                    { backgroundColor: isDark ? 'rgba(167,139,250,0.14)' : 'rgba(124,58,237,0.08)' },
+                  ]}
+                >
+                  <Text style={[ps.pillText, { color: theme.colors.accent }]}>
+                    Sec {displaySection}
+                  </Text>
+                </View>
+                {displayBatch ? (
+                  <View
+                    style={[
+                      ps.pill,
+                      { backgroundColor: isDark ? 'rgba(52,211,153,0.10)' : 'rgba(5,150,105,0.08)' },
+                    ]}
+                  >
+                    <Text style={[ps.pillText, { color: theme.colors.success }]}>
+                      {displayBatch}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            </View>
           </Animated.View>
         </View>
 
-        {/* ── Achievements Section ── */}
-        <Animated.View entering={FadeInDown.duration(500).delay(240)} style={ps.section}>
-          <Text style={[ps.sectionHeader, { color: theme.colors.textTertiary }]}>Achievements</Text>
-          <View style={ps.achRow}>
-            {ACHIEVEMENTS.map((ach, i) => {
-              const Icon = ach.icon;
-              return (
-                <View key={ach.label} style={{ flex: 1 }}>
-                  <View style={[ps.achCard, {
-                    backgroundColor: theme.colors.surface,
-                    borderColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
-                  }]}>
-                    <View style={[ps.achIcon, { backgroundColor: `${ach.color}15` }]}>
-                      <Icon color={ach.color} size={20} strokeWidth={2} />
-                    </View>
-                    <Text style={[ps.achLabel, { color: theme.colors.textPrimary }]}>{ach.label}</Text>
-                    <Text style={[ps.achDesc, { color: theme.colors.textTertiary }]}>{ach.desc}</Text>
-                  </View>
+        {/* ── Digital ID Card Shortcut ── */}
+        <Animated.View
+          entering={FadeInDown.duration(500).delay(160)}
+          style={ps.section}
+        >
+          <Text style={[ps.sectionLabel, { color: theme.colors.textTertiary }]}>
+            IDENTITY
+          </Text>
+          <SpringButton
+            onPress={() => router.push('/digital-id' as any)}
+            scaleDown={0.97}
+            haptic="medium"
+          >
+            <LinearGradient
+              colors={
+                isDark
+                  ? ['#1a1060', '#0f0830', '#0a0520']
+                  : ['#4F46E5', '#6366F1', '#818CF8']
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={ps.digitalIdCard}
+            >
+              {/* Subtle shine overlay */}
+              <View style={ps.digitalIdShine} />
+
+              <View style={ps.digitalIdLeft}>
+                {/* Icon container */}
+                <View style={ps.digitalIdIconWrap}>
+                  <CreditCard color="#fff" size={26} strokeWidth={1.8} />
                 </View>
-              );
-            })}
-          </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={ps.digitalIdTitle}>View Digital ID Card</Text>
+                  <Text style={ps.digitalIdSub}>MAKAUT Verified Identity</Text>
+                </View>
+              </View>
+
+              <View style={ps.digitalIdRight}>
+                <View style={ps.digitalIdBadge}>
+                  <Text style={ps.digitalIdBadgeText}>VERIFIED</Text>
+                </View>
+                <ChevronRight color="rgba(255,255,255,0.7)" size={20} strokeWidth={2.5} />
+              </View>
+            </LinearGradient>
+          </SpringButton>
         </Animated.View>
 
-        {/* ── Academic Details Group ── */}
-        <Animated.View entering={FadeInDown.duration(500).delay(320)} style={ps.section}>
-          <Text style={[ps.sectionHeader, { color: theme.colors.textTertiary }]}>Academic Profile</Text>
-          <View style={[ps.groupedCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-            {ACADEMIC_INFO.map((row, i) => (
+        {/* ── Student Identity ── */}
+        <Animated.View
+          entering={FadeInDown.duration(500).delay(240)}
+          style={ps.section}
+        >
+          <Text style={[ps.sectionLabel, { color: theme.colors.textTertiary }]}>
+            STUDENT IDENTITY
+          </Text>
+          <View
+            style={[
+              ps.groupedCard,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            {IDENTITY_ROWS.map((row, i) => (
               <View key={row.label}>
                 <View style={ps.infoRow}>
-                  <Text style={[ps.infoLabel, { color: theme.colors.textSecondary }]}>{row.label}</Text>
-                  <Text style={[ps.infoValue, { color: theme.colors.textPrimary }]} numberOfLines={2}>{row.value}</Text>
+                  <Text
+                    style={[ps.infoLabel, { color: theme.colors.textSecondary }]}
+                  >
+                    {row.label}
+                  </Text>
+                  <Text
+                    style={[ps.infoValue, { color: theme.colors.textPrimary }]}
+                    numberOfLines={2}
+                  >
+                    {row.value}
+                  </Text>
                 </View>
-                {i < ACADEMIC_INFO.length - 1 && (
-                  <View style={[ps.rowDivider, { backgroundColor: theme.colors.border }]} />
+                {i < IDENTITY_ROWS.length - 1 && (
+                  <View
+                    style={[
+                      ps.rowDivider,
+                      { backgroundColor: theme.colors.border },
+                    ]}
+                  />
                 )}
               </View>
             ))}
           </View>
         </Animated.View>
 
-        {/* ── Contact Details Group ── */}
-        <Animated.View entering={FadeInDown.duration(500).delay(380)} style={ps.section}>
-          <Text style={[ps.sectionHeader, { color: theme.colors.textTertiary }]}>Contact Details</Text>
-          <View style={[ps.groupedCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-            {CONTACT_INFO.map(({ icon: Icon, label, value, color }, i) => (
-              <View key={label}>
-                <View style={ps.contactRow}>
-                  <View style={[ps.contactIcon, { backgroundColor: `${color}14` }]}>
-                    <Icon color={color} size={15} strokeWidth={2} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[ps.contactLabel, { color: theme.colors.textTertiary }]}>{label}</Text>
-                    <Text style={[ps.contactValue, { color: theme.colors.textPrimary }]}>{value}</Text>
-                  </View>
-                </View>
-                {i < CONTACT_INFO.length - 1 && (
-                  <View style={[ps.rowDivider, { backgroundColor: theme.colors.border }]} />
-                )}
-              </View>
-            ))}
-          </View>
-        </Animated.View>
-
-        {/* ── Connected Accounts Section (NEW) ── */}
-        <Animated.View entering={FadeInDown.duration(500).delay(420)} style={ps.section}>
-          <Text style={[ps.sectionHeader, { color: theme.colors.textTertiary }]}>Connected Accounts</Text>
-          <View style={[ps.groupedCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+        {/* ── Contact Details ── */}
+        <Animated.View
+          entering={FadeInDown.duration(500).delay(320)}
+          style={ps.section}
+        >
+          <Text style={[ps.sectionLabel, { color: theme.colors.textTertiary }]}>
+            CONTACT DETAILS
+          </Text>
+          <View
+            style={[
+              ps.groupedCard,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            {/* Email */}
             <View style={ps.contactRow}>
-              <View style={[ps.contactIcon, { backgroundColor: 'rgba(99,102,241,0.12)' }]}>
-                <MailCheck color={theme.colors.primaryLight} size={16} strokeWidth={2} />
+              <View
+                style={[
+                  ps.contactIconWrap,
+                  { backgroundColor: 'rgba(59,130,246,0.12)' },
+                ]}
+              >
+                <Mail color="#3B82F6" size={15} strokeWidth={2} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[ps.contactLabel, { color: theme.colors.textTertiary }]}>Primary Single Sign-On Account</Text>
-                <Text style={[ps.contactValue, { color: theme.colors.textPrimary }]}>Google Workspace OAuth</Text>
+                <Text
+                  style={[ps.contactLabel, { color: theme.colors.textTertiary }]}
+                >
+                  Email Address
+                </Text>
+                <Text style={[ps.contactValue, { color: theme.colors.textPrimary }]}>
+                  {student?.email || profile?.email || 'N/A'}
+                </Text>
               </View>
-              <View style={[ps.bbitTag, { backgroundColor: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.24)', borderWidth: 1 }]}>
-                <Text style={{ color: '#10B981', fontSize: 10, fontWeight: '700' }}>VERIFIED</Text>
+            </View>
+
+            <View style={[ps.rowDivider, { backgroundColor: theme.colors.border }]} />
+
+            {/* Mobile */}
+            <View style={ps.contactRow}>
+              <View
+                style={[
+                  ps.contactIconWrap,
+                  { backgroundColor: 'rgba(16,185,129,0.12)' },
+                ]}
+              >
+                <Phone color="#10B981" size={15} strokeWidth={2} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[ps.contactLabel, { color: theme.colors.textTertiary }]}
+                >
+                  Mobile Number
+                </Text>
+                <Text style={[ps.contactValue, { color: theme.colors.textPrimary }]}>
+                  {student?.mobile || profile?.phone || 'N/A'}
+                </Text>
               </View>
             </View>
           </View>
         </Animated.View>
 
-        {/* ── Enrolled Semester Subjects ── */}
-        <Animated.View entering={FadeInDown.duration(500).delay(460)} style={ps.section}>
-          <Text style={[ps.sectionHeader, { color: theme.colors.textTertiary }]}>Enrolled Curriculum</Text>
+        {/* ── Connected Accounts ── */}
+        <Animated.View
+          entering={FadeInDown.duration(500).delay(380)}
+          style={ps.section}
+        >
+          <Text style={[ps.sectionLabel, { color: theme.colors.textTertiary }]}>
+            CONNECTED ACCOUNTS
+          </Text>
+          <View
+            style={[
+              ps.groupedCard,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            <View style={ps.contactRow}>
+              <View
+                style={[
+                  ps.contactIconWrap,
+                  { backgroundColor: 'rgba(29,78,216,0.14)' },
+                ]}
+              >
+                <MailCheck color="#60A5FA" size={15} strokeWidth={2} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[ps.contactLabel, { color: theme.colors.textTertiary }]}
+                >
+                  University Verification
+                </Text>
+                <Text style={[ps.contactValue, { color: theme.colors.textPrimary }]}>
+                  MAKAUT Student Portal
+                </Text>
+              </View>
+              <Badge label="VERIFIED" color="#10B981" size="sm" />
+            </View>
+          </View>
+        </Animated.View>
+
+        {/* ── Enrolled Curriculum ── */}
+        <Animated.View
+          entering={FadeInDown.duration(500).delay(440)}
+          style={ps.section}
+        >
+          <Text style={[ps.sectionLabel, { color: theme.colors.textTertiary }]}>
+            ENROLLED CURRICULUM
+          </Text>
           <View style={{ gap: 8 }}>
             {SEMESTER_SUBJECTS.map((subject, i) => {
               const typeColor = TYPE_COLORS[subject.type] ?? theme.colors.textTertiary;
               return (
-                <View key={subject.code} style={[ps.subjectCard, {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.border,
-                }]}>
-                  <View style={[ps.subjectIcon, { backgroundColor: `${typeColor}12` }]}>
-                    {subject.type === 'Practical'
-                      ? <GraduationCap color={typeColor} size={16} strokeWidth={2} />
-                      : <BookOpen color={typeColor} size={16} strokeWidth={2} />
-                    }
+                <Animated.View
+                  key={subject.code}
+                  entering={FadeInDown.duration(400).delay(460 + i * 50)}
+                  style={[
+                    ps.subjectCard,
+                    {
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.border,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      ps.subjectIcon,
+                      { backgroundColor: `${typeColor}14` },
+                    ]}
+                  >
+                    {subject.type === 'Practical' ? (
+                      <GraduationCap color={typeColor} size={16} strokeWidth={2} />
+                    ) : (
+                      <BookOpen color={typeColor} size={16} strokeWidth={2} />
+                    )}
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[ps.subjectName, { color: theme.colors.textPrimary }]} numberOfLines={1}>
+                    <Text
+                      style={[ps.subjectName, { color: theme.colors.textPrimary }]}
+                      numberOfLines={1}
+                    >
                       {subject.name}
                     </Text>
-                    <Text style={[ps.subjectMeta, { color: theme.colors.textTertiary }]}>
-                      {subject.code} · {subject.credits} Credits · {subject.faculty}
+                    <Text
+                      style={[ps.subjectMeta, { color: theme.colors.textTertiary }]}
+                    >
+                      {subject.code} · {subject.credits} Cr · {subject.faculty}
                     </Text>
                   </View>
-                  <View style={[ps.subjectTag, { backgroundColor: `${typeColor}12`, borderColor: `${typeColor}24` }]}>
-                    <Text style={[ps.subjectTagText, { color: typeColor }]}>{subject.type}</Text>
+                  <View
+                    style={[
+                      ps.subjectTag,
+                      {
+                        backgroundColor: `${typeColor}12`,
+                        borderColor: `${typeColor}28`,
+                      },
+                    ]}
+                  >
+                    <Text style={[ps.subjectTagText, { color: typeColor }]}>
+                      {subject.type}
+                    </Text>
                   </View>
-                </View>
+                </Animated.View>
               );
             })}
           </View>
         </Animated.View>
 
-        {/* ── Logout Button Cell ── */}
-        <Animated.View entering={FadeInDown.duration(400).delay(500)} style={ps.section}>
+        {/* ── Sign Out ── */}
+        <Animated.View
+          entering={FadeInDown.duration(400).delay(560)}
+          style={ps.section}
+        >
           <SpringButton
             onPress={() => {
               Alert.alert('Sign Out', 'Do you want to log out from CampusHub?', [
                 { text: 'Cancel', style: 'cancel' },
-                { text: 'Log Out', style: 'destructive', onPress: signOut },
+                {
+                  text: 'Log Out',
+                  style: 'destructive',
+                  onPress: async () => {
+                    await studentLogout();
+                    await signOut();
+                  },
+                },
               ]);
             }}
             scaleDown={0.96}
           >
-            <View style={[ps.logoutBtn, {
-              backgroundColor: isDark ? 'rgba(248,113,113,0.06)' : 'rgba(220,38,38,0.06)',
-              borderColor: isDark ? 'rgba(248,113,113,0.18)' : 'rgba(220,38,38,0.12)',
-            }]}>
+            <View
+              style={[
+                ps.logoutBtn,
+                {
+                  backgroundColor: isDark
+                    ? 'rgba(248,113,113,0.06)'
+                    : 'rgba(220,38,38,0.06)',
+                  borderColor: isDark
+                    ? 'rgba(248,113,113,0.18)'
+                    : 'rgba(220,38,38,0.12)',
+                },
+              ]}
+            >
               <LogOut color={theme.colors.danger} size={16} strokeWidth={2} />
-              <Text style={[ps.logoutText, { color: theme.colors.danger }]}>Sign Out from Device</Text>
+              <Text style={[ps.logoutText, { color: theme.colors.danger }]}>
+                Sign Out from Device
+              </Text>
             </View>
           </SpringButton>
         </Animated.View>
       </ScrollView>
 
-      {/* ── Premium Slide-Up Profile Editing Modal ── */}
+      {/* ── Edit Profile Modal ── */}
       <Modal
         visible={editModalVisible}
         animationType="slide"
@@ -493,12 +622,27 @@ export function ProfileScreen() {
         onRequestClose={() => setEditModalVisible(false)}
       >
         <View style={ps.modalOverlay}>
-          <View style={[ps.modalContent, { backgroundColor: theme.colors.surfaceElevated }]}>
+          <View
+            style={[
+              ps.modalContent,
+              { backgroundColor: theme.colors.surfaceElevated },
+            ]}
+          >
             {/* Modal Header */}
-            <View style={[ps.modalHeader, { borderBottomColor: theme.colors.border }]}>
+            <View
+              style={[ps.modalHeader, { borderBottomColor: theme.colors.border }]}
+            >
               <View>
-                <Text style={[ps.modalTitle, { color: theme.colors.textPrimary }]}>Edit Academic Profile</Text>
-                <Text style={[ps.modalSub, { color: theme.colors.textTertiary }]}>Sync modifications with Supabase</Text>
+                <Text
+                  style={[ps.modalTitle, { color: theme.colors.textPrimary }]}
+                >
+                  Edit Profile
+                </Text>
+                <Text
+                  style={[ps.modalSub, { color: theme.colors.textTertiary }]}
+                >
+                  Sync modifications with Supabase
+                </Text>
               </View>
               <Pressable
                 onPress={() => setEditModalVisible(false)}
@@ -508,124 +652,73 @@ export function ProfileScreen() {
               </Pressable>
             </View>
 
-            {/* Form Scroll Area */}
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={ps.modalScroll}>
+            {/* Form */}
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={ps.modalScroll}
+            >
               <View style={ps.formGroup}>
-                <Text style={[ps.inputLabel, { color: theme.colors.textSecondary }]}>Full Name</Text>
+                <Text
+                  style={[ps.inputLabel, { color: theme.colors.textSecondary }]}
+                >
+                  Full Name
+                </Text>
                 <TextInput
                   value={editFullName}
                   onChangeText={setEditFullName}
                   placeholder="Enter full name"
                   placeholderTextColor={theme.colors.textTertiary}
-                  style={[ps.textInput, {
-                    backgroundColor: theme.colors.void,
-                    color: theme.colors.textPrimary,
-                    borderColor: theme.colors.border,
-                  }]}
+                  style={[
+                    ps.textInput,
+                    {
+                      backgroundColor: theme.colors.void,
+                      color: theme.colors.textPrimary,
+                      borderColor: theme.colors.border,
+                    },
+                  ]}
                 />
               </View>
 
               <View style={ps.formGroup}>
-                <Text style={[ps.inputLabel, { color: theme.colors.textSecondary }]}>Phone Number</Text>
+                <Text
+                  style={[ps.inputLabel, { color: theme.colors.textSecondary }]}
+                >
+                  Phone Number
+                </Text>
                 <TextInput
                   value={editPhone}
                   onChangeText={setEditPhone}
                   placeholder="Enter phone number"
                   placeholderTextColor={theme.colors.textTertiary}
                   keyboardType="phone-pad"
-                  style={[ps.textInput, {
-                    backgroundColor: theme.colors.void,
-                    color: theme.colors.textPrimary,
-                    borderColor: theme.colors.border,
-                  }]}
+                  style={[
+                    ps.textInput,
+                    {
+                      backgroundColor: theme.colors.void,
+                      color: theme.colors.textPrimary,
+                      borderColor: theme.colors.border,
+                    },
+                  ]}
                 />
-              </View>
-
-              <View style={ps.formRow}>
-                <View style={[ps.formGroup, { flex: 1 }]}>
-                  <Text style={[ps.inputLabel, { color: theme.colors.textSecondary }]}>Semester</Text>
-                  <TextInput
-                    value={editSemester}
-                    onChangeText={setEditSemester}
-                    placeholder="4"
-                    keyboardType="numeric"
-                    style={[ps.textInput, {
-                      backgroundColor: theme.colors.void,
-                      color: theme.colors.textPrimary,
-                      borderColor: theme.colors.border,
-                    }]}
-                  />
-                </View>
-                <View style={[ps.formGroup, { flex: 1 }]}>
-                  <Text style={[ps.inputLabel, { color: theme.colors.textSecondary }]}>Section</Text>
-                  <TextInput
-                    value={editSection}
-                    onChangeText={setEditSection}
-                    placeholder="C"
-                    autoCapitalize="characters"
-                    style={[ps.textInput, {
-                      backgroundColor: theme.colors.void,
-                      color: theme.colors.textPrimary,
-                      borderColor: theme.colors.border,
-                    }]}
-                  />
-                </View>
-              </View>
-
-              <View style={ps.formGroup}>
-                <Text style={[ps.inputLabel, { color: theme.colors.textSecondary }]}>Faculty Advisor</Text>
-                <TextInput
-                  value={editAdvisor}
-                  onChangeText={setEditAdvisor}
-                  placeholder="Advisor name"
-                  placeholderTextColor={theme.colors.textTertiary}
-                  style={[ps.textInput, {
-                    backgroundColor: theme.colors.void,
-                    color: theme.colors.textPrimary,
-                    borderColor: theme.colors.border,
-                  }]}
-                />
-              </View>
-
-              <View style={ps.formRow}>
-                <View style={[ps.formGroup, { flex: 1 }]}>
-                  <Text style={[ps.inputLabel, { color: theme.colors.textSecondary }]}>Hostel Block</Text>
-                  <TextInput
-                    value={editHostelBlock}
-                    onChangeText={setEditHostelBlock}
-                    placeholder="e.g. A"
-                    autoCapitalize="characters"
-                    style={[ps.textInput, {
-                      backgroundColor: theme.colors.void,
-                      color: theme.colors.textPrimary,
-                      borderColor: theme.colors.border,
-                    }]}
-                  />
-                </View>
-                <View style={[ps.formGroup, { flex: 1 }]}>
-                  <Text style={[ps.inputLabel, { color: theme.colors.textSecondary }]}>Hostel Room</Text>
-                  <TextInput
-                    value={editHostelRoom}
-                    onChangeText={setEditHostelRoom}
-                    placeholder="e.g. 302"
-                    keyboardType="numeric"
-                    style={[ps.textInput, {
-                      backgroundColor: theme.colors.void,
-                      color: theme.colors.textPrimary,
-                      borderColor: theme.colors.border,
-                    }]}
-                  />
-                </View>
               </View>
             </ScrollView>
 
-            {/* Modal Footer Controls */}
-            <View style={[ps.modalFooter, { borderTopColor: theme.colors.border }]}>
+            {/* Modal Footer */}
+            <View
+              style={[ps.modalFooter, { borderTopColor: theme.colors.border }]}
+            >
               <Pressable
                 onPress={() => setEditModalVisible(false)}
                 style={[ps.cancelBtn, { borderColor: theme.colors.border }]}
               >
-                <Text style={[ps.cancelBtnText, { color: theme.colors.textSecondary }]}>Cancel</Text>
+                <Text
+                  style={[
+                    ps.cancelBtnText,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  Cancel
+                </Text>
               </Pressable>
               <Pressable
                 onPress={handleSaveProfile}
@@ -633,7 +726,9 @@ export function ProfileScreen() {
                 style={[ps.saveBtn, { backgroundColor: theme.colors.primary }]}
               >
                 <Check color="#fff" size={16} strokeWidth={2.5} />
-                <Text style={ps.saveBtnText}>{saving ? 'Saving...' : 'Save Profile'}</Text>
+                <Text style={ps.saveBtnText}>
+                  {saving ? 'Saving...' : 'Save Profile'}
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -643,7 +738,9 @@ export function ProfileScreen() {
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const ps = StyleSheet.create({
+  // Hero
   heroContainer: {
     paddingBottom: 8,
     overflow: 'hidden',
@@ -669,210 +766,192 @@ const ps = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 22,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   screenTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '700',
-    letterSpacing: -0.6,
+    letterSpacing: -0.7,
   },
-  editProfileBtn: {
+  editBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
     borderWidth: 1,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: Radius.circle,
   },
-  editProfileText: {
+  editBtnText: {
     fontSize: 12,
     fontWeight: '600',
   },
-  cardSpacing: {
+
+  // Hero body: avatar left, info right
+  heroBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 18,
     paddingHorizontal: 22,
-    marginBottom: 8,
+    paddingBottom: 20,
   },
-  studentIdCard: {
-    borderRadius: Radius.xl,
-    borderWidth: 1,
-    padding: 18,
-    ...Shadows.float,
-    shadowRadius: 18,
-    elevation: 8,
-  },
-  idCardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    paddingBottom: 12,
-    marginBottom: 14,
-  },
-  idCardBrandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  emblemRing: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: 'rgba(245,158,11,0.12)',
-    borderWidth: 1.5,
-    borderColor: '#F59E0B',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emblemInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#F59E0B',
-  },
-  bbitTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    letterSpacing: 0.6,
-  },
-  bbitSub: {
-    fontSize: 9.5,
-    color: '#475569',
-    fontWeight: '500',
-  },
-  bbitTag: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radius.xs,
-  },
-  bbitTagText: {
-    fontSize: 8.5,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-  },
-  idCardBody: {
-    flexDirection: 'row',
-    gap: 16,
-    alignItems: 'center',
-  },
-  avatarCol: {
+  avatarWrapper: {
     position: 'relative',
-    alignSelf: 'center',
+    alignSelf: 'flex-start',
   },
   avatarRing: {
-    width: 82,
-    height: 82,
-    borderRadius: 41,
-    padding: 2,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    padding: 3,
   },
   avatarInner: {
-    width: 78,
-    height: 78,
-    borderRadius: 39,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   avatarImg: {
-    width: 78,
-    height: 78,
+    width: 84,
+    height: 84,
   },
   avatarInitial: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '700',
   },
   cameraBadge: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
+    bottom: 1,
+    right: 1,
     width: 24,
     height: 24,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
+    borderWidth: 2,
   },
-  idDetails: {
+  heroText: {
     flex: 1,
     justifyContent: 'center',
   },
-  verifiedRow: {
+  nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 3,
+    marginBottom: 4,
   },
-  studentName: {
-    fontSize: 18,
+  heroName: {
+    fontSize: 20,
     fontWeight: '700',
-    letterSpacing: -0.4,
+    letterSpacing: -0.5,
+    flexShrink: 1,
   },
-  studentProgram: {
-    fontSize: 11.5,
+  heroProgram: {
+    fontSize: 12.5,
     fontWeight: '400',
     marginBottom: 10,
+    lineHeight: 18,
   },
-  idGrid: {
+  heroPills: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    columnGap: 12,
-    rowGap: 6,
+    gap: 6,
   },
-  idGridItem: {
-    width: '45%',
+  pill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Radius.pill,
   },
-  gridKey: {
-    fontSize: 8.5,
-    color: '#475569',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    fontWeight: '600',
-    marginBottom: 2,
+  pillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
-  gridVal: {
-    fontSize: 12,
-    fontWeight: '600',
+
+  // Digital ID shortcut card
+  digitalIdCard: {
+    borderRadius: Radius.xl,
+    padding: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+    ...Shadows.float,
   },
+  digitalIdShine: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderTopLeftRadius: Radius.xl,
+    borderTopRightRadius: Radius.xl,
+  },
+  digitalIdLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    flex: 1,
+  },
+  digitalIdIconWrap: {
+    width: 50,
+    height: 50,
+    borderRadius: Radius.lg,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.20)',
+  },
+  digitalIdTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: -0.3,
+    marginBottom: 3,
+  },
+  digitalIdSub: {
+    fontSize: 11.5,
+    fontWeight: '400',
+    color: 'rgba(255,255,255,0.65)',
+  },
+  digitalIdRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  digitalIdBadge: {
+    backgroundColor: 'rgba(52,211,153,0.25)',
+    borderRadius: Radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(52,211,153,0.50)',
+  },
+  digitalIdBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#34D399',
+    letterSpacing: 0.8,
+  },
+
+  // Sections
   section: {
     paddingHorizontal: 22,
     marginTop: 24,
   },
-  sectionHeader: {
+  sectionLabel: {
     fontSize: 11,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 1.2,
     marginBottom: 10,
   },
-  achRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  achCard: {
-    borderRadius: Radius.lg,
-    padding: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-    gap: 6,
-    ...Shadows.cardLight,
-  },
-  achIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: Radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 2,
-  },
-  achLabel: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  achDesc: {
-    fontSize: 9.5,
-    textAlign: 'center',
-  },
+
+  // Grouped cards (Settings-style)
   groupedCard: {
     borderRadius: Radius.xl,
     borderWidth: 1,
@@ -906,18 +985,18 @@ const ps = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     gap: 12,
   },
-  contactIcon: {
-    width: 32,
-    height: 32,
+  contactIconWrap: {
+    width: 34,
+    height: 34,
     borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
   contactLabel: {
-    fontSize: 9,
+    fontSize: 9.5,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
@@ -927,6 +1006,8 @@ const ps = StyleSheet.create({
     fontSize: 13.5,
     fontWeight: '500',
   },
+
+  // Subject cards
   subjectCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -937,8 +1018,8 @@ const ps = StyleSheet.create({
     ...Shadows.cardLight,
   },
   subjectIcon: {
-    width: 34,
-    height: 34,
+    width: 36,
+    height: 36,
     borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
@@ -954,15 +1035,16 @@ const ps = StyleSheet.create({
   },
   subjectTag: {
     paddingHorizontal: 7,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: Radius.xs,
     borderWidth: 0.5,
   },
   subjectTagText: {
     fontSize: 9.5,
     fontWeight: '700',
-    textTransform: 'capitalize',
   },
+
+  // Logout
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -970,14 +1052,14 @@ const ps = StyleSheet.create({
     gap: 8,
     borderWidth: 1.5,
     borderRadius: Radius.lg,
-    paddingVertical: 14,
+    paddingVertical: 15,
   },
   logoutText: {
     fontSize: 14.5,
     fontWeight: '700',
   },
 
-  // Modal Editing Layout
+  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
@@ -986,7 +1068,7 @@ const ps = StyleSheet.create({
   modalContent: {
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
-    maxHeight: '85%',
+    maxHeight: '70%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1017,10 +1099,6 @@ const ps = StyleSheet.create({
   },
   formGroup: {
     gap: 6,
-  },
-  formRow: {
-    flexDirection: 'row',
-    gap: 12,
   },
   inputLabel: {
     fontSize: 12,

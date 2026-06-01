@@ -1,6 +1,6 @@
 // screens/login-screen.tsx
-// CampusHub BBIT — Premium Login Screen Redesigned
-// Apple-polished AMOLED dark theme with glassmorphic cards, custom logo animations, and official CTAs.
+// DEPRECATED — This screen is no longer routed. Use makaut-login-screen.tsx.
+// Kept in the repository to avoid git history loss.
 
 import { router } from 'expo-router';
 import { BlurView } from 'expo-blur';
@@ -136,8 +136,12 @@ export function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [guestLoading, setGuestLoading] = useState(false);
 
-  const signInWithGoogle = useAuthStore((s) => s.signInWithGoogle);
-  const signInAsGuest = useAuthStore((s) => s.signInAsGuest);
+  // NOTE: These actions have been removed from useAuthStore (MAKAUT migration).
+  // This screen is deprecated; the stubs below prevent TypeScript compilation errors.
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  const signInWithGoogle = async () => {};
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  const signInAsGuest = () => {};
   const authError = useAuthStore((s) => s.error);
   const clearError = useAuthStore((s) => s.clearError);
 

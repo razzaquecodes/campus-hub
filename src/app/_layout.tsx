@@ -8,20 +8,28 @@ import {
 } from '@react-navigation/native';
 import { Stack, router, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-
-// MUST be evaluated at root scope to ensure WebBrowser correctly intercepts deep links
-// and signals the waiting promise to close the Safari/Chrome custom tab.
-WebBrowser.maybeCompleteAuthSession();
 
 import { SplashScreen } from '@/components/animations/splash/SplashScreen';
 import { ThemeProvider as AppThemeProvider, useTheme } from '@/context/ThemeContext';
 import { AppProviders } from '@/providers/app-providers';
 import { useAuthStore } from '@/store/auth.store';
+import { useStudentStore } from '@/store/student.store';
 
+/**
+ * useAuthGuard — Reactive navigation guard.
+ *
+ * Reads authentication state from useStudentStore (primary source of truth)
+ * and mirrors it into useAuthStore.profile for backward-compatibility with
+ * existing dashboard screens that read from useAuthStore.
+ *
+ * Navigation rules:
+ *   - No session, not in auth group → navigate to /(auth)/login
+ *   - Has session, in auth group    → navigate to /(tabs)
+ *   - Has session, at root index    → navigate to /(tabs)
+ */
 function useAuthGuard() {
   const { profile, isHydrated } = useAuthStore();
   const segments = useSegments();
@@ -30,25 +38,23 @@ function useAuthGuard() {
     if (!isHydrated) return;
 
     const inAuthGroup = segments[0] === '(auth)';
-    const isOAuthCallback = segments[0] === 'oauth-callback';
     const isRoot = segments[0] == null;
 
     console.info('[router-decision] Auth guard running', {
       isHydrated,
       hasProfile: Boolean(profile),
       inAuthGroup,
-      isOAuthCallback,
       isRoot,
       segments,
     });
 
     if (!profile) {
-      if (!inAuthGroup && !isOAuthCallback) {
+      if (!inAuthGroup) {
         console.info('[router-decision] Navigating to login');
         router.replace('/(auth)/login');
       }
     } else {
-      if (inAuthGroup || isOAuthCallback || isRoot) {
+      if (inAuthGroup || isRoot) {
         console.info('[router-decision] Navigating to dashboard (tabs)');
         router.replace('/(tabs)');
       }
@@ -101,17 +107,12 @@ function AppShell() {
         }}>
         <Stack.Screen name="index" options={{ animation: 'none' }} />
         <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
-        <Stack.Screen 
-          name="(tabs)" 
-          options={{ 
-            animation: 'fade',
-            gestureEnabled: false // Fixes iOS bug where you can accidentally swipe back to login
-          }} 
-        />
-        {/* Handles OAuth deep-link callbacks from campushub:// and exp:// */}
         <Stack.Screen
-          name="oauth-callback"
-          options={{ animation: 'none', headerShown: false }}
+          name="(tabs)"
+          options={{
+            animation: 'fade',
+            gestureEnabled: false, // Prevents iOS swipe-back to login
+          }}
         />
         {/* Notification Center */}
         <Stack.Screen
@@ -119,7 +120,22 @@ function AppShell() {
           options={{ animation: 'slide_from_right', headerShown: false }}
         />
         <Stack.Screen name="about" options={{ animation: 'slide_from_right' }} />
-        <Stack.Screen name="attendance" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
+        <Stack.Screen
+          name="attendance"
+          options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="digital-id"
+          options={{ animation: 'slide_from_bottom', presentation: 'modal', headerShown: false }}
+        />
+        <Stack.Screen
+          name="ca-marks"
+          options={{ animation: 'slide_from_right', headerShown: false }}
+        />
+        <Stack.Screen
+          name="results"
+          options={{ animation: 'slide_from_right', headerShown: false }}
+        />
       </Stack>
       {!ready && (
         <View style={StyleSheet.absoluteFill} pointerEvents="auto">

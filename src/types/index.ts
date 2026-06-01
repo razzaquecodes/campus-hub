@@ -11,6 +11,13 @@ export type {
   UserProfile,
 } from './database';
 
+export type {
+  StudentModel,
+  StudentProfileInsert,
+  VerifyStudentErrorResponse,
+  VerifyStudentResponse,
+} from './student';
+
 export type Priority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface Holiday {

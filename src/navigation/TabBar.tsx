@@ -145,11 +145,15 @@ export function PremiumTabBar({ state, navigation }: BottomTabBarProps) {
             borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
           }
         ]}>
-          {/* Subtle neon glow for active dot at the bottom of the active capsule */}
-          <View style={[
-            ss.activeGlowDot,
-            { backgroundColor: theme.colors.primaryLight }
-          ]} />
+        <View style={[
+          ss.activeGlowDot,
+          {
+            backgroundColor: theme.colors.primaryLight,
+            // Use the same color for the glow so it never defaults to black.
+            shadowColor: theme.colors.primaryLight,
+            shadowOpacity: isDark ? 0.8 : 0.4,
+          }
+        ]} />
         </View>
       </Animated.View>
 

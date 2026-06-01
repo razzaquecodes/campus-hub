@@ -1,3 +1,3 @@
-import { LoginScreen } from '@/screens/login-screen';
+import { MakautLoginScreen } from '@/screens/makaut-login-screen';
 
-export default LoginScreen;
+export default MakautLoginScreen;

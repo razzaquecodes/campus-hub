@@ -7,15 +7,18 @@ import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import {
   Award,
+  BarChart3,
   Bell,
   BookOpen,
   Calendar,
   ChevronRight,
   Clock,
+  CreditCard,
   GraduationCap,
   MapPin,
   Star,
   TrendingUp,
+  Award as AwardIcon,
   Users,
   Zap,
   CheckCircle2,
@@ -31,8 +34,8 @@ import {
   StyleSheet,
   Text,
   View,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import Animated, {
   Extrapolation,
   FadeIn,
@@ -44,8 +47,8 @@ import Animated, {
   useSharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
 import { useAuthStore } from '@/store/auth.store';
+import { useStudentStore } from '@/store/student.store';
 import { getTodayClasses, getCurrentAndNextClass } from '@/constants/routine';
 import { useTheme } from '@/context/ThemeContext';
 import { Radius, Shadows } from '@/constants/theme';
@@ -53,6 +56,7 @@ import { useAssignments } from '@/hooks/use-assignments';
 import { useAnnouncements } from '@/hooks/queries/use-announcements';
 import { useUnreadNotificationCount } from '@/hooks/queries/use-notifications';
 import { useStudentStats } from '@/hooks/queries/use-student-stats';
+import { useCAMarks } from '@/hooks/queries/use-ca-marks';
 import { SpringButton } from '@/components/ui';
 
 const { width: W } = Dimensions.get('window');
@@ -62,10 +66,10 @@ const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView) as any;
 const QUICK_ACTIONS = [
   { id: 'attendance', label: 'Attendance',   icon: Calendar,    color: '#6366F1', route: '/attendance' },
   { id: 'timetable',  label: 'Timetable',    icon: Clock,       color: '#3B82F6', route: '/(tabs)/courses' },
-  { id: 'notices',    label: 'Notices',      icon: BookOpen,    color: '#10B981', route: '/(tabs)/courses' },
-  { id: 'notifs',     label: 'Alerts',       icon: Star,        color: '#F59E0B', route: '/notifications' },
-  { id: 'profile',    label: 'My Profile',   icon: TrendingUp,  color: '#A78BFA', route: '/(tabs)/profile' },
-  { id: 'settings',   label: 'Settings',     icon: Users,       color: '#F472B6', route: '/(tabs)/settings' },
+  { id: 'ca-marks',   label: 'CA Marks',     icon: BarChart3,   color: '#10B981', route: '/ca-marks' },
+  { id: 'results',    label: 'Results',      icon: AwardIcon,   color: '#F59E0B', route: '/results' },
+  { id: 'digital-id', label: 'Digital ID',   icon: CreditCard,  color: '#A78BFA', route: '/digital-id' },
+  { id: 'profile',    label: 'My Profile',   icon: TrendingUp,  color: '#F472B6', route: '/(tabs)/profile' },
 ];
 
 function getGreeting(): string {
@@ -91,11 +95,26 @@ export function HomeScreen() {
   const [refreshing, setRefreshing] = React.useState(false);
 
   const profile = useAuthStore((s) => s.profile);
+  const student = useStudentStore((s) => s.student);
   const todayClasses = getTodayClasses();
   const { pending, toggleComplete } = useAssignments();
   const { data: announcements = [] } = useAnnouncements();
   const { data: unreadCount = 0 } = useUnreadNotificationCount();
   const { data: stats, isLoading: statsLoading } = useStudentStats();
+  const { data: caMarks = [] } = useCAMarks();
+
+  const caSemesters = useMemo(() => {
+    const sems = new Set<string>();
+    caMarks.forEach(m => {
+      if (m.semester) sems.add(m.semester.toString());
+    });
+    return Array.from(sems).sort((a, b) => parseInt(a) - parseInt(b));
+  }, [caMarks]);
+  const latestSem = caSemesters.length > 0 ? caSemesters[caSemesters.length - 1] : null;
+  const latestMarks = useMemo(() => {
+    if (!latestSem) return [];
+    return caMarks.filter(m => m.semester?.toString() === latestSem).slice(0, 4);
+  }, [caMarks, latestSem]);
 
   // Get active class info
   const { current: currentClass } = useMemo(() => getCurrentAndNextClass(), []);
@@ -126,22 +145,38 @@ export function HomeScreen() {
   const semProgress = stats?.semester_progress ?? null;
   const pendingCount = pending.length;
 
+  const profilePhoto = profile?.avatar_url || student?.profilePhotoUrl;
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.void }}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={theme.colors.void} />
 
       {/* ── Fixed Premium Header ── */}
-      <Animated.View style={[{ paddingTop: insets.top + 8, backgroundColor: 'transparent', zIndex: 10 }, headerStyle]}>
+      <Animated.View
+        style={[
+          {
+            paddingTop: insets.top + 8,
+            // Solid background prevents dark scroll content from bleeding
+            // through the gradient fade in light mode.
+            backgroundColor: theme.colors.void,
+            zIndex: 10,
+          },
+          headerStyle,
+        ]}
+      >
         {isDark ? (
+          // AMOLED dark: deep black → near-black → transparent
           <LinearGradient
             colors={['#000000', '#050a12', 'transparent']}
-            locations={[0, 0.75, 1]}
+            locations={[0, 0.8, 1]}
             style={[StyleSheet.absoluteFillObject, { height: 155 }]}
           />
         ) : (
+          // Light mode: fade from the actual void color to a pure white transparent
+          // (fixes dark blur caused by react-native defaulting 'transparent' to rgba(0,0,0,0))
           <LinearGradient
-            colors={['#F2F2F7', '#e8e8f2', 'transparent']}
-            locations={[0, 0.75, 1]}
+            colors={[theme.colors.void, theme.colors.void, 'rgba(255,255,255,0)']}
+            locations={[0, 0.72, 1]}
             style={[StyleSheet.absoluteFillObject, { height: 155 }]}
           />
         )}
@@ -169,14 +204,16 @@ export function HomeScreen() {
               )}
             </Pressable>
 
-            {profile?.avatar_url ? (
+            {profilePhoto ? (
               <Pressable
                 onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
                 onPress={() => router.push('/(tabs)/profile' as any)}
               >
                 <Image
-                  source={{ uri: profile.avatar_url }}
+                  source={{ uri: profilePhoto }}
                   style={[ss.avatarImg, { borderColor: theme.colors.glassBorder }]}
+                  contentFit="cover"
+                  transition={200}
                 />
               </Pressable>
             ) : (
@@ -483,6 +520,53 @@ export function HomeScreen() {
                   </Animated.View>
                 );
               })}
+            </View>
+          )}
+        </Animated.View>
+
+        {/* ── CA Marks Widget (NEW Dashboard Component) ── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(360)} style={ss.section}>
+          <View style={ss.sectionRow}>
+            <Text style={[ss.sectionTitle, { color: theme.colors.textPrimary }]}>
+              CA Marks {latestSem ? `(Sem ${latestSem})` : ''}
+            </Text>
+            <Pressable
+              onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+              onPress={() => router.push('/ca-marks' as any)}
+              style={ss.sectionAction}
+            >
+              <Text style={[ss.sectionActionText, { color: theme.colors.primaryLight }]}>View All</Text>
+              <ChevronRight color={theme.colors.primaryLight} size={14} strokeWidth={2.5} />
+            </Pressable>
+          </View>
+
+          {latestMarks.length === 0 ? (
+            <View style={[ss.assignmentEmpty, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+              <BarChart3 color={theme.colors.textTertiary} size={28} strokeWidth={1.8} />
+              <Text style={[ss.emptyText, { color: theme.colors.textPrimary, marginTop: 8 }]}>No Marks Available</Text>
+            </View>
+          ) : (
+            <View style={[ss.caMarksWidget, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+              {latestMarks.map((mark, i) => (
+                <View key={mark.subjectCode}>
+                  <View style={ss.caMarkRow}>
+                    <View style={{ flex: 1, paddingRight: 10 }}>
+                      <Text style={[ss.caMarkSubjName, { color: theme.colors.textPrimary }]} numberOfLines={1}>
+                        {mark.subjectName}
+                      </Text>
+                      <Text style={[ss.caMarkSubjCode, { color: theme.colors.textTertiary }]}>
+                        {mark.subjectCode}
+                      </Text>
+                    </View>
+                    <View style={ss.caMarkScoreBadge}>
+                      <Text style={[ss.caMarkScore, { color: theme.colors.primaryLight }]}>{mark.total || '-'}</Text>
+                    </View>
+                  </View>
+                  {i < latestMarks.length - 1 && (
+                    <View style={[ss.caMarkDivider, { backgroundColor: theme.colors.border }]} />
+                  )}
+                </View>
+              ))}
             </View>
           )}
         </Animated.View>
@@ -896,26 +980,27 @@ const ss = StyleSheet.create({
   subjectTag: {
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: Radius.xs,
+    borderRadius: Radius.sm,
   },
   subjectTagText: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 9.5,
+    fontWeight: '600',
+    textTransform: 'uppercase',
   },
   dotSeparator: {
     width: 3,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: 'rgba(0,0,0,0.15)',
+    backgroundColor: 'rgba(156,163,175,0.5)',
   },
   dueText: {
     fontSize: 11,
   },
   priorityPill: {
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: Radius.xs,
-    borderWidth: 0.5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: Radius.full,
+    borderWidth: 1,
   },
   priorityText: {
     fontSize: 9,
@@ -1042,6 +1127,42 @@ const ss = StyleSheet.create({
     width: 48,
     borderRadius: 6,
     marginVertical: 2,
+  },
+  // CA Marks Dashboard Card
+  caMarksWidget: {
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    overflow: 'hidden',
+    ...Shadows.cardLight,
+  },
+  caMarkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  caMarkSubjName: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  caMarkSubjCode: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  caMarkScoreBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Radius.md,
+    backgroundColor: 'rgba(99,102,241,0.1)',
+  },
+  caMarkScore: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  caMarkDivider: {
+    height: 1,
+    opacity: 0.5,
   },
 });
 

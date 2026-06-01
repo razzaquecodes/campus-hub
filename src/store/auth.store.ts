@@ -1,38 +1,87 @@
+/**
+ * auth.store.ts
+ *
+ * Legacy auth store — now acts as a thin compatibility bridge.
+ *
+ * The primary authentication source is now useStudentStore (MAKAUT verification).
+ * This store maps StudentModel → UserProfile so that all existing dashboard
+ * screens, profile screen, and queries continue working without modification.
+ *
+ * What changed:
+ *   - Removed: signInWithGoogle, signInAsGuest, hydrateAuthenticatedSession
+ *   - Removed: Supabase Auth session dependency
+ *   - Added:   mapStudentToUserProfile() to translate student data
+ *   - Kept:    profile, makautProfile, isLoading, isHydrated, error
+ *   - Kept:    setProfile, setMakautProfile, setIsHydrated, signOut, clearError
+ *
+ * isHydrated and profile are now derived from useStudentStore and synced
+ * by AuthHydrator in app-providers.tsx.
+ */
+
 import { create } from 'zustand';
 
 import { queryClient } from '@/lib/query-client';
-import { getPersistedSession, signInWithGoogle as authSignInWithGoogle, signOut as authSignOut } from '@/services/auth.service';
-import { getMakautProfile } from '@/services/makaut.service';
+import { clearSession } from '@/services/makaut-auth.service';
 import type { StudentProfile, UserProfile } from '@/types/database';
+import type { StudentModel } from '@/types/student';
 
 const storeLog = function (message: string, details?: Record<string, unknown>) {
   const ts = new Date().toISOString().slice(11, 23);
   const payload = details ? ` ${JSON.stringify(details)}` : '';
   console.info(`[auth-store][${ts}] ${message}${payload}`);
+};
+
+// ─── Mapper: StudentModel → UserProfile ──────────────────────────────────────
+/**
+ * Translate a verified MAKAUT StudentModel into the UserProfile shape
+ * consumed by existing dashboard screens and queries.
+ */
+export function mapStudentToUserProfile(student: StudentModel): UserProfile {
+  return {
+    id: `makaut_${student.rollNumber}`,
+    roll_number: student.rollNumber,
+    email: student.email,
+    full_name: student.fullName,
+    role: 'student',
+    college: student.instituteName,
+    branch: student.courseName ?? null,
+    phone: student.mobile ?? null,
+    avatar_url: null,
+    is_verified: student.verified,
+    // Optional fields — not available from MAKAUT but kept typed correctly
+    branch_id: null,
+    semester_id: null,
+    section_id: null,
+    semester: null,
+    section: null,
+    year: null,
+    batch: null,
+    advisor: null,
+    hostel_block: null,
+    hostel_room: null,
+  };
 }
 
+// ─── State shape ──────────────────────────────────────────────────────────────
 interface AuthState {
   profile: UserProfile | null;
   makautProfile: StudentProfile | null;
   isLoading: boolean;
-  isSigningIn: boolean;
   isHydrated: boolean;
   error: string | null;
+
   setProfile: (profile: UserProfile | null) => void;
   setMakautProfile: (profile: StudentProfile | null) => void;
   setIsHydrated: (isHydrated: boolean) => void;
-  hydrateAuthenticatedSession: (source: string) => Promise<UserProfile>;
-  signInWithGoogle: () => Promise<void>;
-  signInAsGuest: () => void;
   signOut: () => Promise<void>;
   clearError: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+// ─── Store ────────────────────────────────────────────────────────────────────
+export const useAuthStore = create<AuthState>((set) => ({
   profile: null,
   makautProfile: null,
   isLoading: false,
-  isSigningIn: false,
   isHydrated: false,
   error: null,
 
@@ -56,92 +105,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isHydrated });
   },
 
-  hydrateAuthenticatedSession: async (source: string) => {
-    storeLog('hydrateAuthenticatedSession: starting', { source });
-    const profile = await getPersistedSession();
-
-    if (!profile) {
-      storeLog('hydrateAuthenticatedSession: no profile returned', { source });
-      throw new Error('Authenticated session exists, but user profile could not be loaded');
-    }
-
-    storeLog('hydrateAuthenticatedSession: profile loaded', {
-      source,
-      userId: profile.id,
-      email: profile.email,
-    });
-    set({ profile, isHydrated: true, error: null });
-
-    try {
-      const makautProfile = await getMakautProfile(profile.id);
-      storeLog('hydrateAuthenticatedSession: MAKAUT profile loaded', {
-        source,
-        hasMakautProfile: Boolean(makautProfile),
-      });
-      set({ makautProfile });
-    } catch (e) {
-      storeLog('hydrateAuthenticatedSession: MAKAUT load failed (non-fatal)', {
-        source,
-        error: e instanceof Error ? e.message : String(e),
-      });
-      set({ makautProfile: null });
-    }
-
-    await queryClient.invalidateQueries();
-    storeLog('hydrateAuthenticatedSession: React Query invalidated', { source });
-
-    return profile;
-  },
-
-  signInWithGoogle: async () => {
-    storeLog('signInWithGoogle: starting');
-    set({ isLoading: true, isSigningIn: true, error: null });
-
-    try {
-      await authSignInWithGoogle();
-
-      storeLog('signInWithGoogle: OAuth flow completed, session created');
-
-      const profile = await get().hydrateAuthenticatedSession('google-login');
-
-      set({ isLoading: false, isSigningIn: false, error: null });
-      storeLog('signInWithGoogle: complete', {
-        hasProfile: Boolean(profile),
-        userId: profile.id,
-      });
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Google Sign in failed';
-      storeLog('signInWithGoogle: failed', { error: message });
-      set({ error: message, isLoading: false, isSigningIn: false });
-      throw e;
-    }
-  },
-
-  signInAsGuest: () => {
-    storeLog('signInAsGuest');
-    const guestProfile: UserProfile = {
-      id: 'guest-id',
-      roll_number: 'GUEST-2026',
-      email: 'guest@bbit.edu.in',
-      full_name: 'Guest Scholar',
-      branch: 'Computer Science & Engineering',
-      phone: '+91 98765 43210',
-      college: 'Budge Budge Institute of Technology',
-      avatar_url: null,
-    } as UserProfile;
-    set({ profile: guestProfile, makautProfile: null, isLoading: false, error: null });
-  },
-
   signOut: async () => {
     storeLog('signOut: starting');
     set({ isLoading: true, error: null });
     try {
-      await authSignOut();
+      await clearSession();
+      await queryClient.clear();
       set({ profile: null, makautProfile: null, isLoading: false, error: null });
       storeLog('signOut: complete');
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Sign out failed';
       storeLog('signOut: failed', { error: message });
+      // Force clear even on error
       set({ profile: null, makautProfile: null, isLoading: false, error: message });
     }
   },

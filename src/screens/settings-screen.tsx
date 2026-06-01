@@ -7,39 +7,56 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import {
-    Award,
-    Bell,
-    BookOpen,
-    Check,
-    ChevronRight, Globe, Info,
-    Lock, LogOut, Moon, Palette, Shield,
-    Smartphone, Star, Sun, Trash2, Wifi,
-    X,
-} from 'lucide-react-native';
-import React, { useCallback, useState } from 'react';
-import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    Linking,
-    Modal,
-    Platform,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    View,
+  ActivityIndicator,
+  Alert,
+  Linking,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import Animated, {
-    FadeIn, FadeInDown,
+  FadeIn, FadeInDown,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  AlertCircle,
+  Award,
+  BarChart3,
+  Bell,
+  BookOpen,
+  Calendar,
+  Check,
+  ChevronRight,
+  Clock,
+  CreditCard,
+  Fingerprint,
+  Info,
+  Lock,
+  LogOut,
+  Moon,
+  Palette,
+  Shield,
+  ShieldCheck,
+  Smartphone,
+  Sun,
+  Tag,
+  Trash2,
+  User,
+  X,
+} from 'lucide-react-native';
+import React, { useCallback, useState } from 'react';
 
 import { Badge, SpringButton } from '@/components/ui';
 import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuthStore } from '@/store/auth.store';
+import { useStudentStore } from '@/store/student.store';
 
 type ThemeMode = 'dark' | 'light' | 'system';
 
@@ -193,14 +210,21 @@ function SettingGroup({ title, children, entering }: SettingGroupProps) {
   );
 }
 
+// Icon Wrapper Component
+const IconChip = ({ icon: Icon, color, size = 18 }: { icon: any, color: string, size?: number }) => (
+  <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: `${color}15`, alignItems: 'center', justifyContent: 'center' }}>
+    <Icon color={color} size={size} strokeWidth={2} />
+  </View>
+);
+
 export function SettingsScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
   const [notifications, setNotifications] = useState(true);
-  const [dataSync, setDataSync] = useState(true);
+  const [examAlerts, setExamAlerts] = useState(true);
+  const [noticeAlerts, setNoticeAlerts] = useState(true);
   const [biometric, setBiometric] = useState(false);
-  const [emailDigest, setEmailDigest] = useState(true);
 
   // Modals state
   const [aboutModalVisible, setAboutModalVisible] = useState(false);
@@ -208,6 +232,10 @@ export function SettingsScreen() {
 
   const profile = useAuthStore((s) => s.profile);
   const signOut = useAuthStore((s) => s.signOut);
+  const student = useStudentStore((s) => s.student);
+  const studentLogout = useStudentStore((s) => s.logout);
+
+  const profilePhoto = profile?.avatar_url || student?.profilePhotoUrl;
 
   const handleLogout = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -215,6 +243,7 @@ export function SettingsScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: async () => {
         try {
+          await studentLogout();
           await signOut();
           router.replace('/(auth)/login' as any);
         } catch {
@@ -222,7 +251,7 @@ export function SettingsScreen() {
         }
       } },
     ]);
-  }, [signOut]);
+  }, [signOut, studentLogout]);
 
   const handleClearCache = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -288,8 +317,13 @@ export function SettingsScreen() {
               
               {/* Profile Avatar */}
               <View style={[ss.profileAvatarRing, { borderColor: theme.colors.primaryLight }]}>
-                {profile?.avatar_url ? (
-                  <Image source={{ uri: profile.avatar_url }} style={ss.avatarImage} />
+                {profilePhoto ? (
+                  <Image
+                    source={{ uri: profilePhoto }}
+                    style={ss.avatarImage}
+                    contentFit="cover"
+                    transition={200}
+                  />
                 ) : (
                   <Text style={[ss.avatarInitial, { color: theme.colors.primaryLight }]}>
                     {profile?.full_name?.charAt(0) ?? 'S'}
@@ -302,7 +336,7 @@ export function SettingsScreen() {
                   {profile?.full_name ?? 'Student Name'}
                 </Text>
                 <Text style={[Typography.body.sm, { color: theme.colors.textSecondary }]}>
-                  {profile?.email ?? 'Google Linked Profile'}
+                  {profile?.email ?? 'MAKAUT Verified Account'}
                 </Text>
                 <View style={ss.tagContainer}>
                   <Badge label={`Sem ${profile?.semester || '4'} · Section ${profile?.section || 'C'}`} color={theme.colors.primaryLight} />
@@ -328,7 +362,7 @@ export function SettingsScreen() {
               paddingHorizontal: Spacing.page.horizontal + 2,
             },
           ]}>
-            Interface Theme
+            Appearance
           </Text>
           <View style={{ paddingHorizontal: Spacing.page.horizontal }}>
             <View style={[
@@ -352,81 +386,130 @@ export function SettingsScreen() {
           </View>
         </Animated.View>
 
-        {/* ── Notifications ── */}
-        <SettingGroup title="Notifications" entering={FadeInDown.duration(500).delay(220)}>
+        {/* ── Account ── */}
+        <SettingGroup title="Account" entering={FadeInDown.duration(500).delay(220)}>
           <SettingRow
-            icon={<Bell color={theme.colors.primaryLight} size={18} strokeWidth={2} />}
+            icon={<IconChip icon={User} color={theme.colors.primaryLight} />}
+            label="Student Profile"
+            onPress={() => router.push('/(tabs)/profile' as any)}
+          />
+          <SettingRow
+            icon={<IconChip icon={CreditCard} color={theme.colors.primaryLight} />}
+            label="Digital ID Card"
+            onPress={() => router.push('/digital-id' as any)}
+          />
+          <SettingRow
+            icon={<IconChip icon={ShieldCheck} color={theme.colors.success} />}
+            label="Verification Status"
+            value="MAKAUT Verified"
+            last
+          />
+        </SettingGroup>
+
+        {/* ── Academics ── */}
+        <SettingGroup title="Academics" entering={FadeInDown.duration(500).delay(260)}>
+          <SettingRow
+            icon={<IconChip icon={Award} color={theme.colors.info} />}
+            label="Academic Results"
+            onPress={() => router.push('/results' as any)}
+          />
+          <SettingRow
+            icon={<IconChip icon={Calendar} color={theme.colors.info} />}
+            label="Attendance"
+            onPress={() => router.push('/attendance' as any)}
+          />
+          <SettingRow
+            icon={<IconChip icon={BarChart3} color={theme.colors.info} />}
+            label="CA Marks"
+            onPress={() => router.push('/ca-marks' as any)}
+          />
+          <SettingRow
+            icon={<IconChip icon={Clock} color={theme.colors.info} />}
+            label="Timetable"
+            onPress={() => router.push('/(tabs)/courses' as any)}
+            last
+          />
+        </SettingGroup>
+
+        {/* ── Notifications ── */}
+        <SettingGroup title="Notifications" entering={FadeInDown.duration(500).delay(300)}>
+          <SettingRow
+            icon={<IconChip icon={Bell} color={theme.colors.warning} />}
             label="Push Alerts"
             toggle toggleValue={notifications}
             onToggle={setNotifications}
           />
           <SettingRow
-            icon={<Globe color={theme.colors.info} size={18} strokeWidth={2} />}
-            label="Email Announcements"
-            toggle toggleValue={emailDigest}
-            onToggle={setEmailDigest}
+            icon={<IconChip icon={AlertCircle} color={theme.colors.warning} />}
+            label="Exam Alerts"
+            toggle toggleValue={examAlerts}
+            onToggle={setExamAlerts}
+          />
+          <SettingRow
+            icon={<IconChip icon={BookOpen} color={theme.colors.warning} />}
+            label="Notice Alerts"
+            toggle toggleValue={noticeAlerts}
+            onToggle={setNoticeAlerts}
             last
           />
         </SettingGroup>
 
-        {/* ── Privacy & Security ── */}
-        <SettingGroup title="Security & Network" entering={FadeInDown.duration(500).delay(280)}>
+        {/* ── Security ── */}
+        <SettingGroup title="Security" entering={FadeInDown.duration(500).delay(340)}>
           <SettingRow
-            icon={<Lock color={theme.colors.warning} size={18} strokeWidth={2} />}
-            label="Biometric Passcode"
+            icon={<IconChip icon={Fingerprint} color={theme.colors.success} />}
+            label="Biometric Login"
             toggle toggleValue={biometric}
             onToggle={setBiometric}
           />
           <SettingRow
-            icon={<Wifi color={theme.colors.success} size={18} strokeWidth={2} />}
-            label="Timetable Background Sync"
-            toggle toggleValue={dataSync}
-            onToggle={setDataSync}
+            icon={<IconChip icon={LogOut} color={theme.colors.danger} />}
+            label="Sign Out"
+            danger
+            onPress={handleLogout}
             last
           />
         </SettingGroup>
 
-        {/* ── Budge Budge Institute of Technology Details ── */}
-        <SettingGroup title="Institution" entering={FadeInDown.duration(500).delay(340)}>
+        {/* ── About ── */}
+        <SettingGroup title="About" entering={FadeInDown.duration(500).delay(380)}>
           <SettingRow
-            icon={<Info color={theme.colors.info} size={18} strokeWidth={2} />}
-            label="About BBIT College"
+            icon={<IconChip icon={Info} color={theme.colors.textSecondary} />}
+            label="About BBIT"
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
               setAboutModalVisible(true);
             }}
-            badge="Accredited"
           />
           <SettingRow
-            icon={<Star color={theme.colors.gold} size={18} strokeWidth={2} />}
-            label="Rate App Experience"
+            icon={<IconChip icon={Smartphone} color={theme.colors.textSecondary} />}
+            label="About Campus Hub"
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-              Linking.openURL('mailto:support@bbit.edu.in?subject=CampusHub%20Feedback').catch(() => {
-                Alert.alert('Feedback', 'Email is not configured on this device.');
-              });
+              Alert.alert('Campus Hub', 'Premium Student Platform\nVersion 1.0.0');
             }}
+          />
+          <SettingRow
+            icon={<IconChip icon={Tag} color={theme.colors.textSecondary} />}
+            label="Version"
+            value="v1.0.0"
             last
           />
         </SettingGroup>
 
-        {/* ── Danger & Maintenance Zone ── */}
-        <SettingGroup title="Management" entering={FadeInDown.duration(500).delay(400)}>
+        {/* ── Danger & Maintenance Zone (Hidden from normal UI, but keep cache clear) ── */}
+        <SettingGroup title="Maintenance" entering={FadeInDown.duration(500).delay(420)}>
           <SettingRow
             icon={clearingCache ? (
-              <ActivityIndicator size="small" color={theme.colors.danger} />
+              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: `${theme.colors.danger}15`, alignItems: 'center', justifyContent: 'center' }}>
+                <ActivityIndicator size="small" color={theme.colors.danger} />
+              </View>
             ) : (
-              <Trash2 color={theme.colors.danger} size={18} strokeWidth={2} />
+              <IconChip icon={Trash2} color={theme.colors.danger} />
             )}
             label="Clear Offline Cache"
             danger
             onPress={handleClearCache}
-          />
-          <SettingRow
-            icon={<LogOut color={theme.colors.danger} size={18} strokeWidth={2} />}
-            label="Sign Out of Session"
-            danger
-            onPress={handleLogout}
             last
           />
         </SettingGroup>
@@ -436,7 +519,7 @@ export function SettingsScreen() {
           entering={FadeInDown.duration(400).delay(450)}
           style={ss.footerContainer}>
           <Text style={[Typography.caption, { color: theme.colors.textTertiary, fontWeight: '500' }]}>
-            CampusHub v2.4.0 · Budge Budge Institute of Technology
+            CampusHub v1.0.0 · Budge Budge Institute of Technology
           </Text>
           <Text style={[Typography.caption, { color: theme.colors.textTertiary, fontSize: 10, marginTop: 2 }]}>
             Designed for CSE B.Tech Undergraduates
@@ -618,7 +701,6 @@ const ss = StyleSheet.create({
     gap: 12,
   },
   rowIconWrap: {
-    width: 24,
     alignItems: 'center',
   },
   settingRowRight: {
@@ -628,7 +710,7 @@ const ss = StyleSheet.create({
   },
   rowDivider: {
     height: 1,
-    marginLeft: 54,
+    marginLeft: 64, // 36 (icon) + 12 (gap) + 16 (padding)
   },
   footerContainer: {
     alignItems: 'center',

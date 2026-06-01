@@ -5,7 +5,6 @@ export default function AuthLayout() {
   return (
     <Stack screenOptions={{ headerShown: false, animation: 'fade' }}>
       <Stack.Screen name="login" />
-      <Stack.Screen name="connect-makaut" />
     </Stack>
   );
 }
