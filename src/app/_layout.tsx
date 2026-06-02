@@ -129,7 +129,7 @@ function AppShell() {
           options={{ animation: 'slide_from_bottom', presentation: 'modal', headerShown: false }}
         />
         <Stack.Screen
-          name="ca-marks"
+          name="internal-marks"
           options={{ animation: 'slide_from_right', headerShown: false }}
         />
         <Stack.Screen

@@ -420,8 +420,8 @@ export function SettingsScreen() {
           />
           <SettingRow
             icon={<IconChip icon={BarChart3} color={theme.colors.info} />}
-            label="CA Marks"
-            onPress={() => router.push('/ca-marks' as any)}
+            label="Internal Marks"
+            onPress={() => router.push('/internal-marks' as any)}
           />
           <SettingRow
             icon={<IconChip icon={Clock} color={theme.colors.info} />}

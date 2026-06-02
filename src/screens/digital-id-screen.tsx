@@ -406,7 +406,7 @@ export function DigitalIdScreen() {
                   ]}
                 >
                   <QRCodeSVG
-                    value={rollNo}
+                    value={`https://campushubq.vercel.app/verify/${rollNo}`}
                     size={72}
                     color="#1e1e2e"
                     background="#ffffff"

@@ -66,7 +66,7 @@ const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView) as any;
 const QUICK_ACTIONS = [
   { id: 'attendance', label: 'Attendance',   icon: Calendar,    color: '#6366F1', route: '/attendance' },
   { id: 'timetable',  label: 'Timetable',    icon: Clock,       color: '#3B82F6', route: '/(tabs)/courses' },
-  { id: 'ca-marks',   label: 'CA Marks',     icon: BarChart3,   color: '#10B981', route: '/ca-marks' },
+  { id: 'internal-marks',   label: 'Internal Marks',     icon: BarChart3,   color: '#10B981', route: '/internal-marks' },
   { id: 'results',    label: 'Results',      icon: AwardIcon,   color: '#F59E0B', route: '/results' },
   { id: 'digital-id', label: 'Digital ID',   icon: CreditCard,  color: '#A78BFA', route: '/digital-id' },
   { id: 'profile',    label: 'My Profile',   icon: TrendingUp,  color: '#F472B6', route: '/(tabs)/profile' },
@@ -532,7 +532,7 @@ export function HomeScreen() {
             </Text>
             <Pressable
               onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-              onPress={() => router.push('/ca-marks' as any)}
+              onPress={() => router.push('/internal-marks' as any)}
               style={ss.sectionAction}
             >
               <Text style={[ss.sectionActionText, { color: theme.colors.primaryLight }]}>View All</Text>
