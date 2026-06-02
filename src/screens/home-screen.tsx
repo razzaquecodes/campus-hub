@@ -56,7 +56,6 @@ import { useAssignments } from '@/hooks/use-assignments';
 import { useAnnouncements } from '@/hooks/queries/use-announcements';
 import { useUnreadNotificationCount } from '@/hooks/queries/use-notifications';
 import { useStudentStats } from '@/hooks/queries/use-student-stats';
-import { useCAMarks } from '@/hooks/queries/use-ca-marks';
 import { SpringButton } from '@/components/ui';
 
 const { width: W } = Dimensions.get('window');
@@ -101,20 +100,6 @@ export function HomeScreen() {
   const { data: announcements = [] } = useAnnouncements();
   const { data: unreadCount = 0 } = useUnreadNotificationCount();
   const { data: stats, isLoading: statsLoading } = useStudentStats();
-  const { data: caMarks = [] } = useCAMarks();
-
-  const caSemesters = useMemo(() => {
-    const sems = new Set<string>();
-    caMarks.forEach(m => {
-      if (m.semester) sems.add(m.semester.toString());
-    });
-    return Array.from(sems).sort((a, b) => parseInt(a) - parseInt(b));
-  }, [caMarks]);
-  const latestSem = caSemesters.length > 0 ? caSemesters[caSemesters.length - 1] : null;
-  const latestMarks = useMemo(() => {
-    if (!latestSem) return [];
-    return caMarks.filter(m => m.semester?.toString() === latestSem).slice(0, 4);
-  }, [caMarks, latestSem]);
 
   // Get active class info
   const { current: currentClass } = useMemo(() => getCurrentAndNextClass(), []);
@@ -520,53 +505,6 @@ export function HomeScreen() {
                   </Animated.View>
                 );
               })}
-            </View>
-          )}
-        </Animated.View>
-
-        {/* ── CA Marks Widget (NEW Dashboard Component) ── */}
-        <Animated.View entering={FadeInDown.duration(500).delay(360)} style={ss.section}>
-          <View style={ss.sectionRow}>
-            <Text style={[ss.sectionTitle, { color: theme.colors.textPrimary }]}>
-              CA Marks {latestSem ? `(Sem ${latestSem})` : ''}
-            </Text>
-            <Pressable
-              onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-              onPress={() => router.push('/internal-marks' as any)}
-              style={ss.sectionAction}
-            >
-              <Text style={[ss.sectionActionText, { color: theme.colors.primaryLight }]}>View All</Text>
-              <ChevronRight color={theme.colors.primaryLight} size={14} strokeWidth={2.5} />
-            </Pressable>
-          </View>
-
-          {latestMarks.length === 0 ? (
-            <View style={[ss.assignmentEmpty, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-              <BarChart3 color={theme.colors.textTertiary} size={28} strokeWidth={1.8} />
-              <Text style={[ss.emptyText, { color: theme.colors.textPrimary, marginTop: 8 }]}>No Marks Available</Text>
-            </View>
-          ) : (
-            <View style={[ss.caMarksWidget, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-              {latestMarks.map((mark, i) => (
-                <View key={mark.subjectCode}>
-                  <View style={ss.caMarkRow}>
-                    <View style={{ flex: 1, paddingRight: 10 }}>
-                      <Text style={[ss.caMarkSubjName, { color: theme.colors.textPrimary }]} numberOfLines={1}>
-                        {mark.subjectName}
-                      </Text>
-                      <Text style={[ss.caMarkSubjCode, { color: theme.colors.textTertiary }]}>
-                        {mark.subjectCode}
-                      </Text>
-                    </View>
-                    <View style={ss.caMarkScoreBadge}>
-                      <Text style={[ss.caMarkScore, { color: theme.colors.primaryLight }]}>{mark.total || '-'}</Text>
-                    </View>
-                  </View>
-                  {i < latestMarks.length - 1 && (
-                    <View style={[ss.caMarkDivider, { backgroundColor: theme.colors.border }]} />
-                  )}
-                </View>
-              ))}
             </View>
           )}
         </Animated.View>

@@ -2,10 +2,13 @@ export interface InternalMark {
   semester: string;
   subjectCode: string;
   subjectName: string;
-  caMarks: string | number | null;
-  pcaMarks: string | number | null;
-  total?: string | number | null;
-  totalMarks?: string | number | null;
+  teacher?: string | null;
+  ca1: number | null;
+  ca2: number | null;
+  ca3: number | null;
+  ca4: number | null;
+  pca1: number | null;
+  pca2: number | null;
 }
 
 export interface InternalMarksResponse {

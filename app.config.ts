@@ -10,7 +10,7 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
     ...config,
     name: 'Campus Hub',
     slug: 'campus-hub',
-    version: '1.0.0',
+    version: '1.0.3',
     runtimeVersion: {
       policy: 'appVersion',
     },
@@ -22,7 +22,7 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
     ios: {
       ...config.ios,
       bundleIdentifier: BUNDLE_IDENTIFIER,
-      buildNumber: '1',
+      buildNumber: '3',
       supportsTablet: false,
       icon: './assets/images/icon.png',
       infoPlist: {
@@ -42,7 +42,7 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
     android: {
       ...config.android,
       package: ANDROID_PACKAGE,
-      versionCode: 1,
+      versionCode: 3,
       adaptiveIcon: {
         backgroundColor: '#020617',
         foregroundImage: './assets/images/android-icon-foreground.png',

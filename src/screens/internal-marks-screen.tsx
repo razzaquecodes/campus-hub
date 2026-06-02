@@ -76,7 +76,14 @@ function SubjectRow({
 }) {
   const { theme } = useTheme();
 
-  const displayVal = (v: string | number | null | undefined) => (v != null && v !== '' ? String(v) : '-');
+  console.log("RENDER SUBJECT", item);
+
+  const displayVal = (v: string | number | null | undefined) => {
+    if (v !== null && v !== undefined && v !== '') {
+      return String(v);
+    }
+    return '-';
+  };
 
   return (
     <Animated.View entering={FadeInDown.duration(380).delay(index * 60 + 300)}>
@@ -108,6 +115,7 @@ function SubjectRow({
             </Text>
             <Text style={[sr.subjectCode, { color: theme.colors.textTertiary }]}>
               {item.subjectCode}
+              {item.teacher ? ` • ${item.teacher}` : ''}
             </Text>
           </View>
         </View>
@@ -119,10 +127,13 @@ function SubjectRow({
             { borderTopColor: theme.colors.border },
           ]}
         >
-          <Text style={[sr.sectionTitle, { color: theme.colors.textSecondary }]}>CA Marks</Text>
+          <Text style={[sr.sectionTitle, { color: theme.colors.textSecondary }]}>CA MARKS</Text>
           <View style={sr.marksRow}>
             {[
-              { label: 'CA', value: displayVal(item.caMarks), color: theme.colors.primaryLight },
+              { label: 'CA1', value: displayVal(item.ca1), color: theme.colors.primaryLight },
+              { label: 'CA2', value: displayVal(item.ca2), color: theme.colors.primaryLight },
+              { label: 'CA3', value: displayVal(item.ca3), color: theme.colors.primaryLight },
+              { label: 'CA4', value: displayVal(item.ca4), color: theme.colors.primaryLight },
             ].map((col) => (
               <View key={col.label} style={sr.marksCol}>
                 <Text style={[sr.marksValue, { color: col.color }]}>
@@ -140,15 +151,16 @@ function SubjectRow({
         <View
           style={[
             sr.marksContainer,
-            { borderTopColor: theme.colors.border, paddingTop: 0, paddingBottom: 16 },
+            { borderTopColor: theme.colors.border, paddingTop: 12, paddingBottom: 16 },
           ]}
         >
-          <Text style={[sr.sectionTitle, { color: theme.colors.textSecondary }]}>PCA Marks</Text>
-          <View style={sr.marksRow}>
+          <Text style={[sr.sectionTitle, { color: theme.colors.textSecondary }]}>PCA MARKS</Text>
+          <View style={[sr.marksRow, { justifyContent: 'flex-start', gap: 24 }]}>
             {[
-              { label: 'PCA', value: displayVal(item.pcaMarks), color: theme.colors.accent },
+              { label: 'PCA1', value: displayVal(item.pca1), color: theme.colors.accent },
+              { label: 'PCA2', value: displayVal(item.pca2), color: theme.colors.accent },
             ].map((col) => (
-              <View key={col.label} style={sr.marksCol}>
+              <View key={col.label} style={[sr.marksCol, { flex: 0, minWidth: 60 }]}>
                 <Text style={[sr.marksValue, { color: col.color }]}>
                   {col.value}
                 </Text>
@@ -243,14 +255,14 @@ export function InternalMarksScreen() {
     rawMarks.forEach(m => {
       if (m.semester) sems.add(m.semester);
     });
-    return Array.from(sems).sort((a, b) => parseInt(a) - parseInt(b));
+    return Array.from(sems).sort((a, b) => parseInt(b) - parseInt(a));
   }, [rawMarks]);
 
   const [activeTab, setActiveTab] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (semesters.length > 0 && !activeTab) {
-      setActiveTab(semesters[semesters.length - 1]);
+      setActiveTab(semesters[0]);
     }
   }, [semesters, activeTab]);
 
@@ -491,9 +503,12 @@ export function InternalMarksScreen() {
         {/* ── Data State — Subject List ── */}
         {screenState === 'data' && (
           <View style={cs.listWrap}>
-            {filteredMarks.map((item, idx) => (
-              <SubjectRow key={item.subjectCode} item={item} index={idx} />
-            ))}
+            {filteredMarks.map((item, idx) => {
+              console.log("RENDERING ROW WITH KEY:", `${item.subjectCode}-${idx}`);
+              return (
+                <SubjectRow key={`${item.subjectCode}-${idx}`} item={item} index={idx} />
+              );
+            })}
           </View>
         )}
       </ScrollView>
