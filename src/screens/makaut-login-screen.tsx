@@ -23,6 +23,7 @@ import {
   Lock,
   ShieldCheck,
   User,
+  Shield,
 } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -62,10 +63,10 @@ import Svg, {
   Text as SvgText,
   TextPath,
 } from 'react-native-svg';
+import { router } from 'expo-router';
 
 import { Radius, Shadows } from '@/constants/theme';
-import { useAuthStore } from '@/store/auth.store';
-import { mapStudentToUserProfile } from '@/store/auth.store';
+import { useAuthStore , mapStudentToUserProfile } from '@/store/auth.store';
 import { useStudentStore } from '@/store/student.store';
 
 const { height: H } = Dimensions.get('window');
@@ -451,6 +452,20 @@ export function MakautLoginScreen() {
                   </LinearGradient>
                 </TouchableOpacity>
 
+                {/* Admin Login Option */}
+                <TouchableOpacity
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+                    router.push('/(auth)/admin-login');
+                  }}
+                  disabled={isLoading}
+                  activeOpacity={0.85}
+                  style={s.adminBtn}
+                >
+                  <Shield color="#94A3B8" size={16} strokeWidth={2} />
+                  <Text style={s.adminText}>Admin Login</Text>
+                </TouchableOpacity>
+
                 {/* Credentials note */}
                 <Text style={s.noteText}>
                   Use the same credentials you use to log into the MAKAUT student portal.
@@ -656,6 +671,25 @@ const s = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: 0.1,
+  },
+
+  // Admin button
+  adminBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    height: 44,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    marginBottom: 16,
+  },
+  adminText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#94A3B8',
   },
 
   // Note

@@ -113,6 +113,7 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
         EXPO_PUBLIC_SUPABASE_URL: env.EXPO_PUBLIC_SUPABASE_URL,
         EXPO_PUBLIC_SUPABASE_ANON_KEY: env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
         EXPO_PUBLIC_MAKAUT_API_URL: env.EXPO_PUBLIC_MAKAUT_API_URL,
+        EXPO_PUBLIC_API_URL: env.EXPO_PUBLIC_API_URL,
         oauthScheme: SCHEME,
       };
     })(),

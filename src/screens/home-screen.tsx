@@ -23,6 +23,10 @@ import {
   Zap,
   CheckCircle2,
   Circle,
+  FileText,
+  FileWarning,
+  Activity,
+  PieChart
 } from 'lucide-react-native';
 import React, { useCallback, useMemo } from 'react';
 import {
@@ -59,16 +63,19 @@ import { useStudentStats } from '@/hooks/queries/use-student-stats';
 import { SpringButton } from '@/components/ui';
 
 const { width: W } = Dimensions.get('window');
-const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView) as any;
+const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
 // Quick actions — all routes verified as real screens
 const QUICK_ACTIONS = [
   { id: 'attendance', label: 'Attendance',   icon: Calendar,    color: '#6366F1', route: '/attendance' },
   { id: 'timetable',  label: 'Timetable',    icon: Clock,       color: '#3B82F6', route: '/(tabs)/courses' },
   { id: 'internal-marks',   label: 'Internal Marks',     icon: BarChart3,   color: '#10B981', route: '/internal-marks' },
-  { id: 'results',    label: 'Results',      icon: AwardIcon,   color: '#F59E0B', route: '/results' },
+  { id: 'academics',  label: 'Academics',    icon: AwardIcon,   color: '#F59E0B', route: '/academic-dashboard' },
   { id: 'digital-id', label: 'Digital ID',   icon: CreditCard,  color: '#A78BFA', route: '/digital-id' },
-  { id: 'profile',    label: 'My Profile',   icon: TrendingUp,  color: '#F472B6', route: '/(tabs)/profile' },
+  { id: 'documents',  label: 'Documents',    icon: FileText,    color: '#F472B6', route: '/documents' },
+  { id: 'analytics',  label: 'Analytics',    icon: PieChart,    color: '#10B981', route: '/smart-analytics' },
+  { id: 'timeline',   label: 'Timeline',     icon: Activity,    color: '#8B5CF6', route: '/academic-timeline' },
+  { id: 'backlogs',   label: 'Backlogs',     icon: FileWarning, color: '#EF4444', route: '/backlogs' },
 ];
 
 function getGreeting(): string {
@@ -176,7 +183,7 @@ export function HomeScreen() {
           <Animated.View entering={FadeIn.duration(500).delay(180)} style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
             <Pressable
               onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-              onPress={() => router.push('/notifications' as any)}
+              onPress={() => router.push('/notifications')}
               style={[ss.headerBtn, {
                 backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
                 borderColor: theme.colors.glassBorder,
@@ -184,7 +191,8 @@ export function HomeScreen() {
             >
               <Bell color={theme.colors.textPrimary} size={20} strokeWidth={1.8} />
               {unreadCount > 0 && (
-                <View style={[ss.notifDot, { borderColor: theme.colors.void }]}>
+                <View style={[ss.notifDot, { borderColor: theme.colors.void, backgroundColor: theme.colors.danger }]}>
+                  <Text style={ss.notifDotText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
                 </View>
               )}
             </Pressable>
@@ -192,7 +200,7 @@ export function HomeScreen() {
             {profilePhoto ? (
               <Pressable
                 onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-                onPress={() => router.push('/(tabs)/profile' as any)}
+                onPress={() => router.push('/(tabs)/profile')}
               >
                 <Image
                   source={{ uri: profilePhoto }}
@@ -204,7 +212,7 @@ export function HomeScreen() {
             ) : (
               <Pressable
                 onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-                onPress={() => router.push('/(tabs)/profile' as any)}
+                onPress={() => router.push('/(tabs)/profile')}
                 style={[ss.avatarFallback, {
                   backgroundColor: theme.colors.primaryMuted,
                   borderColor: theme.colors.glassBorder,
@@ -368,7 +376,7 @@ export function HomeScreen() {
             <Text style={[ss.sectionTitle, { color: theme.colors.textPrimary }]}>Today&apos;s Classes</Text>
             <Pressable
               onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-              onPress={() => router.push('/(tabs)/courses' as any)}
+              onPress={() => router.push('/(tabs)/courses')}
               style={ss.sectionAction}
             >
               <Text style={[ss.sectionActionText, { color: theme.colors.primaryLight }]}>Schedule</Text>
@@ -509,10 +517,18 @@ export function HomeScreen() {
           )}
         </Animated.View>
 
-        {/* ── Recent Notices ── */}
+        {/* ── Latest Announcements ── */}
         <Animated.View entering={FadeInDown.duration(500).delay(380)} style={ss.section}>
           <View style={ss.sectionRow}>
-            <Text style={[ss.sectionTitle, { color: theme.colors.textPrimary }]}>Recent Notices</Text>
+            <Text style={[ss.sectionTitle, { color: theme.colors.textPrimary }]}>Latest Announcements</Text>
+            <Pressable
+              onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+              onPress={() => router.push('/(tabs)/announcements')}
+              style={ss.sectionAction}
+            >
+              <Text style={[ss.sectionActionText, { color: theme.colors.primaryLight }]}>View All</Text>
+              <ChevronRight color={theme.colors.primaryLight} size={14} strokeWidth={2.5} />
+            </Pressable>
           </View>
           <View style={{ gap: 10 }}>
             {announcements.slice(0, 3).map((item, i) => {
@@ -634,13 +650,20 @@ const ss = StyleSheet.create({
   },
   notifDot: {
     position: 'absolute',
-    top: 10,
-    right: 11,
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: '#EF4444',
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
     borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  notifDotText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontWeight: '800',
   },
   avatarImg: {
     width: 40,
@@ -710,7 +733,7 @@ const ss = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     padding: 12,
     borderWidth: 1,
     gap: 3,
@@ -770,7 +793,7 @@ const ss = StyleSheet.create({
     gap: 8,
   },
   actionTile: {
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     paddingVertical: 14,
     paddingHorizontal: 8,
     borderWidth: 1.5,
@@ -892,7 +915,7 @@ const ss = StyleSheet.create({
   assignmentCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     padding: 12,
     borderWidth: 1,
     gap: 12,
@@ -948,7 +971,7 @@ const ss = StyleSheet.create({
   annoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     padding: 14,
     borderWidth: 1,
     gap: 12,
@@ -961,8 +984,8 @@ const ss = StyleSheet.create({
     top: 0,
     bottom: 0,
     width: 3.5,
-    borderTopLeftRadius: Radius.lg,
-    borderBottomLeftRadius: Radius.lg,
+    borderTopLeftRadius: Radius.xl,
+    borderBottomLeftRadius: Radius.xl,
   },
   annoCatDot: {
     width: 36,

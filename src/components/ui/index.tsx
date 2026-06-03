@@ -435,3 +435,54 @@ export { OsText } from './os-text';
 export { PriorityBadge } from './priority-badge';
 export { ProgressBar, ProgressLabel } from './progress-bar';
 export { ScreenBackground, GlowOrb } from './screen-background';
+
+// ─── Empty & Error States ──────────────────────────────────────────────────
+import { AlertCircle, FileSearch } from 'lucide-react-native';
+
+export interface EmptyStateProps {
+  icon?: React.ReactNode;
+  title: string;
+  message: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}
+
+export function EmptyState({ icon, title, message, actionLabel, onAction }: EmptyStateProps) {
+  const { theme } = useTheme();
+  return (
+    <Animated.View entering={FadeInDown.duration(400)} style={{ alignItems: 'center', justifyContent: 'center', padding: 40, marginTop: 20 }}>
+      <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: `${theme.colors.primary}10`, alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
+        {icon || <FileSearch color={theme.colors.primary} size={36} />}
+      </View>
+      <Text style={{ fontSize: 20, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 8, textAlign: 'center' }}>{title}</Text>
+      <Text style={{ fontSize: 15, color: theme.colors.textSecondary, textAlign: 'center', lineHeight: 22, marginBottom: 24 }}>{message}</Text>
+      {actionLabel && onAction && (
+        <PrimaryButton onPress={onAction}  label={actionLabel} />
+      )}
+    </Animated.View>
+  );
+}
+
+export interface ErrorStateProps {
+  title?: string;
+  message: string;
+  onRetry?: () => void;
+}
+
+export function ErrorState({ title = 'Something went wrong', message, onRetry }: ErrorStateProps) {
+  const { theme, isDark } = useTheme();
+  return (
+    <Animated.View entering={FadeInDown.duration(400)} style={{ alignItems: 'center', justifyContent: 'center', padding: 32, marginVertical: 20, marginHorizontal: 20, backgroundColor: isDark ? 'rgba(239,68,68,0.08)' : 'rgba(239,68,68,0.04)', borderRadius: Radius.xl, borderWidth: 1, borderColor: isDark ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.1)' }}>
+      <AlertCircle color={theme.colors.danger} size={42} style={{ marginBottom: 16 }} />
+      <Text style={{ fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary, marginBottom: 8, textAlign: 'center' }}>{title}</Text>
+      <Text style={{ fontSize: 14, color: theme.colors.textSecondary, textAlign: 'center', lineHeight: 20, marginBottom: 20 }}>{message}</Text>
+      {onRetry && (
+        <SpringButton onPress={onRetry} scaleDown={0.95}>
+          <View style={{ paddingHorizontal: 24, paddingVertical: 12, backgroundColor: theme.colors.surface, borderRadius: Radius.full, borderWidth: 1, borderColor: theme.colors.border }}>
+            <Text style={{ color: theme.colors.textPrimary, fontWeight: '600', fontSize: 14 }}>Try Again</Text>
+          </View>
+        </SpringButton>
+      )}
+    </Animated.View>
+  );
+}

@@ -4,12 +4,10 @@
  * Digital Student ID Card — Campus Hub
  *
  * Shows a premium, shareable MAKAUT-verified student ID card with:
- *   - Student photo / initials avatar
- *   - Verified MAKAUT fields: Name, Roll No, Reg No, Course, Institute, Email, Mobile, ABC ID
- *   - MAKAUT VERIFIED badge
- *   - QR code generated from roll number (SVG-based, no extra dep)
- *   - Share via native Share API
- *   - Light / Dark theme support
+ *   - Profile Photo
+ *   - Identity Fields (Copyable)
+ *   - Academic Snapshot
+ *   - Quick Access Buttons
  */
 
 import * as Haptics from 'expo-haptics';
@@ -18,12 +16,18 @@ import { router } from 'expo-router';
 import {
   ArrowLeft,
   BadgeCheck,
+  CheckCircle,
+  ChevronRight,
+  Copy,
+  FileText,
   GraduationCap,
+  LineChart,
   Mail,
   Phone,
-  QrCode,
   Share2,
   ShieldCheck,
+  Activity,
+  Award
 } from 'lucide-react-native';
 import React, { useCallback } from 'react';
 import {
@@ -43,135 +47,58 @@ import Animated, {
   FadeInDown,
   FadeInUp,
 } from 'react-native-reanimated';
-import Svg, { Path, Rect } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Clipboard from 'expo-clipboard';
 
 import { SpringButton } from '@/components/ui';
 import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuthStore } from '@/store/auth.store';
 import { useStudentStore } from '@/store/student.store';
+import { useResults } from '@/hooks/queries/use-results';
 
 const { width: W } = Dimensions.get('window');
 
-// ─── Tiny pure-JS QR matrix generator (no extra dep) ─────────────────────────
-// Generates a minimal version-2 QR code suitable for roll numbers.
-// Uses a simplified Reed-Solomon approach with hardcoded patterns.
-
-function simpleQRMatrix(data: string): boolean[][] {
-  // A safe fallback: render a recognizable grid pattern that encodes
-  // the first characters visually. For production, swap with react-native-qrcode-svg.
-  const size = 21; // Version 1 QR is 21×21
-  const matrix: boolean[][] = Array.from({ length: size }, () =>
-    Array(size).fill(false),
-  );
-
-  // Finder patterns (top-left, top-right, bottom-left)
-  const addFinder = (row: number, col: number) => {
-    for (let r = 0; r < 7; r++) {
-      for (let c = 0; c < 7; c++) {
-        const onEdge = r === 0 || r === 6 || c === 0 || c === 6;
-        const innerCore = r >= 2 && r <= 4 && c >= 2 && c <= 4;
-        if (onEdge || innerCore) {
-          if (row + r < size && col + c < size) matrix[row + r][col + c] = true;
-        }
-      }
-    }
-  };
-  addFinder(0, 0);
-  addFinder(0, 14);
-  addFinder(14, 0);
-
-  // Timing patterns
-  for (let i = 8; i < 13; i++) {
-    matrix[6][i] = i % 2 === 0;
-    matrix[i][6] = i % 2 === 0;
-  }
-
-  // Dark module
-  matrix[13][8] = true;
-
-  // Encode data as a simple pattern across the data area
-  // (Simplified: not a real QR standard — use qrcode-svg for production)
-  const chars = (data + '00000000000000000000').slice(0, 20);
-  const dataPositions: [number, number][] = [];
-  for (let r = 9; r < size; r++) {
-    for (let c = 9; c < size; c++) {
-      if (r < 14 || c < 14) dataPositions.push([r, c]);
-    }
-  }
-  chars.split('').forEach((ch, idx) => {
-    if (idx < dataPositions.length) {
-      const [r, c] = dataPositions[idx];
-      matrix[r][c] = ch.charCodeAt(0) % 2 === 1;
-    }
-  });
-
-  return matrix;
-}
-
-interface QRCodeProps {
-  value: string;
-  size: number;
-  color: string;
-  background: string;
-}
-
-function QRCodeSVG({ value, size, color, background }: QRCodeProps) {
-  const matrix = simpleQRMatrix(value);
-  const cells = matrix.length;
-  const cellSize = size / cells;
-  const paths: string[] = [];
-
-  matrix.forEach((row, r) => {
-    row.forEach((on, c) => {
-      if (on) {
-        const x = c * cellSize;
-        const y = r * cellSize;
-        paths.push(
-          `M${x},${y}h${cellSize}v${cellSize}h-${cellSize}z`,
-        );
-      }
-    });
-  });
-
-  return (
-    <Svg width={size} height={size}>
-      <Rect width={size} height={size} fill={background} />
-      <Path d={paths.join(' ')} fill={color} />
-    </Svg>
-  );
-}
-
-// ─── Info Row ─────────────────────────────────────────────────────────────────
-function InfoRow({
+// ─── Info Row (Copyable) ──────────────────────────────────────────────────────
+function CopyableInfoRow({
   label,
   value,
   accent,
+  onCopy,
 }: {
   label: string;
   value: string;
   accent?: boolean;
+  onCopy: (val: string) => void;
 }) {
   const { theme } = useTheme();
   return (
-    <View style={s.infoRow}>
+    <Pressable
+      style={({ pressed }) => [
+        s.infoRow,
+        pressed && { opacity: 0.7 },
+      ]}
+      onPress={() => onCopy(value)}
+    >
       <Text style={[s.infoLabel, { color: theme.colors.textTertiary }]}>
         {label}
       </Text>
-      <Text
-        style={[
-          s.infoValue,
-          {
-            color: accent ? theme.colors.primaryLight : theme.colors.textPrimary,
-            fontWeight: accent ? '700' : '500',
-          },
-        ]}
-        numberOfLines={1}
-      >
-        {value}
-      </Text>
-    </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end' }}>
+        <Text
+          style={[
+            s.infoValue,
+            {
+              color: accent ? theme.colors.primaryLight : theme.colors.textPrimary,
+              fontWeight: accent ? '700' : '500',
+            },
+          ]}
+          numberOfLines={1}
+        >
+          {value}
+        </Text>
+        <Copy size={12} color={theme.colors.textTertiary} />
+      </View>
+    </Pressable>
   );
 }
 
@@ -197,6 +124,23 @@ export function DigitalIdScreen() {
     .toUpperCase();
 
   const profilePhoto = profile?.avatar_url || student?.profilePhotoUrl;
+
+  const { data: results } = useResults();
+  
+  const latestResult = results && results.length > 0 ? results[0] : null;
+  const currentSemester = latestResult?.semester || parseInt(profile?.semester || '1', 10) || 1;
+  const latestSgpa = latestResult?.sgpa || '—';
+  const totalSemesters = results?.length || 0;
+  const totalSubjects = results?.reduce((acc, sem) => acc + (sem.subjects?.length || 0), 0) || 0;
+
+  const handleCopy = useCallback(async (text: string) => {
+    try {
+      await Clipboard.setStringAsync(text);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    } catch (error) {
+      console.warn('Clipboard error:', error);
+    }
+  }, []);
 
   const handleShare = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -259,7 +203,7 @@ export function DigitalIdScreen() {
         </SpringButton>
 
         <Text style={[s.headerTitle, { color: theme.colors.textPrimary }]}>
-          Digital ID Card
+          Digital Identity
         </Text>
 
         <SpringButton onPress={handleShare} scaleDown={0.88}>
@@ -334,116 +278,92 @@ export function DigitalIdScreen() {
 
             {/* ── Card Body ── */}
             <View style={s.cardBody}>
-              {/* Left: Avatar + QR */}
-              <View style={s.leftCol}>
-                {/* Avatar */}
-                <LinearGradient
-                  colors={['#818CF8', '#6366F1', '#4F46E5']}
-                  style={s.avatarRing}
-                >
+              <View style={s.identitySection}>
+                <View style={s.avatarWrap}>
+                  {/* Avatar */}
+                  <LinearGradient
+                    colors={['#818CF8', '#6366F1', '#4F46E5']}
+                    style={s.avatarRing}
+                  >
+                    <View
+                      style={[
+                        s.avatarInner,
+                        { backgroundColor: isDark ? '#070f1e' : '#ffffff' },
+                      ]}
+                    >
+                      {profilePhoto ? (
+                        <Image
+                          source={{ uri: profilePhoto }}
+                          style={s.avatarImg}
+                          contentFit="cover"
+                          transition={200}
+                        />
+                      ) : (
+                        <Text
+                          style={[
+                            s.avatarInitials,
+                            { color: theme.colors.primaryLight },
+                          ]}
+                        >
+                          {initials}
+                        </Text>
+                      )}
+                    </View>
+                  </LinearGradient>
+
+                  {/* MAKAUT Verified label */}
                   <View
                     style={[
-                      s.avatarInner,
-                      { backgroundColor: isDark ? '#070f1e' : '#ffffff' },
+                      s.makautBadge,
+                      {
+                        backgroundColor: isDark
+                          ? 'rgba(52,211,153,0.12)'
+                          : 'rgba(5,150,105,0.08)',
+                        borderColor: isDark
+                          ? 'rgba(52,211,153,0.28)'
+                          : 'rgba(5,150,105,0.20)',
+                      },
                     ]}
                   >
-                    {profilePhoto ? (
-                      <Image
-                        source={{ uri: profilePhoto }}
-                        style={s.avatarImg}
-                        contentFit="cover"
-                        transition={200}
-                      />
-                    ) : (
-                      <Text
-                        style={[
-                          s.avatarInitials,
-                          { color: theme.colors.primaryLight },
-                        ]}
-                      >
-                        {initials}
-                      </Text>
-                    )}
+                    <ShieldCheck
+                      color={theme.colors.success}
+                      size={10}
+                      strokeWidth={2.5}
+                    />
+                    <Text
+                      style={[s.makautBadgeText, { color: theme.colors.success }]}
+                    >
+                      MAKAUT
+                    </Text>
                   </View>
-                </LinearGradient>
+                </View>
 
-                {/* MAKAUT Verified label */}
-                <View
-                  style={[
-                    s.makautBadge,
-                    {
-                      backgroundColor: isDark
-                        ? 'rgba(52,211,153,0.12)'
-                        : 'rgba(5,150,105,0.08)',
-                      borderColor: isDark
-                        ? 'rgba(52,211,153,0.28)'
-                        : 'rgba(5,150,105,0.20)',
-                    },
-                  ]}
-                >
-                  <ShieldCheck
-                    color={theme.colors.success}
-                    size={10}
-                    strokeWidth={2.5}
-                  />
+                {/* Right: Identity fields */}
+                <View style={s.rightCol}>
                   <Text
-                    style={[s.makautBadgeText, { color: theme.colors.success }]}
+                    style={[s.studentName, { color: theme.colors.textPrimary }]}
+                    numberOfLines={2}
                   >
-                    MAKAUT
+                    {name}
                   </Text>
-                </View>
+                  <Text
+                    style={[s.studentProgram, { color: theme.colors.textSecondary }]}
+                    numberOfLines={2}
+                  >
+                    {course}
+                  </Text>
 
-                {/* QR Code */}
-                <View
-                  style={[
-                    s.qrWrap,
-                    {
-                      backgroundColor: '#ffffff',
-                      borderColor: isDark
-                        ? 'rgba(255,255,255,0.10)'
-                        : 'rgba(0,0,0,0.06)',
-                    },
-                  ]}
-                >
-                  <QRCodeSVG
-                    value={`https://campushubq.vercel.app/verify/${rollNo}`}
-                    size={72}
-                    color="#1e1e2e"
-                    background="#ffffff"
+                  <View
+                    style={[
+                      s.dividerLine,
+                      { backgroundColor: theme.colors.border },
+                    ]}
                   />
+
+                  <CopyableInfoRow label="Roll No" value={rollNo} accent onCopy={handleCopy} />
+                  <CopyableInfoRow label="Reg No" value={regNo} onCopy={handleCopy} />
+                  <CopyableInfoRow label="ABC ID" value={abcId} onCopy={handleCopy} />
                 </View>
-                <Text
-                  style={[s.qrLabel, { color: theme.colors.textTertiary }]}
-                >
-                  Scan to verify
-                </Text>
-              </View>
-
-              {/* Right: Identity fields */}
-              <View style={s.rightCol}>
-                <Text
-                  style={[s.studentName, { color: theme.colors.textPrimary }]}
-                  numberOfLines={2}
-                >
-                  {name}
-                </Text>
-                <Text
-                  style={[s.studentProgram, { color: theme.colors.textSecondary }]}
-                  numberOfLines={1}
-                >
-                  {course}
-                </Text>
-
-                <View
-                  style={[
-                    s.dividerLine,
-                    { backgroundColor: theme.colors.border },
-                  ]}
-                />
-
-                <InfoRow label="Roll No" value={rollNo} accent />
-                <InfoRow label="Reg No" value={regNo} />
-                <InfoRow label="ABC ID" value={abcId} />
               </View>
             </View>
 
@@ -491,131 +411,87 @@ export function DigitalIdScreen() {
           </LinearGradient>
         </Animated.View>
 
-        {/* ── Full Details Card ── */}
-        <Animated.View
-          entering={FadeInDown.duration(500).delay(280)}
-          style={s.detailsSection}
-        >
-          <Text style={[s.sectionTitle, { color: theme.colors.textTertiary }]}>
-            IDENTITY DETAILS
+        {/* ── Profile Completion Indicator ── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(200)}>
+          <View style={[s.completionCard, { backgroundColor: isDark ? 'rgba(52,211,153,0.05)' : 'rgba(5,150,105,0.03)', borderColor: isDark ? 'rgba(52,211,153,0.15)' : 'rgba(5,150,105,0.15)' }]}>
+             <View style={s.completionHeader}>
+               <Text style={[s.completionTitle, { color: theme.colors.textPrimary }]}>Profile Status</Text>
+               <Text style={[s.completionPercent, { color: theme.colors.success }]}>100% Verified</Text>
+             </View>
+             <View style={[s.progressBarBg, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+               <View style={[s.progressBarFill, { backgroundColor: theme.colors.success, width: '100%' }]} />
+             </View>
+          </View>
+        </Animated.View>
+
+        {/* ── Academic Snapshot ── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(280)}>
+          <Text style={[s.sectionTitle, { color: theme.colors.textTertiary, marginBottom: 10 }]}>
+            ACADEMIC SNAPSHOT
           </Text>
           <View
             style={[
-              s.detailsCard,
+              s.snapshotGrid,
               {
                 backgroundColor: theme.colors.surface,
                 borderColor: theme.colors.border,
               },
             ]}
           >
-            {[
-              { label: 'Full Name', value: name },
-              { label: 'Roll Number', value: rollNo },
-              { label: 'Registration Number', value: regNo },
-              { label: 'ABC ID', value: abcId },
-              { label: 'Course', value: course },
-              { label: 'Institute', value: institute },
-              { label: 'Email Address', value: email },
-              { label: 'Mobile Number', value: mobile },
-            ].map((item, idx, arr) => (
-              <View key={item.label}>
-                <View style={s.detailRow}>
-                  <Text
-                    style={[
-                      s.detailLabel,
-                      { color: theme.colors.textSecondary },
-                    ]}
-                  >
-                    {item.label}
-                  </Text>
-                  <Text
-                    style={[
-                      s.detailValue,
-                      { color: theme.colors.textPrimary },
-                    ]}
-                    numberOfLines={2}
-                  >
-                    {item.value}
-                  </Text>
-                </View>
-                {idx < arr.length - 1 && (
-                  <View
-                    style={[
-                      s.rowDivider,
-                      { backgroundColor: theme.colors.border },
-                    ]}
-                  />
-                )}
-              </View>
-            ))}
-          </View>
-        </Animated.View>
-
-        {/* ── Verification Status ── */}
-        <Animated.View
-          entering={FadeInDown.duration(500).delay(360)}
-          style={s.verificationSection}
-        >
-          <View
-            style={[
-              s.verificationCard,
-              {
-                backgroundColor: isDark
-                  ? 'rgba(52,211,153,0.06)'
-                  : 'rgba(5,150,105,0.05)',
-                borderColor: isDark
-                  ? 'rgba(52,211,153,0.18)'
-                  : 'rgba(5,150,105,0.14)',
-              },
-            ]}
-          >
-            <ShieldCheck
-              color={theme.colors.success}
-              size={24}
-              strokeWidth={2}
-            />
-            <View style={{ flex: 1 }}>
-              <Text
-                style={[
-                  s.verificationTitle,
-                  { color: theme.colors.textPrimary },
-                ]}
-              >
-                MAKAUT Verified Student
-              </Text>
-              <Text
-                style={[
-                  s.verificationSub,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                Verified via MAKAUT Student Portal · Identity confirmed
-              </Text>
+            <View style={[s.snapshotBlock, { borderRightWidth: 1, borderBottomWidth: 1, borderColor: theme.colors.border }]}>
+               <Text style={[s.snapshotLabel, { color: theme.colors.textTertiary }]}>Current Sem</Text>
+               <Text style={[s.snapshotValue, { color: theme.colors.textPrimary }]}>{currentSemester}</Text>
+            </View>
+            <View style={[s.snapshotBlock, { borderBottomWidth: 1, borderColor: theme.colors.border }]}>
+               <Text style={[s.snapshotLabel, { color: theme.colors.textTertiary }]}>Latest SGPA</Text>
+               <Text style={[s.snapshotValue, { color: theme.colors.success }]}>{latestSgpa}</Text>
+            </View>
+            <View style={[s.snapshotBlock, { borderRightWidth: 1, borderColor: theme.colors.border }]}>
+               <Text style={[s.snapshotLabel, { color: theme.colors.textTertiary }]}>Semesters</Text>
+               <Text style={[s.snapshotValue, { color: theme.colors.textPrimary }]}>{totalSemesters}</Text>
+            </View>
+            <View style={s.snapshotBlock}>
+               <Text style={[s.snapshotLabel, { color: theme.colors.textTertiary }]}>Subjects Done</Text>
+               <Text style={[s.snapshotValue, { color: theme.colors.primaryLight }]}>{totalSubjects}</Text>
             </View>
           </View>
         </Animated.View>
 
-        {/* ── Share Button ── */}
-        <Animated.View
-          entering={FadeInDown.duration(500).delay(440)}
-          style={s.shareSection}
-        >
-          <SpringButton onPress={handleShare} scaleDown={0.96} style={{ alignSelf: 'stretch' }}>
-            <LinearGradient
-              colors={['#6366F1', '#4F46E5']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={s.shareFullBtn}
-            >
-              <Share2 color="#ffffff" size={18} strokeWidth={2} />
-              <Text style={s.shareFullBtnText}>Share Digital ID Card</Text>
-            </LinearGradient>
-          </SpringButton>
-          <Text style={[s.shareNote, { color: theme.colors.textTertiary }]}>
-            Shares your verified identity details as text.{'\n'}
-            Screenshot the card above to share as an image.
+        {/* ── Quick Access Buttons ── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(360)}>
+          <Text style={[s.sectionTitle, { color: theme.colors.textTertiary, marginBottom: 10 }]}>
+            QUICK ACCESS
           </Text>
+          <View style={s.quickAccessRow}>
+            <SpringButton style={{ flex: 1 }} onPress={() => router.push('/results')} scaleDown={0.96}>
+              <View style={[s.qaCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                <View style={[s.qaIconWrap, { backgroundColor: isDark ? 'rgba(99,102,241,0.1)' : 'rgba(79,70,229,0.08)' }]}>
+                  <FileText size={20} color={theme.colors.primaryLight} />
+                </View>
+                <Text style={[s.qaTitle, { color: theme.colors.textPrimary }]}>Results</Text>
+              </View>
+            </SpringButton>
+
+            <SpringButton style={{ flex: 1 }} onPress={() => router.push('/internal-marks')} scaleDown={0.96}>
+              <View style={[s.qaCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                <View style={[s.qaIconWrap, { backgroundColor: isDark ? 'rgba(236,72,153,0.1)' : 'rgba(219,39,119,0.08)' }]}>
+                  <Activity size={20} color={isDark ? '#f472b6' : '#db2777'} />
+                </View>
+                <Text style={[s.qaTitle, { color: theme.colors.textPrimary }]}>CA Marks</Text>
+              </View>
+            </SpringButton>
+
+            <SpringButton style={{ flex: 1 }} onPress={() => router.push('/internal-marks')} scaleDown={0.96}>
+              <View style={[s.qaCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                <View style={[s.qaIconWrap, { backgroundColor: isDark ? 'rgba(245,158,11,0.1)' : 'rgba(217,119,6,0.08)' }]}>
+                  <Award size={20} color={isDark ? '#fbbf24' : '#d97706'} />
+                </View>
+                <Text style={[s.qaTitle, { color: theme.colors.textPrimary }]}>PCA</Text>
+              </View>
+            </SpringButton>
+          </View>
         </Animated.View>
+
       </ScrollView>
     </View>
   );
@@ -735,16 +611,16 @@ const s = StyleSheet.create({
   },
 
   cardBody: {
-    flexDirection: 'row',
     padding: 16,
+  },
+  identitySection: {
+    flexDirection: 'row',
     gap: 14,
   },
-
-  // Left col
-  leftCol: {
+  avatarWrap: {
     alignItems: 'center',
     gap: 8,
-    width: 96,
+    width: 90,
   },
   avatarRing: {
     width: 80,
@@ -781,27 +657,7 @@ const s = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5,
   },
-  qrWrap: {
-    padding: 5,
-    borderRadius: Radius.sm,
-    borderWidth: 1,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 4,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  qrLabel: {
-    fontSize: 8.5,
-    fontWeight: '500',
-    letterSpacing: 0.2,
-  },
 
-  // Right col
   rightCol: {
     flex: 1,
     gap: 4,
@@ -827,7 +683,7 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 3,
+    paddingVertical: 4,
   },
   infoLabel: {
     fontSize: 9.5,
@@ -837,11 +693,8 @@ const s = StyleSheet.create({
   },
   infoValue: {
     fontSize: 10.5,
-    flex: 1,
-    textAlign: 'right',
   },
 
-  // Footer
   cardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -867,8 +720,37 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(148,163,184,0.4)',
   },
 
-  // ── Details Section ──
-  detailsSection: { gap: 10 },
+  // ── Completion Indicator ──
+  completionCard: {
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    padding: 14,
+  },
+  completionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  completionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  completionPercent: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  progressBarBg: {
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+
+  // ── Academic Snapshot ──
   sectionTitle: {
     fontSize: 11,
     fontWeight: '700',
@@ -876,75 +758,54 @@ const s = StyleSheet.create({
     textTransform: 'uppercase',
     paddingHorizontal: 2,
   },
-  detailsCard: {
+  snapshotGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     borderRadius: Radius.xl,
     borderWidth: 1,
     overflow: 'hidden',
     ...Shadows.cardLight,
   },
-  detailRow: {
+  snapshotBlock: {
+    width: '50%',
+    padding: 16,
+    justifyContent: 'center',
+  },
+  snapshotLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  snapshotValue: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+
+  // ── Quick Access ──
+  quickAccessRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
     gap: 12,
   },
-  detailLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-    flex: 1,
-  },
-  detailValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    flex: 1.4,
-    textAlign: 'right',
-  },
-  rowDivider: {
-    height: 1,
-    marginHorizontal: 16,
-  },
-
-  // ── Verification ──
-  verificationSection: {},
-  verificationCard: {
-    flexDirection: 'row',
+  qaCard: {
     alignItems: 'center',
-    gap: 14,
+    paddingVertical: 16,
     borderRadius: Radius.xl,
     borderWidth: 1,
-    padding: 16,
+    ...Shadows.cardLight,
   },
-  verificationTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: -0.2,
-    marginBottom: 3,
-  },
-  verificationSub: {
-    fontSize: 11.5,
-    lineHeight: 16,
-  },
-
-  // ── Share ──
-  shareSection: { gap: 10, alignItems: 'stretch' },
-  shareFullBtn: {
-    height: 52,
-    borderRadius: Radius.lg,
-    flexDirection: 'row',
+  qaIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    marginBottom: 8,
   },
-  shareFullBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#ffffff',
+  qaTitle: {
+    fontSize: 12,
+    fontWeight: '600',
   },
-  shareNote: {
-    fontSize: 11,
-    textAlign: 'center',
-    lineHeight: 16,
-  },
+
 });

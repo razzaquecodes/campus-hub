@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 function readEnv(name: keyof typeof envFromProcess): string {
   const fromProcess = envFromProcess[name];
@@ -13,12 +14,30 @@ const envFromProcess = {
   EXPO_PUBLIC_MAKAUT_VERIFY_URL: process.env.EXPO_PUBLIC_MAKAUT_VERIFY_URL,
 } as const;
 
+function safeUrl(url: string): string {
+  if (!url) return '';
+  if (__DEV__ && (url.includes('localhost') || url.includes('127.0.0.1'))) {
+    const debuggerHost = Constants.expoConfig?.hostUri;
+    if (debuggerHost) {
+      const ipAddress = debuggerHost.split(':')[0];
+      url = url.replace(/localhost|127\.0\.0\.1/g, ipAddress);
+    } else {
+      const fallbackIp = Platform.OS === 'android' ? '10.0.2.2' : '127.0.0.1';
+      url = url.replace(/localhost|127\.0\.0\.1/g, fallbackIp);
+    }
+  }
+  if (url.endsWith('/')) {
+    url = url.slice(0, -1);
+  }
+  return url;
+}
+
 export const Env = {
   supabaseUrl: readEnv('EXPO_PUBLIC_SUPABASE_URL'),
   supabaseAnonKey: readEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY'),
-  makautApiUrl: readEnv('EXPO_PUBLIC_MAKAUT_API_URL'),
+  makautApiUrl: safeUrl(readEnv('EXPO_PUBLIC_MAKAUT_API_URL')),
   /** Dedicated verify-student endpoint. Falls back to makautApiUrl if not set. */
-  makautVerifyUrl: readEnv('EXPO_PUBLIC_MAKAUT_VERIFY_URL') || readEnv('EXPO_PUBLIC_MAKAUT_API_URL'),
+  makautVerifyUrl: safeUrl(readEnv('EXPO_PUBLIC_MAKAUT_VERIFY_URL') || readEnv('EXPO_PUBLIC_MAKAUT_API_URL')),
 } as const;
 
 const isValidSupabaseUrl =

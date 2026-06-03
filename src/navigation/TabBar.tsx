@@ -2,7 +2,7 @@
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { type BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dimensions, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -28,7 +28,6 @@ interface TabItemProps {
   isFocused: boolean;
   onPress: () => void;
   onLongPress: () => void;
-  index: number;
 }
 
 function TabItem({ route, isFocused, onPress, onLongPress }: TabItemProps) {
@@ -55,6 +54,8 @@ function TabItem({ route, isFocused, onPress, onLongPress }: TabItemProps) {
   const color = isFocused ? theme.colors.primaryLight : theme.colors.textSecondary;
   const strokeWidth = isFocused ? 2.2 : 1.6;
 
+  if (!Icon) return null;
+
   return (
     <Pressable
       onPress={onPress}
@@ -66,7 +67,7 @@ function TabItem({ route, isFocused, onPress, onLongPress }: TabItemProps) {
       accessibilityState={isFocused ? { selected: true } : {}}
     >
       <Animated.View style={[ss.tabIconContainer, animStyle]}>
-        {Icon && <Icon color={color} size={22} strokeWidth={strokeWidth} />}
+        <Icon color={color} size={22} strokeWidth={strokeWidth} />
       </Animated.View>
     </Pressable>
   );
@@ -75,43 +76,60 @@ function TabItem({ route, isFocused, onPress, onLongPress }: TabItemProps) {
 export function PremiumTabBar({ state, navigation }: BottomTabBarProps) {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  // 1. Filter out hidden Expo Router ghost tabs (e.g. notices, timetables)
+  // We strictly only want tabs that have an icon mapping to be in the navigation bar.
+  const visibleRoutes = state.routes.filter(route => TAB_ICONS[route.name]);
 
   // Floating tab bar dimensions
   const horizontalMargin = 28;
   const tabBarPadding = 6;
-  const barWidth = W - horizontalMargin * 2;
-  const innerWidth = barWidth - tabBarPadding * 2;
-  const tabWidth = innerWidth / state.routes.length;
+  
+  // 2. Use visibleRoutes.length as the single source of truth for distribution
+  const innerWidth = containerWidth > 0 ? containerWidth - tabBarPadding * 2 : W - horizontalMargin * 2 - tabBarPadding * 2;
+  const tabWidth = innerWidth / (visibleRoutes.length || 1);
 
-  const activeIndex = useSharedValue(state.index);
+  // Map the current active route key to its visual index in our filtered array
+  const currentRouteKey = state.routes[state.index]?.key;
+  const visualActiveIndex = visibleRoutes.findIndex(r => r.key === currentRouteKey);
+  
+  // Keep track of the indicator position. Default to 0 if the current route is hidden.
+  const activeIndex = useSharedValue(visualActiveIndex !== -1 ? visualActiveIndex : 0);
 
   useEffect(() => {
-    activeIndex.value = withSpring(state.index, {
-      damping: 18,
-      stiffness: 220,
-      mass: 0.6,
-    });
-  }, [activeIndex, state.index]);
+    if (visualActiveIndex !== -1) {
+      activeIndex.value = withSpring(visualActiveIndex, {
+        damping: 18,
+        stiffness: 220,
+        mass: 0.6,
+      });
+    }
+  }, [visualActiveIndex, activeIndex]);
 
   const activeIndicatorStyle = useAnimatedStyle(() => {
     const translateX = tabBarPadding + activeIndex.value * tabWidth;
     return {
       transform: [{ translateX }],
+      opacity: visualActiveIndex !== -1 ? 1 : 0, // Hide capsule if on a completely hidden route
     };
   });
 
   return (
-    <View style={[
-      ss.tabBarOuter,
-      {
-        bottom: Math.max(insets.bottom, 14),
-        left: horizontalMargin,
-        right: horizontalMargin,
-        borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)',
-        shadowOpacity: isDark ? 0.4 : 0.12,
-        shadowColor: isDark ? '#000' : '#1e293b',
-      }
-    ]}>
+    <View
+      onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+      style={[
+        ss.tabBarOuter,
+        {
+          bottom: Math.max(insets.bottom, 14),
+          left: horizontalMargin,
+          right: horizontalMargin,
+          borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)',
+          shadowOpacity: isDark ? 0.4 : 0.12,
+          shadowColor: isDark ? '#000' : '#1e293b',
+        }
+      ]}
+    >
       {Platform.OS === 'ios' ? (
         <BlurView
           intensity={isDark ? 50 : 75}
@@ -145,21 +163,22 @@ export function PremiumTabBar({ state, navigation }: BottomTabBarProps) {
             borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
           }
         ]}>
-        <View style={[
-          ss.activeGlowDot,
-          {
-            backgroundColor: theme.colors.primaryLight,
-            // Use the same color for the glow so it never defaults to black.
-            shadowColor: theme.colors.primaryLight,
-            shadowOpacity: isDark ? 0.8 : 0.4,
-          }
-        ]} />
+          <View style={[
+            ss.activeGlowDot,
+            {
+              backgroundColor: theme.colors.primaryLight,
+              shadowColor: theme.colors.primaryLight,
+              shadowOpacity: isDark ? 0.8 : 0.4,
+            }
+          ]} />
         </View>
       </Animated.View>
 
+      {/* 3. Only map over the properly filtered visible routes */}
       <View style={[ss.tabsContainer, { padding: tabBarPadding }]}>
-        {state.routes.map((route, index) => {
-          const isFocused = state.index === index;
+        {visibleRoutes.map((route) => {
+          const isFocused = state.routes[state.index]?.key === route.key;
+          
           const onPress = () => {
             const event = navigation.emit({
               type: 'tabPress',
@@ -186,7 +205,6 @@ export function PremiumTabBar({ state, navigation }: BottomTabBarProps) {
               isFocused={isFocused}
               onPress={onPress}
               onLongPress={onLongPress}
-              index={index}
             />
           );
         })}

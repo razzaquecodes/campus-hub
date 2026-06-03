@@ -19,6 +19,7 @@ import {
   Phone,
   ShieldCheck,
   X,
+  Bell,
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
@@ -42,6 +43,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { useStudentStore } from '@/store/student.store';
+import { useUnreadNotificationCount } from '@/hooks/queries/use-notifications';
 
 const TYPE_COLORS: Record<string, string> = {
   Theory: '#6366F1',
@@ -60,6 +62,8 @@ export function ProfileScreen() {
 
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const { data: unreadCount = 0 } = useUnreadNotificationCount();
 
   // Edit fields
   const [editFullName, setEditFullName] = useState(profile?.full_name || '');
@@ -185,24 +189,46 @@ export function ProfileScreen() {
             <Text style={[ps.screenTitle, { color: theme.colors.textPrimary }]}>
               My Profile
             </Text>
-            <SpringButton
-              onPress={openEditModal}
-              scaleDown={0.9}
-              style={[
-                ps.editBtn,
-                {
-                  backgroundColor: isDark
-                    ? 'rgba(255,255,255,0.06)'
-                    : 'rgba(0,0,0,0.04)',
-                  borderColor: theme.colors.glassBorder,
-                },
-              ]}
-            >
-              <Edit2 color={theme.colors.textPrimary} size={14} strokeWidth={2} />
-              <Text style={[ps.editBtnText, { color: theme.colors.textPrimary }]}>
-                Edit
-              </Text>
-            </SpringButton>
+            <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+              <Pressable
+                onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                onPress={() => router.push('/notifications')}
+                style={[
+                  ps.editBtn,
+                  {
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                    borderColor: theme.colors.glassBorder,
+                    paddingHorizontal: 8,
+                  },
+                ]}
+              >
+                <Bell color={theme.colors.textPrimary} size={18} strokeWidth={2} />
+                {unreadCount > 0 && (
+                  <View style={[ps.notifDot, { borderColor: theme.colors.void, backgroundColor: theme.colors.danger }]}>
+                    <Text style={ps.notifDotText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                  </View>
+                )}
+              </Pressable>
+
+              <SpringButton
+                onPress={openEditModal}
+                scaleDown={0.9}
+                style={[
+                  ps.editBtn,
+                  {
+                    backgroundColor: isDark
+                      ? 'rgba(255,255,255,0.06)'
+                      : 'rgba(0,0,0,0.04)',
+                    borderColor: theme.colors.glassBorder,
+                  },
+                ]}
+              >
+                <Edit2 color={theme.colors.textPrimary} size={14} strokeWidth={2} />
+                <Text style={[ps.editBtnText, { color: theme.colors.textPrimary }]}>
+                  Edit
+                </Text>
+              </SpringButton>
+            </View>
           </View>
 
           {/* Avatar + name hero */}
@@ -315,7 +341,7 @@ export function ProfileScreen() {
             IDENTITY
           </Text>
           <SpringButton
-            onPress={() => router.push('/digital-id' as any)}
+            onPress={() => router.push('/digital-id')}
             scaleDown={0.97}
             haptic="medium"
           >
@@ -786,6 +812,23 @@ const ps = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
+  notifDot: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  notifDotText: {
+    color: '#FFF',
+    fontSize: 8,
+    fontWeight: '800',
+  },
 
   // Hero body: avatar left, info right
   heroBody: {
@@ -899,7 +942,7 @@ const ps = StyleSheet.create({
   digitalIdIconWrap: {
     width: 50,
     height: 50,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1011,7 +1054,7 @@ const ps = StyleSheet.create({
   subjectCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     padding: 14,
     borderWidth: 1,
     gap: 12,
@@ -1051,7 +1094,7 @@ const ps = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     borderWidth: 1.5,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     paddingVertical: 15,
   },
   logoutText: {
@@ -1108,7 +1151,7 @@ const ps = StyleSheet.create({
   textInput: {
     height: 48,
     borderWidth: 1,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     paddingHorizontal: 14,
     fontSize: 14,
   },
@@ -1122,7 +1165,7 @@ const ps = StyleSheet.create({
   cancelBtn: {
     flex: 1,
     height: 46,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1134,7 +1177,7 @@ const ps = StyleSheet.create({
   saveBtn: {
     flex: 2,
     height: 46,
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

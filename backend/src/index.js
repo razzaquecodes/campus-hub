@@ -14,6 +14,7 @@ const express = require('express');
 const cors = require('cors');
 
 const verifyStudentRouter = require('./routes/verify-student');
+const resultRouter = require('./routes/result');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -52,8 +53,9 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// MAKAUT verification
+// MAKAUT verification and results
 app.use('/', verifyStudentRouter);
+app.use('/', resultRouter);
 
 // 404 fallback
 app.use((_req, res) => {

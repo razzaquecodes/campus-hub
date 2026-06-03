@@ -57,6 +57,7 @@ import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuthStore } from '@/store/auth.store';
 import { useStudentStore } from '@/store/student.store';
+import { useAdminStore } from '@/store/admin.store';
 
 type ThemeMode = 'dark' | 'light' | 'system';
 
@@ -230,9 +231,10 @@ export function SettingsScreen() {
   const [aboutModalVisible, setAboutModalVisible] = useState(false);
   const [clearingCache, setClearingCache] = useState(false);
 
-  const profile = useAuthStore((s) => s.profile);
   const signOut = useAuthStore((s) => s.signOut);
+  const profile = useAuthStore((s) => s.profile);
   const student = useStudentStore((s) => s.student);
+  const isAdmin = useAdminStore((s) => s.isAdmin);
   const studentLogout = useStudentStore((s) => s.logout);
 
   const profilePhoto = profile?.avatar_url || student?.profilePhotoUrl;
@@ -470,6 +472,18 @@ export function SettingsScreen() {
             last
           />
         </SettingGroup>
+
+        {/* ── Administration ── */}
+        {isAdmin && (
+          <SettingGroup title="Administration" entering={FadeInDown.duration(500).delay(360)}>
+            <SettingRow
+              icon={<IconChip icon={Shield} color={theme.colors.primaryLight} />}
+              label="Admin Portal"
+              onPress={() => router.push('/admin-login' as any)}
+              last
+            />
+          </SettingGroup>
+        )}
 
         {/* ── About ── */}
         <SettingGroup title="About" entering={FadeInDown.duration(500).delay(380)}>

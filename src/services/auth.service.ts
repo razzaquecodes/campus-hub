@@ -260,100 +260,11 @@ export async function signInWithGoogle(): Promise<void> {
     expiresAt: sessionData.session.expires_at,
   });
 
-  // NOTE: We do NOT set the profile in the store here.
-  // AuthHydrator.onAuthStateChange(SIGNED_IN) handles that reactively.
-  // The store's signInWithGoogle() method waits for the profile to be set.
+  // For the Admin flow, the caller (admin-login.tsx) will now manually call 
+  // supabase.auth.getUser() and verify against the admins table.
 }
 
-// ─── Session restore ──────────────────────────────────────────────────────────
-export async function getPersistedSession(): Promise<UserProfile | null> {
-  if (!supabase) return null;
 
-  authLog('Restoring persisted session...');
-  const { data, error } = await supabase.auth.getSession();
-  if (error) {
-    authLog('Session restore failed', { message: error.message });
-    return null;
-  }
-  if (!data.session?.user) {
-    authLog('No persisted session found');
-    return null;
-  }
-
-  const { user } = data.session;
-  authLog('Session found', { userId: user.id, email: user.email });
-
-  const { data: profileRow, error: profileError } = await supabase
-    .from('student_profiles')
-    .select('*')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  if (profileError) {
-    authLog('Profile fetch failed', { message: profileError.message, userId: user.id });
-  }
-
-  if (profileRow) {
-    authLog('Existing profile found in DB');
-    return mapDbUser(profileRow as Record<string, unknown>);
-  }
-
-  // First login — create the profile row
-  authLog('First login — creating profile row', { userId: user.id });
-  const newProfile = {
-    user_id: user.id,
-    roll_number: '', // Will be set when user connects MAKAUT, or can be set manually
-    email: user.email!,
-    full_name:
-      user.user_metadata?.full_name ??
-      user.user_metadata?.name ??
-      user.email?.split('@')[0] ??
-      'Student',
-    institute_name: 'Budge Budge Institute of Technology',
-    photo_url:
-      user.user_metadata?.avatar_url ?? user.user_metadata?.picture ?? null,
-  };
-
-  const { data: existingUser } = await supabase
-    .from('student_profiles')
-    .select('user_id')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  if (existingUser) {
-    // If it somehow exists but the initial select didn't catch it
-    authLog('User row exists (race condition) — updating');
-    const { data: updated, error: updateError } = await supabase
-      .from('student_profiles')
-      .update(newProfile)
-      .eq('user_id', user.id)
-      .select('*')
-      .single();
-      
-    if (updateError) {
-      authLog('Update failed — using metadata fallback', { message: updateError.message });
-      return mapDbUser(newProfile as unknown as Record<string, unknown>);
-    }
-    return mapDbUser(updated as Record<string, unknown>);
-  }
-
-  const { data: inserted, error: insertError } = await supabase
-    .from('student_profiles')
-    .insert(newProfile)
-    .select('*')
-    .single();
-
-  if (insertError) {
-    authLog('Profile insert failed; using auth metadata fallback', {
-      message: insertError.message,
-      userId: user.id,
-    });
-    return mapDbUser(newProfile as unknown as Record<string, unknown>);
-  }
-
-  authLog('Profile created successfully');
-  return mapDbUser(inserted as Record<string, unknown>);
-}
 
 function safeHost(value?: string): string | null {
   if (!value) return null;
@@ -379,16 +290,3 @@ export async function signOut(): Promise<void> {
   }
 }
 
-// ─── DB row → UserProfile ─────────────────────────────────────────────────────
-function mapDbUser(row: Record<string, unknown>): UserProfile {
-  return {
-    id: (row.user_id as string) || (row.id as string),
-    roll_number: (row.roll_number as string) || '',
-    email: row.email as string,
-    full_name: row.full_name as string,
-    branch: row.course_name as string | null,
-    phone: row.mobile as string | null,
-    college: (row.institute_name as string) || 'Budge Budge Institute of Technology',
-    avatar_url: row.photo_url as string | null,
-  } as UserProfile;
-}

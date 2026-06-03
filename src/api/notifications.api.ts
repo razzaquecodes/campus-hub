@@ -52,3 +52,13 @@ export async function getUnreadCount(userId: string): Promise<number> {
     .eq('is_read', false);
   return error ? 0 : (count ?? 0);
 }
+
+export async function insertNotification(notification: Omit<Notification, 'id' | 'created_at' | 'is_read'>): Promise<void> {
+  if (!supabase) return;
+  await supabase.from('notifications').insert([
+    {
+      ...notification,
+      is_read: false,
+    }
+  ]);
+}

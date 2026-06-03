@@ -18,10 +18,10 @@
  *   - getMakautProfile() call (student data is now in StudentModel itself)
  */
 
-import { QueryClientProvider } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import React, { useEffect, useRef } from 'react';
 
-import { queryClient } from '@/lib/query-client';
+import { queryClient, asyncStoragePersister } from '@/lib/query-client';
 import { mapStudentToUserProfile, useAuthStore } from '@/store/auth.store';
 import { useStudentStore } from '@/store/student.store';
 
@@ -82,8 +82,8 @@ function AuthHydrator({ children }: { children: React.ReactNode }) {
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: asyncStoragePersister }}>
       <AuthHydrator>{children}</AuthHydrator>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }

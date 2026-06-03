@@ -14,23 +14,17 @@ function supabaseLog(message: string, details?: Record<string, unknown>) {
   console.info(`[supabase][${ts}] ${message}${payload}`);
 }
 
-export const supabase: AppSupabaseClient | null = isSupabaseConfigured
+export const supabase = (isSupabaseConfigured
   ? createClient(Env.supabaseUrl, Env.supabaseAnonKey, {
       auth: {
         storage: supabaseAuthStorage,
         autoRefreshToken: true,
         persistSession: true,
-        // MUST be false in React Native — there is no browser URL bar.
-        // We parse OAuth callback URLs manually in auth.service.ts and
-        // oauth-callback.tsx. Setting this to true causes the Supabase JS
-        // client to attempt auto-parsing of URLs, which interferes with
-        // manual exchangeCodeForSession() calls and causes race conditions.
         detectSessionInUrl: false,
-        // Use PKCE for better security and compatibility with Expo
         flowType: 'pkce',
       },
     })
-  : null;
+  : null) as AppSupabaseClient;
 
 if (__DEV__) {
   supabaseLog('Runtime diagnostics', getEnvironmentDiagnostics());

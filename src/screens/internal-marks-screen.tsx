@@ -32,7 +32,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Badge, Skeleton, SpringButton } from '@/components/ui';
+import { Badge, Skeleton, SpringButton, EmptyState, ErrorState } from '@/components/ui';
 import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useStudentStore } from '@/store/student.store';
@@ -76,7 +76,6 @@ function SubjectRow({
 }) {
   const { theme } = useTheme();
 
-  console.log("RENDER SUBJECT", item);
 
   const displayVal = (v: string | number | null | undefined) => {
     if (v !== null && v !== undefined && v !== '') {
@@ -404,107 +403,27 @@ export function InternalMarksScreen() {
 
         {/* ── Error State ── */}
         {screenState === 'error' && (
-          <Animated.View
-            entering={FadeInDown.duration(400).delay(100)}
-            style={cs.stateWrap}
-          >
-            <View
-              style={[
-                cs.errorCard,
-                {
-                  backgroundColor: isDark
-                    ? 'rgba(248,113,113,0.06)'
-                    : 'rgba(220,38,38,0.05)',
-                  borderColor: isDark
-                    ? 'rgba(248,113,113,0.20)'
-                    : 'rgba(220,38,38,0.14)',
-                },
-              ]}
-            >
-              <AlertCircle
-                color={theme.colors.danger}
-                size={32}
-                strokeWidth={1.8}
-              />
-              <Text style={[cs.stateTitle, { color: theme.colors.textPrimary }]}>
-                Unable to Load Marks
-              </Text>
-              <Text
-                style={[cs.stateSub, { color: theme.colors.textSecondary }]}
-              >
-                Could not fetch your Internal marks from the server. Please check your
-                connection and try again.
-              </Text>
-              <SpringButton onPress={handleRetry} scaleDown={0.94}>
-                <View
-                  style={[
-                    cs.retryBtn,
-                    { backgroundColor: theme.colors.primaryMuted },
-                  ]}
-                >
-                  <RefreshCw
-                    color={theme.colors.primaryLight}
-                    size={15}
-                    strokeWidth={2}
-                  />
-                  <Text
-                    style={[
-                      cs.retryBtnText,
-                      { color: theme.colors.primaryLight },
-                    ]}
-                  >
-                    {retrying ? 'Retrying…' : 'Try Again'}
-                  </Text>
-                </View>
-              </SpringButton>
-            </View>
-          </Animated.View>
+          <ErrorState 
+            title="Unable to Load Marks"
+            message="Could not fetch your Internal marks from the server. Please check your connection and try again."
+            onRetry={handleRetry}
+          />
         )}
 
         {/* ── Empty State ── */}
         {screenState === 'empty' && (
-          <Animated.View
-            entering={FadeInDown.duration(500).delay(100)}
-            style={cs.stateWrap}
-          >
-            <View
-              style={[
-                cs.emptyCard,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.border,
-                },
-              ]}
-            >
-              <View
-                style={[
-                  cs.emptyIconWrap,
-                  { backgroundColor: `${theme.colors.info}10` },
-                ]}
-              >
-                <BarChart3
-                  color={theme.colors.info}
-                  size={40}
-                  strokeWidth={1.5}
-                />
-              </View>
-              <Text style={[cs.stateTitle, { color: theme.colors.textPrimary }]}>
-                Internal Marks Not Available
-              </Text>
-              <Text
-                style={[cs.stateSub, { color: theme.colors.textSecondary }]}
-              >
-                Your Internal marks for this semester will appear here once they are published.
-              </Text>
-            </View>
-          </Animated.View>
+          <EmptyState 
+            title="No Marks Found"
+            message={rawMarks.length === 0 ? "You do not have any internal marks published yet." : "No marks found for the selected semester."}
+            actionLabel="Refresh Data"
+            onAction={handleRetry}
+          />
         )}
 
         {/* ── Data State — Subject List ── */}
         {screenState === 'data' && (
           <View style={cs.listWrap}>
             {filteredMarks.map((item, idx) => {
-              console.log("RENDERING ROW WITH KEY:", `${item.subjectCode}-${idx}`);
               return (
                 <SubjectRow key={`${item.subjectCode}-${idx}`} item={item} index={idx} />
               );

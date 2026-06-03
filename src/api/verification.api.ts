@@ -1,4 +1,4 @@
-import { Env } from '@/lib/env';
+import { API_CONFIG } from '@/config/api';
 
 export interface VerificationDetails {
   photoUrl: string;
@@ -11,7 +11,7 @@ export interface VerificationDetails {
 }
 
 export async function fetchVerificationDetails(rollNumber: string): Promise<VerificationDetails> {
-  const baseUrl = (Env.makautVerifyUrl || '').replace(/\/$/, '');
+  const baseUrl = API_CONFIG.BASE_URL;
   const url = `${baseUrl}/student/${rollNumber}/verify`;
 
   const response = await fetch(url, {

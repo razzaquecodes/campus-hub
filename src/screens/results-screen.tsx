@@ -18,7 +18,7 @@ import {
   TrendingUp,
   Award,
 } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dimensions,
   Platform,
@@ -37,17 +37,18 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Path, Stop } from 'react-native-svg';
 
-import { Badge, Skeleton, SpringButton } from '@/components/ui';
+import { Badge, SpringButton, Skeleton, EmptyState, ErrorState } from '@/components/ui';
 import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useStudentStore } from '@/store/student.store';
+import { API_CONFIG } from '@/config/api';
 
 const { width: W } = Dimensions.get('window');
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface SemesterSummary {
   semester: number;
-  sgpa: number;
+  sgpa: number | null;
   totalCredits: number;
   status: 'Published' | 'Processing';
   publishedDate?: string;
@@ -59,21 +60,34 @@ interface SemesterSummary {
 const DUMMY_SGPAS = [7.8, 8.2, 7.5, 8.5]; // 4 semesters
 
 // ─── Svg Graph Component ──────────────────────────────────────────────────────
-function SGPAChart({ data }: { data: number[] }) {
+function SGPAChart({ data }: { data: any[] }) {
   const { theme, isDark } = useTheme();
   
-  if (data.length === 0) return null;
+  if (!Array.isArray(data)) return null;
+
+  const validData = data
+    .map(item => ({ semester: item.semester, sgpa: Number(item.sgpa) }))
+    .filter(item => typeof item.sgpa === 'number' && !isNaN(item.sgpa) && item.sgpa > 0);
+
+  console.log('[GRAPH DATA]', data);
+  console.log('[VALID GRAPH DATA]', validData);
+
+  if (validData.length === 0) return null;
 
   const chartW = W - Spacing.page.horizontal * 2 - 32;
   const chartH = 120;
+  
+  if (chartW <= 0 || chartH <= 0) return null;
+
   const minVal = 4;
   const maxVal = 10;
   
   // Calculate points
-  const points = data.map((val, i) => {
-    const x = data.length > 1 ? (i / (data.length - 1)) * chartW : chartW / 2;
+  const points = validData.map((item, i) => {
+    const val = item.sgpa;
+    const x = validData.length > 1 ? (i / (validData.length - 1)) * chartW : chartW / 2;
     const y = chartH - ((val - minVal) / (maxVal - minVal)) * chartH;
-    return { x, y, val };
+    return { x, y, val, semester: item.semester };
   });
 
   const pathData = points
@@ -99,9 +113,9 @@ function SGPAChart({ data }: { data: number[] }) {
       </Svg>
       {/* X-Axis labels */}
       <View style={ch.graphAxis}>
-        {data.map((_, i) => (
+        {points.map((p, i) => (
           <Text key={i} style={[ch.axisLabel, { color: theme.colors.textTertiary }]}>
-            S{i + 1}
+            S{p.semester}
           </Text>
         ))}
       </View>
@@ -132,15 +146,93 @@ export function ResultsScreen() {
   const insets = useSafeAreaInsets();
   const student = useStudentStore((s) => s.student);
 
-  // Backend integration placeholder
-  const isLoading = false;
-  const isError = false;
-  // Initialize as empty to enforce rule: "Do not use fake marks" for the user.
-  // We will build the empty state.
-  const semesters: SemesterSummary[] = []; 
-  const cgpa: number | null = null as number | null; 
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const [semesters, setSemesters] = useState<SemesterSummary[]>([]);
+  const [cgpa, setCgpa] = useState<number | null>(null);
 
   const [retrying, setRetrying] = useState(false);
+
+  const fetchResults = async () => {
+    const baseUrl = API_CONFIG.BASE_URL;
+
+    if (!student?.rollNumber) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setIsError(false);
+      console.log("ROLL =", student.rollNumber);
+      console.log("BASE URL =", baseUrl);
+      const url = `${baseUrl}/student/${student.rollNumber}/results`;
+      console.log("FULL URL =", url);
+      
+      const response = await fetch(url);
+      const text = await response.text();
+
+      if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status}`);
+      }
+
+      let json;
+      try {
+        json = JSON.parse(text);
+      } catch (e) {
+        throw new Error("Invalid JSON response");
+      }
+
+      if (json && json.success && Array.isArray(json.semesters)) {
+        const parsedSemesters: SemesterSummary[] = json.semesters.map((sem: any) => {
+          const subjects = Array.isArray(sem.subjects) ? sem.subjects : [];
+          const totalCredits = subjects.reduce((sum: number, sub: any) => {
+            const cred = sub.credit !== undefined ? sub.credit : sub.credits;
+            return sum + (Number(cred) || 0);
+          }, 0);
+          
+          let parsedSgpa: number | null = null;
+          if (sem.sgpa !== null && sem.sgpa !== undefined && sem.sgpa !== 'null' && sem.sgpa !== 'N/A') {
+             const num = parseFloat(sem.sgpa);
+             if (!isNaN(num) && num > 0) {
+               parsedSgpa = num;
+             }
+          }
+
+          return {
+            semester: parseInt(sem.semester, 10) || 0,
+            sgpa: parsedSgpa,
+            totalCredits,
+            status: parsedSgpa !== null ? 'Published' : 'Processing',
+          };
+        });
+
+        parsedSemesters.sort((a, b) => b.semester - a.semester);
+
+        const validSgpas = parsedSemesters.filter(s => s.sgpa !== null && s.sgpa > 0).map(s => s.sgpa as number);
+        let calculatedCgpa = null;
+        if (validSgpas.length > 0) {
+          calculatedCgpa = validSgpas.reduce((sum, val) => sum + val, 0) / validSgpas.length;
+        }
+
+        setSemesters(parsedSemesters);
+        setCgpa(calculatedCgpa);
+      } else {
+        setSemesters([]);
+        setCgpa(null);
+      }
+    } catch (error) {
+      console.error("Failed to fetch results:", error);
+      setIsError(true);
+    } finally {
+      setIsLoading(false);
+      setRetrying(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchResults();
+  }, [student?.rollNumber]);
 
   const screenState = isLoading
     ? 'loading'
@@ -153,7 +245,7 @@ export function ResultsScreen() {
   const handleRetry = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
     setRetrying(true);
-    setTimeout(() => setRetrying(false), 1500);
+    fetchResults();
   };
 
   return (
@@ -200,10 +292,12 @@ export function ResultsScreen() {
                 </View>
 
                 {/* Graph */}
-                <View style={s.graphWrapper}>
-                  <Text style={[Typography.label.sm, { color: theme.colors.textTertiary, marginBottom: 8 }]}>SGPA TREND</Text>
-                  <SGPAChart data={semesters.map(s => s.sgpa).reverse()} />
-                </View>
+                {semesters.filter(s => s.sgpa !== null && s.sgpa > 0).length > 0 && (
+                  <View style={s.graphWrapper}>
+                    <Text style={[Typography.label.sm, { color: theme.colors.textTertiary, marginBottom: 8 }]}>SGPA TREND</Text>
+                    <SGPAChart data={semesters.filter(s => s.sgpa !== null && s.sgpa > 0).map(s => ({ semester: s.semester, sgpa: s.sgpa as number })).reverse()} />
+                  </View>
+                )}
               </LinearGradient>
             </Animated.View>
 
@@ -222,7 +316,9 @@ export function ResultsScreen() {
                         <Text style={[s.semSub, { color: theme.colors.textSecondary }]}>{sem.totalCredits} Credits Earned</Text>
                       </View>
                       <View style={s.semScoreWrap}>
-                        <Text style={[s.semScore, { color: theme.colors.primaryLight }]}>{sem.sgpa.toFixed(2)}</Text>
+                        <Text style={[s.semScore, { color: theme.colors.primaryLight }]}>
+                          {sem.sgpa !== null && sem.sgpa > 0 ? sem.sgpa.toFixed(2) : '—'}
+                        </Text>
                         <Text style={[s.semScoreLabel, { color: theme.colors.textTertiary }]}>SGPA</Text>
                       </View>
                       <ChevronRight color={theme.colors.textTertiary} size={16} style={{ marginLeft: 8 }} />
@@ -268,19 +364,21 @@ export function ResultsScreen() {
 
         {/* ── Error State ── */}
         {screenState === 'error' && (
-          <Animated.View entering={FadeInDown.duration(400).delay(100)} style={s.stateWrap}>
-            <View style={[s.errorCard, { backgroundColor: isDark ? 'rgba(248,113,113,0.06)' : 'rgba(220,38,38,0.05)', borderColor: isDark ? 'rgba(248,113,113,0.20)' : 'rgba(220,38,38,0.14)' }]}>
-              <AlertCircle color={theme.colors.danger} size={32} strokeWidth={1.8} />
-              <Text style={[s.stateTitle, { color: theme.colors.textPrimary }]}>Connection Error</Text>
-              <Text style={[s.stateSub, { color: theme.colors.textSecondary }]}>Could not fetch your result data.</Text>
-              <SpringButton onPress={handleRetry} scaleDown={0.94}>
-                <View style={[s.retryBtn, { backgroundColor: theme.colors.primaryMuted }]}>
-                  <RefreshCw color={theme.colors.primaryLight} size={15} strokeWidth={2} />
-                  <Text style={[s.retryBtnText, { color: theme.colors.primaryLight }]}>{retrying ? 'Retrying…' : 'Try Again'}</Text>
-                </View>
-              </SpringButton>
-            </View>
-          </Animated.View>
+          <ErrorState 
+            title="Connection Error" 
+            message="Could not fetch your result data. Please check your internet connection and try again." 
+            onRetry={handleRetry} 
+          />
+        )}
+
+        {/* ── Empty State ── */}
+        {screenState === 'empty' && (
+          <EmptyState 
+            title="No Results Found" 
+            message="Your semester results are not available yet. Please check back later when they are published."
+            actionLabel="Refresh Data"
+            onAction={handleRetry}
+          />
         )}
 
       </ScrollView>

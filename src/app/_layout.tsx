@@ -11,12 +11,25 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as Notifications from 'expo-notifications';
 
 import { SplashScreen } from '@/components/animations/splash/SplashScreen';
 import { ThemeProvider as AppThemeProvider, useTheme } from '@/context/ThemeContext';
 import { AppProviders } from '@/providers/app-providers';
 import { useAuthStore } from '@/store/auth.store';
 import { useStudentStore } from '@/store/student.store';
+import { useAdminStore } from '@/store/admin.store';
+import { registerBackgroundSync } from '@/services/background-sync.service';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 /**
  * useAuthGuard — Reactive navigation guard.
@@ -32,7 +45,10 @@ import { useStudentStore } from '@/store/student.store';
  */
 function useAuthGuard() {
   const { profile, isHydrated } = useAuthStore();
+  const isAdmin = useAdminStore((s) => s.isAdmin);
   const segments = useSegments();
+
+  const isAuthenticated = Boolean(profile) || isAdmin;
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -42,24 +58,33 @@ function useAuthGuard() {
 
     console.info('[router-decision] Auth guard running', {
       isHydrated,
+      isAuthenticated,
       hasProfile: Boolean(profile),
+      isAdmin,
       inAuthGroup,
       isRoot,
       segments,
     });
 
-    if (!profile) {
+    if (!isAuthenticated) {
       if (!inAuthGroup) {
         console.info('[router-decision] Navigating to login');
         router.replace('/(auth)/login');
       }
     } else {
-      if (inAuthGroup || isRoot) {
-        console.info('[router-decision] Navigating to dashboard (tabs)');
-        router.replace('/(tabs)');
+      if (isAdmin) {
+        if (inAuthGroup || isRoot) {
+          console.info('[router-decision] Navigating to admin portal');
+          router.replace('/admin');
+        }
+      } else {
+        if (inAuthGroup || isRoot) {
+          console.info('[router-decision] Navigating to dashboard (tabs)');
+          router.replace('/(tabs)');
+        }
       }
     }
-  }, [profile, isHydrated, segments]);
+  }, [profile, isAdmin, isHydrated, segments, isAuthenticated]);
 }
 
 function AppShell() {
@@ -67,6 +92,23 @@ function AppShell() {
   const [animationDone, setAnimationDone] = useState(false);
   const isHydrated = useAuthStore((s) => s.isHydrated);
   useAuthGuard();
+  
+  useEffect(() => {
+    if (isHydrated) {
+      registerBackgroundSync();
+    }
+  }, [isHydrated]);
+  
+  const lastNotificationResponse = Notifications.useLastNotificationResponse();
+  useEffect(() => {
+    if (isHydrated && lastNotificationResponse) {
+      const data = lastNotificationResponse.notification.request.content.data;
+      if (data && typeof data.url === 'string') {
+        console.info('[notifications] Deep linking to:', data.url);
+        router.push(data.url as any);
+      }
+    }
+  }, [lastNotificationResponse, isHydrated]);
 
   const ready = animationDone && isHydrated;
 

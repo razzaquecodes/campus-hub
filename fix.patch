@@ -1,0 +1,18 @@
+--- src/screens/internal-marks-screen.tsx
++++ src/screens/internal-marks-screen.tsx
+@@ -412,9 +412,12 @@
+ 
+         {/* ── Empty State ── */}
+         {screenState === 'empty' && (
+-              </Text>
+-            </View>
+-          </Animated.View>
++          <EmptyState 
++            title="No Marks Found"
++            message={rawMarks.length === 0 ? "You do not have any internal marks published yet." : "No marks found for the selected semester."}
++            actionLabel="Refresh Data"
++            onAction={handleRetry}
++          />
+         )}
+ 
+         {/* ── Data State — Subject List ── */}

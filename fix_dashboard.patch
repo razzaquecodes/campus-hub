@@ -1,0 +1,62 @@
+--- src/screens/academic-dashboard-screen.tsx
++++ src/screens/academic-dashboard-screen.tsx
+@@ -134,57 +134,9 @@
+   // Internal Marks Stream
+   const { data: internalMarks = [], isLoading: internalLoading, isError: internalError } = useInternalMarks();
+ 
+   // Results Stream
+-  const [results, setResults] = useState<SemesterResult[]>([]);
+-  const [resultsLoading, setResultsLoading] = useState(true);
+-  const [resultsError, setResultsError] = useState(false);
+-
+-  useEffect(() => {
+-    async function fetchResults() {
+-      if (!student?.rollNumber) {
+-        setResultsLoading(false);
+-        return;
+-      }
+-      try {
+-        setResultsLoading(true);
+-        setResultsError(false);
+-        const res = await fetch(`${API_CONFIG.BASE_URL}/student/${student.rollNumber}/results`);
+-        const text = await res.text();
+-        if (!res.ok) throw new Error("HTTP Error");
+-        const json = JSON.parse(text);
+-
+-        if (json && json.success && Array.isArray(json.semesters)) {
+-          const mapped = json.semesters.map((semObj: any) => {
+-            const subs = Array.isArray(semObj.subjects) ? semObj.subjects : [];
+-            const parsedSubs = subs.map((sub: any) => ({
+-              subjectCode: sub.subjectCode || sub.code || 'Unknown',
+-              subjectName: sub.subjectName || sub.name || 'Unknown',
+-              credit: Number(sub.credit !== undefined ? sub.credit : sub.credits) || 0,
+-              grade: sub.grade || 'N/A',
+-              semester: parseInt(semObj.semester, 10) || 0,
+-            }));
+-            let sgpa = null;
+-            if (semObj.sgpa && !isNaN(parseFloat(semObj.sgpa)) && parseFloat(semObj.sgpa) > 0) {
+-              sgpa = parseFloat(semObj.sgpa);
+-            }
+-            return {
+-              semester: parseInt(semObj.semester, 10) || 0,
+-              sgpa,
+-              cgpa: semObj.cgpa ? parseFloat(semObj.cgpa) : null,
+-              subjects: parsedSubs,
+-            };
+-          }).sort((a: any, b: any) => a.semester - b.semester);
+-          setResults(mapped);
+-        }
+-      } catch (e) {
+-        setResultsError(true);
+-      } finally {
+-        setResultsLoading(false);
+-      }
+-    }
+-    fetchResults();
+-  }, [student?.rollNumber]);
++  const { data: unsortedResults = [], isLoading: resultsLoading, isError: resultsError } = useResults();
++  // Academic dashboard expects ascending sort, but useResults provides descending sort by default
++  const results = useMemo(() => [...unsortedResults].sort((a, b) => a.semester - b.semester), [unsortedResults]);
+ 
+   const isLoading = internalLoading || resultsLoading;
+   const isError = internalError || resultsError;

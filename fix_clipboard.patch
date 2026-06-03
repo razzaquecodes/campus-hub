@@ -1,0 +1,17 @@
+--- src/screens/digital-id-screen.tsx
++++ src/screens/digital-id-screen.tsx
+@@ -134,8 +134,12 @@
+   const totalSubjects = results?.reduce((acc, sem) => acc + (sem.subjects?.length || 0), 0) || 0;
+ 
+   const handleCopy = useCallback(async (text: string) => {
+-    await Clipboard.setStringAsync(text);
+-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
++    try {
++      await Clipboard.setStringAsync(text);
++      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
++    } catch (error) {
++      console.warn('Clipboard error:', error);
++    }
+   }, []);
+ 
+   const handleShare = useCallback(() => {

@@ -2,6 +2,9 @@
   "expo": {
     "name": "Campus Hub",
     "slug": "campus-hub",
-    "scheme": "campushub"
+    "scheme": "campushub",
+    "android": {
+      "versionCode": 4
+    }
   }
 }

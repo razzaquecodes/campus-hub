@@ -21,6 +21,10 @@ const axios = require('axios');
 const { wrapper } = require('axios-cookiejar-support');
 const { CookieJar } = require('tough-cookie');
 const cheerio = require('cheerio');
+const fs = require('fs');
+const path = require('path');
+const { extractResults } = require('../utils/result-parser');
+const { supabase } = require('../lib/supabase');
 
 const router = express.Router();
 
@@ -525,6 +529,58 @@ router.post('/verify-student', async (req, res) => {
         message: 'Failed to parse student data from MAKAUT portal.',
         debug: { step: 'parseStudentDetails', error: err.message },
       });
+    }
+
+    // ── STEP 5b: RESULT PAGE CAPTURE ───────────────────────────────────────
+    try {
+      const RESULT_URL = `${MAKAUT_BASE}/student/student-activity`;
+      log('STEP-5b', 'Fetching student result activity', { url: RESULT_URL });
+      
+      const resultResponse = await client.get(RESULT_URL, {
+        headers: { Referer: STUDENT_DETAILS_URL },
+        validateStatus: () => true,
+      });
+
+      if (resultResponse.status === 200 && typeof resultResponse.data === 'string') {
+        const html = resultResponse.data;
+        
+        // 1. Save debug HTML
+        const debugDir = path.join(__dirname, '../../debug');
+        if (!fs.existsSync(debugDir)) {
+          fs.mkdirSync(debugDir, { recursive: true });
+        }
+        fs.writeFileSync(path.join(debugDir, 'result.html'), html);
+        log('RESULT PARSER', 'Saved debug/result.html', { length: html.length });
+
+        // 2. Parse Results
+        const parsedResult = extractResults(html);
+        log('RESULT PARSER', 'Parsed Result', parsedResult);
+
+        // 3. Upsert to Supabase
+        if (parsedResult.semester) {
+          const { error: dbError } = await supabase
+            .from('student_results')
+            .upsert({
+              roll_number: student.rollNumber,
+              semester: parsedResult.semester,
+              sgpa: parsedResult.sgpa,
+              cgpa: parsedResult.cgpa,
+              backlog: parsedResult.backlog,
+              raw_result_status: parsedResult.rawResultStatus,
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'roll_number, semester' });
+            
+          if (dbError) {
+            log('RESULT DB', 'Failed to upsert student_results', { error: dbError.message });
+          } else {
+            log('RESULT DB', 'Successfully upserted student_results', { roll: student.rollNumber, semester: parsedResult.semester });
+          }
+        }
+      } else {
+        log('STEP-5b', 'Failed to fetch result page', { status: resultResponse.status });
+      }
+    } catch (err) {
+      log('RESULT', 'Non-fatal error capturing result page', { error: err.message });
     }
 
     // ── SUCCESS ────────────────────────────────────────────────────────────

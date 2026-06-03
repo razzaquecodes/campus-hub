@@ -27,6 +27,7 @@ import {
   upsertStudentProfile,
   verifyStudent,
 } from '@/services/makaut-auth.service';
+import { registerForPushNotifications, savePushToken } from '@/services/notifications.service';
 import type { StudentModel } from '@/types/student';
 
 // ─── Logging ──────────────────────────────────────────────────────────────────
@@ -88,6 +89,15 @@ export const useStudentStore = create<StudentState>((set, get) => ({
         error: null,
       });
       log('login: store updated — student is authenticated');
+      
+      // 5. Register push notifications
+      registerForPushNotifications().then((token) => {
+        if (token) savePushToken(student.rollNumber, token);
+      }).catch((e) => {
+        log('login: failed to register push notifications (non-fatal)', {
+          error: e instanceof Error ? e.message : String(e),
+        });
+      });
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Verification failed. Please try again.';
       log('login: failed', { error: message });
@@ -140,6 +150,15 @@ export const useStudentStore = create<StudentState>((set, get) => ({
           isLoading: false,
           isHydrated: true,
           error: null,
+        });
+        
+        // Ensure device is registered for notifications
+        registerForPushNotifications().then((token) => {
+          if (token) savePushToken(student.rollNumber, token);
+        }).catch((e) => {
+          log('restoreSession: failed to register push notifications (non-fatal)', {
+            error: e instanceof Error ? e.message : String(e),
+          });
         });
       } else {
         log('restoreSession: no session found');

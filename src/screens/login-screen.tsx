@@ -138,9 +138,9 @@ export function LoginScreen() {
 
   // NOTE: These actions have been removed from useAuthStore (MAKAUT migration).
   // This screen is deprecated; the stubs below prevent TypeScript compilation errors.
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
+   
   const signInWithGoogle = async () => {};
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
+   
   const signInAsGuest = () => {};
   const authError = useAuthStore((s) => s.error);
   const clearError = useAuthStore((s) => s.clearError);
