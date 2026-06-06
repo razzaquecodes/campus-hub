@@ -3,7 +3,6 @@ import * as TaskManager from 'expo-task-manager';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
 
 import { fetchInternalMarks } from '@/api/internal-marks.api';
 import { API_CONFIG } from '@/config/api';

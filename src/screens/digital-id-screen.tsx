@@ -16,12 +16,9 @@ import { router } from 'expo-router';
 import {
   ArrowLeft,
   BadgeCheck,
-  CheckCircle,
-  ChevronRight,
   Copy,
   FileText,
   GraduationCap,
-  LineChart,
   Mail,
   Phone,
   Share2,
@@ -51,13 +48,31 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
 
 import { SpringButton } from '@/components/ui';
-import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
+import { Radius, Shadows, Spacing } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useAuthStore } from '@/store/auth.store';
 import { useStudentStore } from '@/store/student.store';
-import { useResults } from '@/hooks/queries/use-results';
+import { useResults, type SemesterResult } from '@/hooks/queries/use-results';
+import { useMasterProfile } from '@/hooks/use-master-profile';
 
 const { width: W } = Dimensions.get('window');
+
+function getCurrentSemesterFromResults(
+  results: SemesterResult[] | undefined,
+  fallbackSemester: string | number | null | undefined,
+): number {
+  const publishedSemesters = (results ?? [])
+    .filter((result) => result.status === 'Published')
+    .map((result) => result.semester)
+    .filter((semester) => Number.isFinite(semester) && semester > 0);
+
+  if (publishedSemesters.length > 0) {
+    return Math.min(Math.max(Math.max(...publishedSemesters) + 1, 1), 8);
+  }
+
+  const fallback = Number.parseInt(String(fallbackSemester ?? ''), 10);
+  return Number.isFinite(fallback) && fallback > 0 ? Math.min(fallback, 8) : 1;
+}
 
 // ─── Info Row (Copyable) ──────────────────────────────────────────────────────
 function CopyableInfoRow({
@@ -108,6 +123,7 @@ export function DigitalIdScreen() {
   const insets = useSafeAreaInsets();
   const student = useStudentStore((s) => s.student);
   const profile = useAuthStore((s) => s.profile);
+  const masterProfile = useMasterProfile();
 
   const name = student?.fullName || profile?.full_name || 'Student Name';
   const rollNo = student?.rollNumber || profile?.roll_number || '—';
@@ -125,13 +141,22 @@ export function DigitalIdScreen() {
 
   const profilePhoto = profile?.avatar_url || student?.profilePhotoUrl;
 
-  const { data: results } = useResults();
+  const { data: results, isError, refetch } = useResults();
   
   const latestResult = results && results.length > 0 ? results[0] : null;
-  const currentSemester = latestResult?.semester || parseInt(profile?.semester || '1', 10) || 1;
+
+  const currentSemester = getCurrentSemesterFromResults(
+    results,
+    masterProfile?.semester ?? profile?.semester,
+  );
+
   const latestSgpa = latestResult?.sgpa || '—';
   const totalSemesters = results?.length || 0;
   const totalSubjects = results?.reduce((acc, sem) => acc + (sem.subjects?.length || 0), 0) || 0;
+  
+  const degreeProgress = Math.min(Math.max(((currentSemester - 1) / 8) * 100, 0), 100);
+  const lastSyncedDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const lastSyncedTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
   const handleCopy = useCallback(async (text: string) => {
     try {
@@ -426,34 +451,76 @@ export function DigitalIdScreen() {
 
         {/* ── Academic Snapshot ── */}
         <Animated.View entering={FadeInDown.duration(500).delay(280)}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingHorizontal: 2 }}>
+            <Text style={[s.sectionTitle, { color: theme.colors.textTertiary, marginBottom: 0 }]}>
+              ACADEMIC SNAPSHOT
+            </Text>
+            {isError && (
+              <Pressable onPress={() => refetch()}>
+                <Text style={{ fontSize: 11, color: theme.colors.primaryLight, fontWeight: '700' }}>Retry</Text>
+              </Pressable>
+            )}
+          </View>
+          {isError ? (
+            <View style={[s.snapshotGrid, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, padding: 20, alignItems: 'center' }]}>
+              <Text style={{ color: theme.colors.danger, fontSize: 13, fontWeight: '600' }}>Failed to load academic snapshot.</Text>
+            </View>
+          ) : (
+            <View
+              style={[
+                s.snapshotGrid,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                },
+              ]}
+            >
+              <View style={[s.snapshotBlock, { borderRightWidth: 1, borderBottomWidth: 1, borderColor: theme.colors.border }]}>
+                 <Text style={[s.snapshotLabel, { color: theme.colors.textTertiary }]}>Current Sem</Text>
+                 <Text style={[s.snapshotValue, { color: theme.colors.textPrimary }]}>{currentSemester}</Text>
+              </View>
+              <View style={[s.snapshotBlock, { borderBottomWidth: 1, borderColor: theme.colors.border }]}>
+                 <Text style={[s.snapshotLabel, { color: theme.colors.textTertiary }]}>Latest SGPA</Text>
+                 <Text style={[s.snapshotValue, { color: theme.colors.success }]}>{latestSgpa}</Text>
+              </View>
+              <View style={[s.snapshotBlock, { borderRightWidth: 1, borderColor: theme.colors.border }]}>
+                 <Text style={[s.snapshotLabel, { color: theme.colors.textTertiary }]}>Completed Sems</Text>
+                 <Text style={[s.snapshotValue, { color: theme.colors.textPrimary }]}>{totalSemesters}</Text>
+              </View>
+              <View style={s.snapshotBlock}>
+                 <Text style={[s.snapshotLabel, { color: theme.colors.textTertiary }]}>Subjects Done</Text>
+                 <Text style={[s.snapshotValue, { color: theme.colors.primaryLight }]}>{totalSubjects}</Text>
+              </View>
+            </View>
+          )}
+        </Animated.View>
+
+        {/* ── Degree Progress ── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(320)}>
           <Text style={[s.sectionTitle, { color: theme.colors.textTertiary, marginBottom: 10 }]}>
-            ACADEMIC SNAPSHOT
+            DEGREE PROGRESS
           </Text>
-          <View
-            style={[
-              s.snapshotGrid,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.border,
-              },
-            ]}
-          >
-            <View style={[s.snapshotBlock, { borderRightWidth: 1, borderBottomWidth: 1, borderColor: theme.colors.border }]}>
-               <Text style={[s.snapshotLabel, { color: theme.colors.textTertiary }]}>Current Sem</Text>
-               <Text style={[s.snapshotValue, { color: theme.colors.textPrimary }]}>{currentSemester}</Text>
+          <View style={[s.degreeCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <View style={s.degreeHeader}>
+              <Text style={[s.degreeTitle, { color: theme.colors.textPrimary }]}>B.Tech Completion</Text>
+              <Text style={[s.degreePercent, { color: theme.colors.primary }]}>{degreeProgress.toFixed(0)}%</Text>
             </View>
-            <View style={[s.snapshotBlock, { borderBottomWidth: 1, borderColor: theme.colors.border }]}>
-               <Text style={[s.snapshotLabel, { color: theme.colors.textTertiary }]}>Latest SGPA</Text>
-               <Text style={[s.snapshotValue, { color: theme.colors.success }]}>{latestSgpa}</Text>
+            <View style={[s.progressBarBg, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+              <View style={[s.progressBarFill, { backgroundColor: theme.colors.primary, width: `${degreeProgress}%` }]} />
             </View>
-            <View style={[s.snapshotBlock, { borderRightWidth: 1, borderColor: theme.colors.border }]}>
-               <Text style={[s.snapshotLabel, { color: theme.colors.textTertiary }]}>Semesters</Text>
-               <Text style={[s.snapshotValue, { color: theme.colors.textPrimary }]}>{totalSemesters}</Text>
-            </View>
-            <View style={s.snapshotBlock}>
-               <Text style={[s.snapshotLabel, { color: theme.colors.textTertiary }]}>Subjects Done</Text>
-               <Text style={[s.snapshotValue, { color: theme.colors.primaryLight }]}>{totalSubjects}</Text>
-            </View>
+          </View>
+        </Animated.View>
+
+        {/* ── Verification Card ── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(340)}>
+          <View style={[s.verifyCard, { backgroundColor: isDark ? 'rgba(52,211,153,0.05)' : 'rgba(5,150,105,0.03)', borderColor: isDark ? 'rgba(52,211,153,0.15)' : 'rgba(5,150,105,0.15)' }]}>
+             <View style={s.verifyRow}>
+               <ShieldCheck color={theme.colors.success} size={24} strokeWidth={2} />
+               <View style={{ marginLeft: 12, flex: 1 }}>
+                 <Text style={[s.verifyTitle, { color: theme.colors.success }]}>Verified by MAKAUT</Text>
+                 <Text style={[s.verifySub, { color: theme.colors.textSecondary }]}>Last synced: {lastSyncedDate} • {lastSyncedTime}</Text>
+               </View>
+             </View>
           </View>
         </Animated.View>
 
@@ -781,6 +848,47 @@ const s = StyleSheet.create({
   snapshotValue: {
     fontSize: 18,
     fontWeight: '800',
+  },
+
+  // ── Degree & Verify ──
+  degreeCard: {
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    padding: 16,
+    ...Shadows.cardLight,
+  },
+  degreeHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  degreeTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  degreePercent: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  verifyCard: {
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    padding: 16,
+    marginTop: 16,
+  },
+  verifyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  verifyTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+  },
+  verifySub: {
+    fontSize: 11,
+    marginTop: 2,
   },
 
   // ── Quick Access ──

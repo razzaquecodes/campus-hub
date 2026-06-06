@@ -17,7 +17,6 @@ import { SplashScreen } from '@/components/animations/splash/SplashScreen';
 import { ThemeProvider as AppThemeProvider, useTheme } from '@/context/ThemeContext';
 import { AppProviders } from '@/providers/app-providers';
 import { useAuthStore } from '@/store/auth.store';
-import { useStudentStore } from '@/store/student.store';
 import { useAdminStore } from '@/store/admin.store';
 import { registerBackgroundSync } from '@/services/background-sync.service';
 
@@ -74,8 +73,8 @@ function useAuthGuard() {
     } else {
       if (isAdmin) {
         if (inAuthGroup || isRoot) {
-          console.info('[router-decision] Navigating to admin portal');
-          router.replace('/admin');
+          console.info('[router-decision] Navigating to faculty portal');
+          router.replace('/faculty');
         }
       } else {
         if (inAuthGroup || isRoot) {
@@ -98,6 +97,16 @@ function AppShell() {
       registerBackgroundSync();
     }
   }, [isHydrated]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').then((registration) => {
+        console.info('[ServiceWorker] Registered with scope:', registration.scope);
+      }).catch((err) => {
+        console.error('[ServiceWorker] Registration failed:', err);
+      });
+    }
+  }, []);
   
   const lastNotificationResponse = Notifications.useLastNotificationResponse();
   useEffect(() => {

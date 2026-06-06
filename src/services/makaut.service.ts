@@ -29,7 +29,7 @@ export async function getMakautProfile(userId: string): Promise<StudentProfile |
 export async function connectMakautAccount(
   userId: string,
   rollNumber: string,
-  password: string, // Currently not used in the mock, but would be sent to the backend securely
+  _password: string, // Currently not used in the mock, but would be sent to the backend securely
   existingProfile: UserProfile
 ): Promise<StudentProfile> {
   if (!supabase) throw new Error('Supabase not configured');

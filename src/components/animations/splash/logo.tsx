@@ -308,10 +308,8 @@ export function BBITWordmark({ size = 32 }: { size?: number }) {
 // Full brand lockup: orb + stacked text
 export function CampusHubLockup({
   orbSize = 88,
-  showInstitution = true,
 }: {
   orbSize?: number;
-  showInstitution?: boolean;
 }) {
   // Rendered in React Native — wrap in View externally
   // Returns only the SVG mark; pair with RN Text for app name

@@ -156,7 +156,6 @@ export function LuxuryCalendar({
 
 interface HolidayEventCardProps {
   holiday: Holiday;
-  index: number;
 }
 
 const TYPE_COLORS: Record<Holiday['type'], string> = {
@@ -165,7 +164,7 @@ const TYPE_COLORS: Record<Holiday['type'], string> = {
   event: Theme.colors.accent,
 };
 
-export function HolidayEventCard({ holiday, index }: HolidayEventCardProps) {
+export function HolidayEventCard({ holiday }: HolidayEventCardProps) {
   const color = TYPE_COLORS[holiday.type];
 
   return (

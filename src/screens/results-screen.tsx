@@ -22,7 +22,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Dimensions,
   Platform,
-  Pressable,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -38,7 +37,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Path, Stop } from 'react-native-svg';
 
 import { Badge, SpringButton, Skeleton, EmptyState, ErrorState } from '@/components/ui';
-import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
+import { Radius, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useStudentStore } from '@/store/student.store';
 import { API_CONFIG } from '@/config/api';
@@ -57,11 +56,11 @@ interface SemesterSummary {
 // ─── Dummy Data (For state design only, removed in prod) ─────────────────────
 // The actual component uses empty state by default to follow rules, but we include 
 // this purely for rendering the graph infrastructure.
-const DUMMY_SGPAS = [7.8, 8.2, 7.5, 8.5]; // 4 semesters
+
 
 // ─── Svg Graph Component ──────────────────────────────────────────────────────
 function SGPAChart({ data }: { data: any[] }) {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
   
   if (!Array.isArray(data)) return null;
 

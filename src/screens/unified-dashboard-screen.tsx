@@ -11,12 +11,9 @@ import {
   ArrowLeft,
   Award,
   BellRing,
-  BookOpen,
   ChevronRight,
-  TrendingUp,
   Target,
   Zap,
-  CheckCircle2,
   AlertTriangle,
   Lightbulb,
   Clock,
@@ -40,7 +37,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Badge, Skeleton, SpringButton } from '@/components/ui';
+import { Skeleton, SpringButton, ErrorState } from '@/components/ui';
 import { Radius, Shadows, Spacing } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useStudentStore } from '@/store/student.store';
@@ -49,14 +46,14 @@ import { useInternalMarks } from '@/hooks/queries/use-internal-marks';
 import { useResults } from '@/hooks/queries/use-results';
 import { calculateRiskAnalysis } from '@/utils/risk-predictor';
 
-const { width: W } = Dimensions.get('window');
+
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export function UnifiedDashboardScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   
-  const student = useStudentStore((s) => s.student);
+
   const profile = useAuthStore((s) => s.profile);
 
   const { data: results = [], isLoading: resLoading, isError: resError, refetch: refetchRes } = useResults();
@@ -233,11 +230,11 @@ export function UnifiedDashboardScreen() {
         )}
 
         {isError && !isLoading && (
-          <View style={[s.errorCard, { backgroundColor: isDark ? 'rgba(248,113,113,0.06)' : 'rgba(220,38,38,0.05)', borderColor: isDark ? 'rgba(248,113,113,0.20)' : 'rgba(220,38,38,0.14)' }]}>
-            <AlertCircle color={theme.colors.danger} size={32} />
-            <Text style={[s.stateTitle, { color: theme.colors.textPrimary }]}>Offline or Error</Text>
-            <Text style={[s.stateSub, { color: theme.colors.textSecondary }]}>Check your connection. Pull to refresh to try fetching cached or live data again.</Text>
-          </View>
+          <ErrorState 
+            title="Offline or Error"
+            message="Check your connection and try fetching data again."
+            onRetry={onRefresh}
+          />
         )}
 
         {!isLoading && !isError && analytics && (

@@ -5,8 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   StatusBar,
-  RefreshControl,
-  TouchableOpacity
+  RefreshControl
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -14,9 +13,9 @@ import {
   ArrowLeft,
   AlertTriangle,
   CheckCircle2,
-  FileWarning,
   Award,
-  BookOpen
+  BookOpen,
+  Info
 } from 'lucide-react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -156,7 +155,7 @@ export function BacklogsScreen() {
                 <Animated.View key={group.semester} entering={FadeInDown.duration(400).delay(200 + gIdx * 50)} style={s.groupContainer}>
                   <Text style={[s.semesterLabel, { color: theme.colors.textTertiary }]}>SEMESTER {group.semester}</Text>
                   
-                  {group.subjects.map((sub, sIdx) => {
+                  {group.subjects.map((sub) => {
                     const isActive = sub.status === 'Active';
                     return (
                       <View key={sub.subjectCode} style={[s.subjectCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
@@ -194,6 +193,14 @@ export function BacklogsScreen() {
                 </Animated.View>
               ))
             )}
+            
+            {/* ── Disclaimer Note ── */}
+            <Animated.View entering={FadeInDown.duration(400).delay(400)} style={s.disclaimerNote}>
+              <Info color={theme.colors.textTertiary} size={14} />
+              <Text style={[s.disclaimerText, { color: theme.colors.textTertiary }]}>
+                Backlog status is calculated from available MAKAUT result records and may update when new result data becomes available.
+              </Text>
+            </Animated.View>
           </>
         )}
       </ScrollView>
@@ -355,5 +362,17 @@ const s = StyleSheet.create({
   historyGrade: {
     fontSize: 12,
     fontWeight: '800',
+  },
+  disclaimerNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginTop: 16,
+    paddingHorizontal: 12,
+  },
+  disclaimerText: {
+    flex: 1,
+    fontSize: 11,
+    lineHeight: 16,
   },
 });

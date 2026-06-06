@@ -22,7 +22,9 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import React, { useEffect, useRef } from 'react';
 
 import { queryClient, asyncStoragePersister } from '@/lib/query-client';
+import { resolveMasterProfile } from '@/services/profile.service';
 import { mapStudentToUserProfile, useAuthStore } from '@/store/auth.store';
+import { useProfileStore } from '@/store/useProfileStore';
 import { useStudentStore } from '@/store/student.store';
 
 function hydratorLog(message: string, details?: Record<string, unknown>) {
@@ -34,6 +36,8 @@ function hydratorLog(message: string, details?: Record<string, unknown>) {
 function AuthHydrator({ children }: { children: React.ReactNode }) {
   const setProfile = useAuthStore((s) => s.setProfile);
   const setIsHydrated = useAuthStore((s) => s.setIsHydrated);
+  const setMasterProfile = useProfileStore((s) => s.setProfile);
+  const clearMasterProfile = useProfileStore((s) => s.clearProfile);
   const restoreSession = useStudentStore((s) => s.restoreSession);
   const studentIsHydrated = useStudentStore((s) => s.isHydrated);
   const student = useStudentStore((s) => s.student);
@@ -66,16 +70,19 @@ function AuthHydrator({ children }: { children: React.ReactNode }) {
       });
       const userProfile = mapStudentToUserProfile(student);
       setProfile(userProfile);
+      const masterProfile = resolveMasterProfile(student, userProfile);
+      if (masterProfile) setMasterProfile(masterProfile);
     } else {
       hydratorLog('AuthHydrator: no student session — clearing profile');
       setProfile(null);
+      clearMasterProfile();
     }
 
     // Mark auth store as hydrated AFTER profile is set to prevent the
     // race condition where isHydrated=true but profile=null flashes login.
     hydratorLog('AuthHydrator: marking isHydrated=true');
     setIsHydrated(true);
-  }, [studentIsHydrated, student, setProfile, setIsHydrated]);
+  }, [studentIsHydrated, student, setProfile, setIsHydrated, setMasterProfile, clearMasterProfile]);
 
   return <>{children}</>;
 }

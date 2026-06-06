@@ -19,7 +19,7 @@ import {
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import { SpringButton, Skeleton } from '@/components/ui';
+import { SpringButton, Skeleton, ErrorState } from '@/components/ui';
 import { Radius, Spacing, Shadows } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useResults } from '@/hooks/queries/use-results';
@@ -113,6 +113,14 @@ export function RiskPredictorScreen() {
             <Skeleton width="100%" height={100} radius={Radius.lg} />
             <Skeleton width="100%" height={100} radius={Radius.lg} />
           </View>
+        )}
+
+        {isError && !isLoading && (
+          <ErrorState 
+            title="Unable to Analyze Risk"
+            message="We could not fetch your academic data. Please check your connection."
+            onRetry={onRefresh}
+          />
         )}
 
         {!isLoading && !isError && !riskAnalysis && (

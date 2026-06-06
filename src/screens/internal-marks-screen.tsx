@@ -14,7 +14,6 @@ import {
   BookOpen,
   BarChart3,
   RefreshCw,
-  TrendingUp,
 } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
@@ -28,12 +27,11 @@ import {
 import Animated, {
   FadeIn,
   FadeInDown,
-  FadeInUp,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Badge, Skeleton, SpringButton, EmptyState, ErrorState } from '@/components/ui';
-import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
+import { Radius, Shadows, Spacing } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useStudentStore } from '@/store/student.store';
 import { useInternalMarks } from '@/hooks/queries/use-internal-marks';
@@ -414,7 +412,7 @@ export function InternalMarksScreen() {
         {screenState === 'empty' && (
           <EmptyState 
             title="No Marks Found"
-            message={rawMarks.length === 0 ? "You do not have any internal marks published yet." : "No marks found for the selected semester."}
+            message="CA Marks for the current semester are not available yet from the academic portal."
             actionLabel="Refresh Data"
             onAction={handleRetry}
           />

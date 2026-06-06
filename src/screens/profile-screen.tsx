@@ -24,7 +24,9 @@ import {
 import React, { useState } from 'react';
 import {
   Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StatusBar,
@@ -87,19 +89,34 @@ export function ProfileScreen() {
 
   // ── Save profile ───────────────────────────────────────────────────────────
   const handleSaveProfile = async () => {
+    const trimmedName = editFullName.trim();
+    const trimmedPhone = editPhone.trim();
+
+    if (!trimmedName || trimmedName.length < 3) {
+      Alert.alert('Invalid Name', 'Please enter a valid full name.');
+      return;
+    }
+    
+    // Basic phone validation (digits, 10-15 chars length roughly)
+    const phoneRegex = /^[0-9+\s-]{10,15}$/;
+    if (!phoneRegex.test(trimmedPhone)) {
+      Alert.alert('Invalid Phone', 'Please enter a valid mobile number.');
+      return;
+    }
+
     try {
       setSaving(true);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
 
       const { error } = await supabase!
         .from('student_profiles')
-        .update({ full_name: editFullName, mobile: editPhone })
+        .update({ full_name: trimmedName, mobile: trimmedPhone })
         .eq('user_id', profile?.id);
 
       if (error) throw error;
 
       if (profile) {
-        setProfile({ ...profile, full_name: editFullName, phone: editPhone });
+        setProfile({ ...profile, full_name: trimmedName, phone: trimmedPhone });
       }
 
       setEditModalVisible(false);
@@ -647,7 +664,10 @@ export function ProfileScreen() {
         transparent={true}
         onRequestClose={() => setEditModalVisible(false)}
       >
-        <View style={ps.modalOverlay}>
+        <KeyboardAvoidingView 
+          style={ps.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <View
             style={[
               ps.modalContent,
@@ -758,7 +778,7 @@ export function ProfileScreen() {
               </Pressable>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

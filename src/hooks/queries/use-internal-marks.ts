@@ -15,5 +15,6 @@ export function useInternalMarks() {
     queryKey: internalMarksKeys.detail(rollNumber),
     enabled: !!rollNumber,
     queryFn: () => fetchInternalMarks(rollNumber!),
+    staleTime: 5 * 60_000,
   });
 }

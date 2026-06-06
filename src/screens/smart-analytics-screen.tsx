@@ -12,15 +12,12 @@ import { router } from 'expo-router';
 import {
   ArrowLeft,
   Activity,
-  Award,
   TrendingUp,
   TrendingDown,
   Minus,
-  CheckCircle2,
   AlertTriangle,
   Lightbulb,
   Medal,
-  Clock,
   BookOpen,
 } from 'lucide-react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
@@ -139,8 +136,28 @@ export function SmartAnalyticsScreen() {
           />
         )}
 
-        {!isLoading && !isError && results && results.length > 0 && analytics && (
+        {!isLoading && !isError && results && results.length > 0 && analytics && !analytics.isValid && (
+          <EmptyState 
+            title="Analytics Unavailable"
+            message={analytics.validationMessage || "Your data is incomplete."}
+            actionLabel="Refresh Data"
+            onAction={onRefresh}
+          />
+        )}
+
+        {!isLoading && !isError && results && results.length > 0 && analytics && analytics.isValid && (
           <>
+            {analytics.hasIncompleteData && (
+              <Animated.View entering={FadeInDown.duration(400).delay(50)} style={{ marginBottom: 16 }}>
+                <View style={{ backgroundColor: `${theme.colors.warning}15`, padding: 16, borderRadius: Radius.lg, borderWidth: 1, borderColor: `${theme.colors.warning}30`, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <AlertTriangle color={theme.colors.warning} size={20} />
+                  <Text style={{ flex: 1, color: theme.colors.textPrimary, fontSize: 13, lineHeight: 18 }}>
+                    Some semester records are processing or incomplete. Analytics shown are based only on fully published results.
+                  </Text>
+                </View>
+              </Animated.View>
+            )}
+
             {/* 1. Academic Journey Card */}
             <Animated.View entering={FadeInDown.duration(400).delay(100)}>
               <Text style={[s.sectionTitle, { color: theme.colors.textTertiary }]}>ACADEMIC JOURNEY</Text>

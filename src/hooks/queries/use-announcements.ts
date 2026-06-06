@@ -15,6 +15,7 @@ export function useAnnouncements() {
     queryKey: announcementKeys.list(profile?.id),
     enabled: !!profile,
     queryFn: () => fetchAnnouncements(profile!),
+    staleTime: 5 * 60_000,
   });
 }
 

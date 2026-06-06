@@ -65,6 +65,11 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
     },
     web: {
       ...config.web,
+      name: 'Campus Hub',
+      shortName: 'Campus Hub',
+      display: 'standalone',
+      backgroundColor: '#0A0A0B',
+      themeColor: '#0A0A0B',
       output: 'static',
       favicon: './assets/images/favicon.png',
       bundler: 'metro',

@@ -24,7 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Radius, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
-import { Badge, GlassCard, SectionHeader, SpringButton, StatTile } from '@/components/ui';
+import { Badge, GlassCard, SectionHeader, SpringButton, StatTile, EmptyState } from '@/components/ui';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -79,20 +79,9 @@ function CircularProgress({ percentage, color, bg }: CircularProgressProps) {
 }
 
 // ─── Subject data ─────────────────────────────────────────────────────────────
-const SUBJECTS = [
-  { id: '1', name: 'Data Structures',  code: 'CS301', attended: 28, total: 32, color: '#6366F1' },
-  { id: '2', name: 'Linear Algebra',   code: 'MA201', attended: 22, total: 28, color: '#8B5CF6' },
-  { id: '3', name: 'Operating Systems',code: 'CS302', attended: 18, total: 26, color: '#EC4899' },
-  { id: '4', name: 'Computer Networks',code: 'CS303', attended: 30, total: 34, color: '#10B981' },
-  { id: '5', name: 'DBMS',             code: 'CS304', attended: 14, total: 20, color: '#F59E0B' },
-];
-
-const RECENT_RECORDS = [
-  { date: 'Mon, Nov 18', subject: 'Data Structures', status: 'present' },
-  { date: 'Mon, Nov 18', subject: 'Linear Algebra',  status: 'absent' },
-  { date: 'Tue, Nov 19', subject: 'OS Lab',           status: 'present' },
-  { date: 'Tue, Nov 19', subject: 'Networks',         status: 'present' },
-];
+// Hardcoded dummy data has been removed.
+const SUBJECTS: Array<{ id: string; name: string; code: string; attended: number; total: number; color: string }> = [];
+const RECENT_RECORDS: Array<{ date: string; subject: string; status: string }> = [];
 
 function getStatusColor(pct: number, colors: ReturnType<typeof useTheme>['theme']['colors']) {
   if (pct >= 85) return colors.success;
@@ -175,9 +164,9 @@ export function AttendanceScreen() {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const overallAttended = SUBJECTS.reduce((a, s) => a + s.attended, 0);
-  const overallTotal    = SUBJECTS.reduce((a, s) => a + s.total, 0);
-  const overallPct      = Math.round((overallAttended / overallTotal) * 100);
+  const overallAttended = SUBJECTS.length > 0 ? SUBJECTS.reduce((a, s) => a + s.attended, 0) : 0;
+  const overallTotal    = SUBJECTS.length > 0 ? SUBJECTS.reduce((a, s) => a + s.total, 0) : 0;
+  const overallPct      = overallTotal > 0 ? Math.round((overallAttended / overallTotal) * 100) : 0;
   const overallColor    = getStatusColor(overallPct, theme.colors);
 
   // Animated percentage text — drive via JS state for display
@@ -238,178 +227,186 @@ export function AttendanceScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}>
-
-        {/* ── Hero Ring ── */}
-        <Animated.View
-          entering={FadeIn.duration(600).delay(100)}
-          style={{ alignItems: 'center', paddingVertical: Spacing.xxl }}>
-          <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
-            {/* Glow behind ring */}
-            <View style={{
-              position: 'absolute',
-              width: ARC_SIZE * 0.7,
-              height: ARC_SIZE * 0.7,
-              borderRadius: ARC_SIZE * 0.35,
-              backgroundColor: `${overallColor}18`,
-            }} />
-            <CircularProgress
-              percentage={overallPct}
-              color={overallColor}
-              bg={`${overallColor}20`}
-            />
-            {/* Center text */}
-            <View style={{ position: 'absolute', alignItems: 'center' }}>
-              <Text style={[Typography.display.large, { color: overallColor }]}>
-                {displayPct}%
-              </Text>
-              <Text style={[Typography.label.md, { color: theme.colors.textTertiary, textTransform: 'uppercase', letterSpacing: 1.5 }]}>
-                Overall
-              </Text>
-              <View style={{
-                flexDirection: 'row',
-                gap: 4,
-                marginTop: 8,
-                backgroundColor: theme.colors.primaryMuted,
-                paddingHorizontal: 10,
-                paddingVertical: 4,
-                borderRadius: Radius.pill,
-              }}>
-                <Text style={[Typography.label.sm, { color: theme.colors.primary }]}>
-                  {overallAttended}/{overallTotal} classes
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Status badge */}
-          <Animated.View entering={FadeInUp.duration(400).delay(700)}>
-            {overallPct >= 75 ? (
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 6,
-                marginTop: Spacing.xl,
-                backgroundColor: theme.colors.successMuted,
-                paddingHorizontal: 14,
-                paddingVertical: 7,
-                borderRadius: Radius.pill,
-                borderWidth: 1,
-                borderColor: `${theme.colors.success}30`,
-              }}>
-                <CheckCircle color={theme.colors.success} size={15} />
-                <Text style={[Typography.label.md, { color: theme.colors.success }]}>
-                  Safe Zone — Good standing
-                </Text>
-              </View>
-            ) : (
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 6,
-                marginTop: Spacing.xl,
-                backgroundColor: theme.colors.dangerMuted,
-                paddingHorizontal: 14,
-                paddingVertical: 7,
-                borderRadius: Radius.pill,
-                borderWidth: 1,
-                borderColor: `${theme.colors.danger}30`,
-              }}>
-                <AlertCircle color={theme.colors.danger} size={15} />
-                <Text style={[Typography.label.md, { color: theme.colors.danger }]}>
-                  Low — Attend {Math.ceil((0.75 * overallTotal - overallAttended) / 0.25)} more classes
-                </Text>
-              </View>
-            )}
-          </Animated.View>
-        </Animated.View>
-
-        {/* ── Quick Stats ── */}
-        <Animated.View
-          entering={FadeInDown.duration(500).delay(300)}
-          style={{ paddingHorizontal: Spacing.page.horizontal, gap: 12 }}>
-          <View style={{ flexDirection: 'row', gap: 12 }}>
-            <StatTile
-              label="Present"
-              value={overallAttended}
-              color={theme.colors.success}
-              entering={FadeInLeft.duration(400).delay(350)}
-              icon={<CheckCircle color={theme.colors.success} size={16} />}
-            />
-            <StatTile
-              label="Absent"
-              value={overallTotal - overallAttended}
-              color={theme.colors.danger}
-              entering={FadeInLeft.duration(400).delay(400)}
-              icon={<XCircle color={theme.colors.danger} size={16} />}
-            />
-          </View>
-        </Animated.View>
-
-        {/* ── Subject Breakdown ── */}
-        <Animated.View
-          entering={FadeInDown.duration(500).delay(450)}
-          style={{ paddingHorizontal: Spacing.page.horizontal, marginTop: Spacing.xxxl }}>
-          <SectionHeader title="Subject Breakdown" style={{ marginBottom: Spacing.lg }} />
-
-          <View style={{ gap: 10 }}>
-            {SUBJECTS.map((sub, i) => (
-              <SubjectAttendanceRow key={sub.id} subject={sub} index={i} />
-            ))}
-          </View>
-        </Animated.View>
-
-        {/* ── Recent Records ── */}
-        <Animated.View
-          entering={FadeInDown.duration(500).delay(600)}
-          style={{ paddingHorizontal: Spacing.page.horizontal, marginTop: Spacing.xxxl }}>
-          <SectionHeader
-            title="Recent Records"
-            action="View All"
-            style={{ marginBottom: Spacing.lg }}
+        contentContainerStyle={{ paddingBottom: 100 + insets.bottom, paddingTop: 16 }}>
+        {SUBJECTS.length === 0 ? (
+          <EmptyState
+            title="Attendance Unavailable"
+            message="Official attendance records are not currently available. They will appear here once published."
           />
-          <GlassCard intensity={12} padding={0} radius={Radius.xl}>
-            {RECENT_RECORDS.map((rec, i) => (
-              <View key={i}>
+        ) : (
+          <>
+            {/* ── Hero Ring ── */}
+            <Animated.View
+              entering={FadeIn.duration(600).delay(100)}
+              style={{ alignItems: 'center', paddingVertical: Spacing.xxl }}>
+              <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
+                {/* Glow behind ring */}
                 <View style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  padding: Spacing.lg,
-                  gap: Spacing.md,
-                }}>
+                  position: 'absolute',
+                  width: ARC_SIZE * 0.7,
+                  height: ARC_SIZE * 0.7,
+                  borderRadius: ARC_SIZE * 0.35,
+                  backgroundColor: `${overallColor}18`,
+                }} />
+                <CircularProgress
+                  percentage={overallPct}
+                  color={overallColor}
+                  bg={`${overallColor}20`}
+                />
+                {/* Center text */}
+                <View style={{ position: 'absolute', alignItems: 'center' }}>
+                  <Text style={[Typography.display.large, { color: overallColor }]}>
+                    {displayPct}%
+                  </Text>
+                  <Text style={[Typography.label.md, { color: theme.colors.textTertiary, textTransform: 'uppercase', letterSpacing: 1.5 }]}>
+                    Overall
+                  </Text>
                   <View style={{
-                    width: 36, height: 36, borderRadius: 18,
-                    backgroundColor: rec.status === 'present'
-                      ? theme.colors.successMuted
-                      : theme.colors.dangerMuted,
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    flexDirection: 'row',
+                    gap: 4,
+                    marginTop: 8,
+                    backgroundColor: theme.colors.primaryMuted,
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: Radius.pill,
                   }}>
-                    {rec.status === 'present'
-                      ? <CheckCircle color={theme.colors.success} size={18} />
-                      : <XCircle color={theme.colors.danger} size={18} />
-                    }
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[Typography.body.md, { color: theme.colors.textPrimary }]}>
-                      {rec.subject}
-                    </Text>
-                    <Text style={[Typography.caption, { color: theme.colors.textTertiary, marginTop: 2 }]}>
-                      {rec.date}
+                    <Text style={[Typography.label.sm, { color: theme.colors.primary }]}>
+                      {overallAttended}/{overallTotal} classes
                     </Text>
                   </View>
-                  <Badge
-                    label={rec.status === 'present' ? 'Present' : 'Absent'}
-                    color={rec.status === 'present' ? theme.colors.success : theme.colors.danger}
-                  />
                 </View>
-                {i < RECENT_RECORDS.length - 1 && (
-                  <View style={{ height: 1, backgroundColor: theme.colors.border, marginLeft: 68 }} />
-                )}
               </View>
-            ))}
-          </GlassCard>
-        </Animated.View>
+
+              {/* Status badge */}
+              <Animated.View entering={FadeInUp.duration(400).delay(700)}>
+                {overallPct >= 75 ? (
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    marginTop: Spacing.xl,
+                    backgroundColor: theme.colors.successMuted,
+                    paddingHorizontal: 14,
+                    paddingVertical: 7,
+                    borderRadius: Radius.pill,
+                    borderWidth: 1,
+                    borderColor: `${theme.colors.success}30`,
+                  }}>
+                    <CheckCircle color={theme.colors.success} size={15} />
+                    <Text style={[Typography.label.md, { color: theme.colors.success }]}>
+                      Safe Zone — Good standing
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    marginTop: Spacing.xl,
+                    backgroundColor: theme.colors.dangerMuted,
+                    paddingHorizontal: 14,
+                    paddingVertical: 7,
+                    borderRadius: Radius.pill,
+                    borderWidth: 1,
+                    borderColor: `${theme.colors.danger}30`,
+                  }}>
+                    <AlertCircle color={theme.colors.danger} size={15} />
+                    <Text style={[Typography.label.md, { color: theme.colors.danger }]}>
+                      Low — Attend {Math.ceil((0.75 * overallTotal - overallAttended) / 0.25)} more classes
+                    </Text>
+                  </View>
+                )}
+              </Animated.View>
+            </Animated.View>
+
+            {/* ── Quick Stats ── */}
+            <Animated.View
+              entering={FadeInDown.duration(500).delay(300)}
+              style={{ paddingHorizontal: Spacing.page.horizontal, gap: 12 }}>
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <StatTile
+                  label="Present"
+                  value={overallAttended}
+                  color={theme.colors.success}
+                  entering={FadeInLeft.duration(400).delay(350)}
+                  icon={<CheckCircle color={theme.colors.success} size={16} />}
+                />
+                <StatTile
+                  label="Absent"
+                  value={overallTotal - overallAttended}
+                  color={theme.colors.danger}
+                  entering={FadeInLeft.duration(400).delay(400)}
+                  icon={<XCircle color={theme.colors.danger} size={16} />}
+                />
+              </View>
+            </Animated.View>
+
+            {/* ── Subject Breakdown ── */}
+            <Animated.View
+              entering={FadeInDown.duration(500).delay(450)}
+              style={{ paddingHorizontal: Spacing.page.horizontal, marginTop: Spacing.xxxl }}>
+              <SectionHeader title="Subject Breakdown" style={{ marginBottom: Spacing.lg }} />
+
+              <View style={{ gap: 10 }}>
+                {SUBJECTS.map((sub, i) => (
+                  <SubjectAttendanceRow key={sub.id} subject={sub} index={i} />
+                ))}
+              </View>
+            </Animated.View>
+
+            {/* ── Recent Records ── */}
+            <Animated.View
+              entering={FadeInDown.duration(500).delay(600)}
+              style={{ paddingHorizontal: Spacing.page.horizontal, marginTop: Spacing.xxxl }}>
+              <SectionHeader
+                title="Recent Records"
+                action="View All"
+                style={{ marginBottom: Spacing.lg }}
+              />
+              <GlassCard intensity={12} padding={0} radius={Radius.xl}>
+                {RECENT_RECORDS.map((rec, i) => (
+                  <View key={i}>
+                    <View style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      padding: Spacing.lg,
+                      gap: Spacing.md,
+                    }}>
+                      <View style={{
+                        width: 36, height: 36, borderRadius: 18,
+                        backgroundColor: rec.status === 'present'
+                          ? theme.colors.successMuted
+                          : theme.colors.dangerMuted,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        {rec.status === 'present'
+                          ? <CheckCircle color={theme.colors.success} size={18} />
+                          : <XCircle color={theme.colors.danger} size={18} />
+                        }
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[Typography.body.md, { color: theme.colors.textPrimary }]}>
+                          {rec.subject}
+                        </Text>
+                        <Text style={[Typography.caption, { color: theme.colors.textTertiary, marginTop: 2 }]}>
+                          {rec.date}
+                        </Text>
+                      </View>
+                      <Badge
+                        label={rec.status === 'present' ? 'Present' : 'Absent'}
+                        color={rec.status === 'present' ? theme.colors.success : theme.colors.danger}
+                      />
+                    </View>
+                    {i < RECENT_RECORDS.length - 1 && (
+                      <View style={{ height: 1, backgroundColor: theme.colors.border, marginLeft: 68 }} />
+                    )}
+                  </View>
+                ))}
+              </GlassCard>
+            </Animated.View>
+          </>
+        )}
       </ScrollView>
     </View>
   );

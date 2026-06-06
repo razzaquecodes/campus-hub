@@ -26,7 +26,12 @@ import {
   FileText,
   FileWarning,
   Activity,
-  PieChart
+  PieChart,
+  Layers,
+  HelpCircle,
+  CalendarX2,
+  Trophy,
+  Briefcase
 } from 'lucide-react-native';
 import React, { useCallback, useMemo } from 'react';
 import {
@@ -59,23 +64,33 @@ import { Radius, Shadows } from '@/constants/theme';
 import { useAssignments } from '@/hooks/use-assignments';
 import { useAnnouncements } from '@/hooks/queries/use-announcements';
 import { useUnreadNotificationCount } from '@/hooks/queries/use-notifications';
+import { ActiveAttendanceCard } from '@/components/ui/ActiveAttendanceCard';
 import { useStudentStats } from '@/hooks/queries/use-student-stats';
-import { SpringButton } from '@/components/ui';
+import { SpringButton, GlassCard } from '@/components/ui';
+import { useFacultyStore } from '@/store/faculty.store';
 
 const { width: W } = Dimensions.get('window');
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
+const WORKFLOW_ACTIONS = [
+  { id: 'leaves',      label: 'Leaves',       icon: CalendarX2, color: '#F87171', route: '/leaves' },
+  { id: 'doubts',      label: 'Doubt Desk',   icon: HelpCircle, color: '#3B82F6', route: '/doubts' },
+  { id: 'office-hours',label: 'Office Hours', icon: Clock,      color: '#8B5CF6', route: '/office-hours' },
+  { id: 'achievements',label: 'Achievements', icon: Trophy,     color: '#F59E0B', route: '/achievements' },
+  { id: 'placements',  label: 'Placements',   icon: Briefcase,  color: '#10B981', route: '/placements' },
+];
+
 // Quick actions — all routes verified as real screens
 const QUICK_ACTIONS = [
   { id: 'attendance', label: 'Attendance',   icon: Calendar,    color: '#6366F1', route: '/attendance' },
-  { id: 'timetable',  label: 'Timetable',    icon: Clock,       color: '#3B82F6', route: '/(tabs)/courses' },
-  { id: 'internal-marks',   label: 'Internal Marks',     icon: BarChart3,   color: '#10B981', route: '/internal-marks' },
-  { id: 'academics',  label: 'Academics',    icon: AwardIcon,   color: '#F59E0B', route: '/academic-dashboard' },
-  { id: 'digital-id', label: 'Digital ID',   icon: CreditCard,  color: '#A78BFA', route: '/digital-id' },
-  { id: 'documents',  label: 'Documents',    icon: FileText,    color: '#F472B6', route: '/documents' },
-  { id: 'analytics',  label: 'Analytics',    icon: PieChart,    color: '#10B981', route: '/smart-analytics' },
-  { id: 'timeline',   label: 'Timeline',     icon: Activity,    color: '#8B5CF6', route: '/academic-timeline' },
-  { id: 'backlogs',   label: 'Backlogs',     icon: FileWarning, color: '#EF4444', route: '/backlogs' },
+  { id: 'calendar',   label: 'Calendar',     icon: Calendar,    color: '#3B82F6', route: '/calendar' },
+  { id: 'assignments',label: 'Assignments',  icon: BookOpen,    color: '#10B981', route: '/assignments' },
+  { id: 'materials',  label: 'Materials',    icon: FileText,    color: '#F59E0B', route: '/materials' },
+  { id: 'feed',       label: 'Campus Feed',  icon: Layers,      color: '#A78BFA', route: '/feed' },
+  { id: 'analytics',  label: 'Analytics',    icon: PieChart,    color: '#F472B6', route: '/smart-analytics' },
+  { id: 'internal-marks', label: 'Marks',    icon: BarChart3,   color: '#10B981', route: '/internal-marks' },
+  { id: 'digital-id', label: 'Digital ID',   icon: CreditCard,  color: '#8B5CF6', route: '/digital-id' },
+  { id: 'timeline',   label: 'Timeline',     icon: Activity,    color: '#EF4444', route: '/academic-timeline' },
 ];
 
 function getGreeting(): string {
@@ -102,14 +117,27 @@ export function HomeScreen() {
 
   const profile = useAuthStore((s) => s.profile);
   const student = useStudentStore((s) => s.student);
-  const todayClasses = getTodayClasses();
+  const todayClasses = useMemo(() => getTodayClasses(), []);
   const { pending, toggleComplete } = useAssignments();
-  const { data: announcements = [] } = useAnnouncements();
+  const { data: announcements = [], isLoading: annLoading, isError: annError, refetch: refetchAnn } = useAnnouncements();
   const { data: unreadCount = 0 } = useUnreadNotificationCount();
-  const { data: stats, isLoading: statsLoading } = useStudentStats();
+  const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useStudentStats();
 
   // Get active class info
   const { current: currentClass } = useMemo(() => getCurrentAndNextClass(), []);
+
+  // Faculty Announcements Visibility Logic
+  const activeNotices = useFacultyStore((s) => s.activeNotices);
+  const facultyNotices = useMemo(() => {
+    return activeNotices.filter(n => {
+      if (n.status !== 'Active') return false;
+      if (n.target.isAll) return true;
+      const bMatch = !n.target.branch || n.target.branch === profile?.branch;
+      const semMatch = !n.target.semester || n.target.semester === profile?.semester;
+      const secMatch = !n.target.section || n.target.section === profile?.section;
+      return bMatch && semMatch && secMatch;
+    });
+  }, [activeNotices, profile]);
 
   const scrollHandler = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
@@ -120,11 +148,12 @@ export function HomeScreen() {
     transform: [{ translateY: interpolate(scrollY.value, [0, 60], [0, -2], Extrapolation.CLAMP) }],
   }));
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    setTimeout(() => setRefreshing(false), 1500);
-  }, []);
+    await Promise.all([refetchAnn(), refetchStats()]);
+    setRefreshing(false);
+  }, [refetchAnn, refetchStats]);
 
   const today = new Date().toLocaleDateString('en-IN', {
     weekday: 'long', month: 'long', day: 'numeric',
@@ -267,6 +296,7 @@ export function HomeScreen() {
           />
         }
       >
+        <ActiveAttendanceCard />
         {/* ── Academic Overview ── */}
         <Animated.View entering={FadeInDown.duration(500).delay(180)} style={ss.section}>
           <View style={ss.sectionRow}>
@@ -274,48 +304,56 @@ export function HomeScreen() {
           </View>
           <View style={ss.statsRow}>
             {/* Attendance stat */}
-            <View style={[ss.statCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <View style={[ss.statCard, { backgroundColor: theme.colors.surface, ...Shadows.cardLight }]}>
               <View style={[ss.statIconWrap, { backgroundColor: `${theme.colors.success}12` }]}>
-                <TrendingUp color={theme.colors.success} size={15} strokeWidth={2.2} />
+                <TrendingUp color={theme.colors.success} size={15} strokeWidth={2.5} />
               </View>
               {statsLoading ? (
                 <View style={[ss.statSkeleton, { backgroundColor: theme.colors.border }]} />
+              ) : statsError ? (
+                <Pressable onPress={() => refetchStats()} style={{ alignItems: 'center' }}>
+                  <Text style={[ss.statValue, { color: theme.colors.danger, fontSize: 13 }]}>Retry</Text>
+                </Pressable>
               ) : (
-                <Text style={[ss.statValue, { color: theme.colors.success }]}>
+                <Text style={[ss.statValue, { color: theme.colors.textPrimary }]}>
                   {attendanceRate !== null ? `${attendanceRate.toFixed(1)}%` : '—'}
                 </Text>
               )}
-              <Text style={[ss.statLabel, { color: theme.colors.textTertiary }]}>Attendance</Text>
+              <Text style={[ss.statLabel, { color: theme.colors.textSecondary }]}>Attendance</Text>
               <Text style={[ss.statSub, { color: theme.colors.textTertiary }]}>
                 {attendanceRate !== null ? (attendanceRate >= 75 ? 'Good standing' : 'Low — risk!') : 'Not tracked'}
               </Text>
             </View>
 
             {/* CGPA stat */}
-            <View style={[ss.statCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <View style={[ss.statCard, { backgroundColor: theme.colors.surface, ...Shadows.cardLight }]}>
               <View style={[ss.statIconWrap, { backgroundColor: `${theme.colors.info}12` }]}>
-                <Star color={theme.colors.info} size={15} strokeWidth={2.2} />
+                <Star color={theme.colors.info} size={15} strokeWidth={2.5} />
               </View>
               {statsLoading ? (
                 <View style={[ss.statSkeleton, { backgroundColor: theme.colors.border }]} />
+              ) : statsError ? (
+                <Pressable onPress={() => refetchStats()} style={{ alignItems: 'center' }}>
+                  <Text style={[ss.statValue, { color: theme.colors.danger, fontSize: 13 }]}>Retry</Text>
+                </Pressable>
               ) : (
-                <Text style={[ss.statValue, { color: theme.colors.info }]}>
+                <Text style={[ss.statValue, { color: theme.colors.textPrimary }]}>
                   {cgpa !== null ? cgpa.toFixed(2) : '—'}
                 </Text>
               )}
-              <Text style={[ss.statLabel, { color: theme.colors.textTertiary }]}>CGPA</Text>
+              <Text style={[ss.statLabel, { color: theme.colors.textSecondary }]}>CGPA</Text>
               <Text style={[ss.statSub, { color: theme.colors.textTertiary }]}>
                 {cgpa !== null ? 'Current semester' : 'Not available'}
               </Text>
             </View>
 
             {/* Assignments count stat */}
-            <View style={[ss.statCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <View style={[ss.statCard, { backgroundColor: theme.colors.surface, ...Shadows.cardLight }]}>
               <View style={[ss.statIconWrap, { backgroundColor: `${theme.colors.warning}12` }]}>
-                <Zap color={theme.colors.warning} size={15} strokeWidth={2.2} />
+                <Zap color={theme.colors.warning} size={15} strokeWidth={2.5} />
               </View>
-              <Text style={[ss.statValue, { color: theme.colors.warning }]}>{pendingCount}</Text>
-              <Text style={[ss.statLabel, { color: theme.colors.textTertiary }]}>Due Tasks</Text>
+              <Text style={[ss.statValue, { color: theme.colors.textPrimary }]}>{pendingCount}</Text>
+              <Text style={[ss.statLabel, { color: theme.colors.textSecondary }]}>Due Tasks</Text>
               <Text style={[ss.statSub, { color: theme.colors.textTertiary }]}>Assignments</Text>
             </View>
           </View>
@@ -343,7 +381,7 @@ export function HomeScreen() {
             <Text style={[ss.sectionTitle, { color: theme.colors.textPrimary }]}>Quick Access</Text>
           </View>
           <View style={ss.actionsGrid}>
-            {QUICK_ACTIONS.map((action, i) => {
+            {QUICK_ACTIONS.map((action) => {
               const ActionIcon = action.icon;
               return (
                 <View key={action.id} style={{ width: (W - 44 - 16) / 3 }}>
@@ -354,12 +392,13 @@ export function HomeScreen() {
                   >
                     <View style={[ss.actionTile, {
                       backgroundColor: theme.colors.surface,
-                      borderColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
+                      ...Shadows.cardLight,
+                      borderWidth: 0,
                     }]}>
-                      <View style={[ss.actionIconWrap, { backgroundColor: `${action.color}14` }]}>
-                        <ActionIcon color={action.color} size={20} strokeWidth={2} />
+                      <View style={[ss.actionIconWrap, { backgroundColor: `${action.color}18` }]}>
+                        <ActionIcon color={action.color} size={22} strokeWidth={2.2} />
                       </View>
-                      <Text style={[ss.actionLabel, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+                      <Text style={[ss.actionLabel, { color: theme.colors.textPrimary }]} numberOfLines={1}>
                         {action.label}
                       </Text>
                     </View>
@@ -368,6 +407,40 @@ export function HomeScreen() {
               );
             })}
           </View>
+        </Animated.View>
+
+        {/* ── Career & Workflow (Horizontal Scroll) ── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(280)} style={ss.section}>
+          <View style={ss.sectionRow}>
+            <Text style={[ss.sectionTitle, { color: theme.colors.textPrimary }]}>Career & Workflow</Text>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 22 }}>
+            {WORKFLOW_ACTIONS.map((action) => {
+              const ActionIcon = action.icon;
+              return (
+                <SpringButton
+                  key={action.id}
+                  onPress={() => router.push(action.route as any)}
+                  scaleDown={0.93}
+                >
+                  <View style={[ss.actionTile, {
+                    backgroundColor: theme.colors.surface,
+                    ...Shadows.cardLight,
+                    borderWidth: 1,
+                    borderColor: theme.colors.border,
+                    width: 90,
+                  }]}>
+                    <View style={[ss.actionIconWrap, { backgroundColor: `${action.color}18` }]}>
+                      <ActionIcon color={action.color} size={22} strokeWidth={2.2} />
+                    </View>
+                    <Text style={[ss.actionLabel, { color: theme.colors.textPrimary, marginTop: 4 }]} numberOfLines={1}>
+                      {action.label}
+                    </Text>
+                  </View>
+                </SpringButton>
+              );
+            })}
+          </ScrollView>
         </Animated.View>
 
         {/* ── Active & Today&apos;s Schedule ── */}
@@ -417,8 +490,8 @@ export function HomeScreen() {
                           </Text>
                           {isActive && (
                             <View style={[ss.liveIndicator, { backgroundColor: `${theme.colors.success}16` }]}>
-                              <View style={[ss.liveDot, { backgroundColor: theme.colors.success }]} />
-                              <Text style={[ss.liveText, { color: theme.colors.success }]}>LIVE</Text>
+                              <View style={[ss.liveDot, { backgroundColor: theme.colors.success, ...Shadows.glow(theme.colors.success) }]} />
+                              <Text style={[ss.liveText, { color: theme.colors.success, fontWeight: '800' }]}>LIVE</Text>
                             </View>
                           )}
                         </View>
@@ -451,9 +524,9 @@ export function HomeScreen() {
 
           {pending.length === 0 ? (
             <View style={[ss.assignmentEmpty, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-              <CheckCircle2 color={theme.colors.success} size={28} strokeWidth={1.8} />
-              <Text style={[ss.emptyText, { color: theme.colors.textPrimary, marginTop: 8 }]}>All caught up!</Text>
-              <Text style={[ss.emptySubText, { color: theme.colors.textTertiary }]}>No pending homework assignments</Text>
+              <FileWarning color={theme.colors.textTertiary} size={28} strokeWidth={1.8} />
+              <Text style={[ss.emptyText, { color: theme.colors.textPrimary, marginTop: 8 }]}>No Assignment Data Available</Text>
+              <Text style={[ss.emptySubText, { color: theme.colors.textTertiary, textAlign: 'center', paddingHorizontal: 20 }]}>Assignment tracking will be enabled when official data becomes available.</Text>
             </View>
           ) : (
             <View style={ss.assignmentsList}>
@@ -523,7 +596,7 @@ export function HomeScreen() {
             <Text style={[ss.sectionTitle, { color: theme.colors.textPrimary }]}>Latest Announcements</Text>
             <Pressable
               onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
-              onPress={() => router.push('/(tabs)/announcements')}
+              onPress={() => router.push('/announcements')}
               style={ss.sectionAction}
             >
               <Text style={[ss.sectionActionText, { color: theme.colors.primaryLight }]}>View All</Text>
@@ -531,7 +604,22 @@ export function HomeScreen() {
             </Pressable>
           </View>
           <View style={{ gap: 10 }}>
-            {announcements.slice(0, 3).map((item, i) => {
+            {annLoading && !refreshing ? (
+              <View style={[ss.annoCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, height: 80, justifyContent: 'center', alignItems: 'center' }]}>
+                <Text style={{ color: theme.colors.textSecondary, fontSize: 13 }}>Loading announcements...</Text>
+              </View>
+            ) : annError ? (
+              <View style={[ss.annoCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, height: 80, justifyContent: 'center', alignItems: 'center' }]}>
+                <Text style={{ color: theme.colors.danger, fontSize: 13, fontWeight: '500' }}>Failed to load announcements</Text>
+                <Pressable onPress={() => refetchAnn()} style={{ marginTop: 4 }}>
+                  <Text style={{ color: theme.colors.primaryLight, fontSize: 11, fontWeight: '600' }}>Retry</Text>
+                </Pressable>
+              </View>
+            ) : announcements.length === 0 ? (
+              <View style={[ss.annoCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, height: 80, justifyContent: 'center', alignItems: 'center' }]}>
+                <Text style={{ color: theme.colors.textSecondary, fontSize: 13 }}>No recent announcements</Text>
+              </View>
+            ) : announcements.slice(0, 3).map((item, i) => {
               const urgent = item.priority === 'urgent' || item.priority === 'high';
               const catColor = urgent ? theme.colors.danger : theme.colors.primaryLight;
               return (
@@ -567,14 +655,70 @@ export function HomeScreen() {
           </View>
         </Animated.View>
 
+        {/* ── Faculty Notices (New Feature) ── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(400)} style={ss.section}>
+          <View style={ss.sectionRow}>
+            <Text style={[ss.sectionTitle, { color: theme.colors.textPrimary }]}>Faculty Notices</Text>
+            <Pressable
+              onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+              onPress={() => router.push('/announcements')}
+              style={ss.sectionAction}
+            >
+              <Text style={[ss.sectionActionText, { color: theme.colors.primaryLight }]}>View Center</Text>
+              <ChevronRight color={theme.colors.primaryLight} size={14} strokeWidth={2.5} />
+            </Pressable>
+          </View>
+          <View style={{ gap: 10 }}>
+            {facultyNotices.length === 0 ? (
+              <View style={[ss.annoCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, height: 80, justifyContent: 'center', alignItems: 'center' }]}>
+                <Text style={{ color: theme.colors.textSecondary, fontSize: 13 }}>No recent notices from faculty</Text>
+              </View>
+            ) : facultyNotices.slice(0, 3).map((notice, i) => (
+              <Animated.View
+                key={notice.id}
+                entering={FadeInDown.duration(380).delay(i * 60 + 200)}
+                style={[ss.annoCard, {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                }]}
+              >
+                <View style={[ss.annoCatDot, { backgroundColor: `${theme.colors.info}15` }]}>
+                  <Bell color={theme.colors.info} size={15} strokeWidth={2.5} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[ss.annoTitle, { color: theme.colors.textPrimary }]} numberOfLines={1}>
+                    {notice.title}
+                  </Text>
+                  <Text style={[ss.annoTime, { color: theme.colors.textSecondary, marginTop: 4 }]} numberOfLines={2}>
+                    {notice.description}
+                  </Text>
+                  <View style={[ss.annoMeta, { marginTop: 6 }]}>
+                    <View style={[ss.annoCatPill, {
+                      backgroundColor: `${theme.colors.primary}12`,
+                      borderColor: `${theme.colors.primary}24`,
+                    }]}>
+                      <Text style={[ss.annoCatText, { color: theme.colors.primary }]}>{notice.type}</Text>
+                    </View>
+                    <Text style={[ss.annoTime, { color: theme.colors.textTertiary }]}>{getRelativeTime(notice.date)}</Text>
+                  </View>
+                </View>
+              </Animated.View>
+            ))}
+          </View>
+        </Animated.View>
+
         {/* ── Dynamic Featured Announcement Spotlight ── */}
         {announcements.length > 0 && (() => {
           const featured = announcements.find((a) => a.is_pinned) ?? announcements[0];
           return (
             <Animated.View entering={FadeInDown.duration(500).delay(440)} style={[ss.section, { marginBottom: 12 }]}>
-              <View style={[ss.spotlightCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-                {/* Glow Orbs */}
-                <View style={[ss.spotlightGlow, { backgroundColor: isDark ? 'rgba(99,102,241,0.08)' : 'rgba(79,70,229,0.05)' }]} />
+              <View style={[ss.spotlightCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, overflow: 'hidden' }]}>
+                {/* Rich Gradient Background */}
+                <LinearGradient 
+                  colors={isDark ? ['rgba(99,102,241,0.15)', 'rgba(124,58,237,0.05)', 'transparent'] : ['rgba(79,70,229,0.1)', 'rgba(124,58,237,0.02)', 'transparent']}
+                  style={StyleSheet.absoluteFillObject}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                />
 
                 <View style={{ flex: 1, zIndex: 2 }}>
                   <View style={ss.spotlightBadge}>

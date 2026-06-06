@@ -1,4 +1,4 @@
-import type { SemesterResult, SubjectResult } from '@/hooks/queries/use-results';
+import type { SemesterResult } from '@/hooks/queries/use-results';
 
 export interface BacklogSubject {
   subjectCode: string;
@@ -21,8 +21,10 @@ export interface AcademicTimelineEvent {
 }
 
 export function calculateBacklogs(results: SemesterResult[]) {
-  // Process from oldest to newest
-  const sorted = [...results].sort((a, b) => a.semester - b.semester);
+  console.log('[BacklogAudit] Starting backlog calculation with', results.length, 'semester records');
+
+  // Process from oldest to newest: reverse original newest-first ordering then stable sort by semester
+  const sorted = [...results].reverse().sort((a, b) => a.semester - b.semester);
   
   const subjectHistory = new Map<string, {
     subjectName: string;
@@ -56,19 +58,24 @@ export function calculateBacklogs(results: SemesterResult[]) {
     
     if (hasFailed) {
       const firstFail = data.attempts.find(a => a.isFail)!;
-      const latestAttempt = data.attempts[data.attempts.length - 1];
+      const hasPassed = data.attempts.some(a => !a.isFail);
+      const isActive = !hasPassed;
       
-      const isActive = latestAttempt.isFail;
+      const latestAttempt = data.attempts[data.attempts.length - 1];
+      const currentGrade = hasPassed ? data.attempts.find(a => !a.isFail)!.grade : latestAttempt.grade;
+      
       const clearedSemester = isActive 
         ? undefined 
-        : data.attempts.find(a => a.semester > firstFail.semester && !a.isFail)?.semester;
+        : data.attempts.find(a => !a.isFail)?.semester;
+
+      console.log(`[BacklogAudit] Subject ${code}: attempts=${data.attempts.length}, hasPassed=${hasPassed}, isActive=${isActive}`);
 
       allBacklogs.push({
         subjectCode: code,
         subjectName: data.subjectName,
         originalSemester: firstFail.semester,
         clearedSemester: clearedSemester,
-        currentGrade: latestAttempt.grade,
+        currentGrade: currentGrade,
         status: isActive ? 'Active' : 'Cleared',
         totalAttempts: data.attempts.length,
         history: data.attempts.map(a => ({ semester: a.semester, grade: a.grade }))
@@ -91,7 +98,8 @@ export function calculateBacklogs(results: SemesterResult[]) {
 
 export function buildAcademicTimeline(results: SemesterResult[]): AcademicTimelineEvent[] {
   const events: AcademicTimelineEvent[] = [];
-  const sorted = [...results].sort((a, b) => a.semester - b.semester);
+  // Ensure chronologically older events from the same semester process first
+  const sorted = [...results].reverse().sort((a, b) => a.semester - b.semester);
   
   const backlogMap = new Map<string, boolean>();
 

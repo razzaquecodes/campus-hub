@@ -456,21 +456,28 @@ export function MakautLoginScreen() {
                 <TouchableOpacity
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-                    router.push('/(auth)/admin-login');
+                    router.push('/(auth)/faculty-login');
                   }}
                   disabled={isLoading}
                   activeOpacity={0.85}
                   style={s.adminBtn}
                 >
                   <Shield color="#94A3B8" size={16} strokeWidth={2} />
-                  <Text style={s.adminText}>Admin Login</Text>
+                  <Text style={s.adminText}>Faculty Login</Text>
                 </TouchableOpacity>
 
-                {/* Credentials note */}
-                <Text style={s.noteText}>
-                  Use the same credentials you use to log into the MAKAUT student portal.
-                  Your password is never stored.
-                </Text>
+                {/* ── Security Trust Banner ── */}
+                <View style={s.securityBanner}>
+                  <View style={s.securityBannerTitleRow}>
+                    <Text style={s.securityBannerTitle}>🔒 Secure Authentication</Text>
+                  </View>
+                  <Text style={s.securityBannerText}>
+                    Campus Hub never stores your MAKAUT password.
+                  </Text>
+                  <Text style={s.securityBannerTextLast}>
+                    Credentials are used only for authentication with the official MAKAUT portal and are never saved in our database or servers.
+                  </Text>
+                </View>
               </View>
             </BlurView>
           </Animated.View>
@@ -698,6 +705,40 @@ const s = StyleSheet.create({
     color: '#334155',
     textAlign: 'center',
     lineHeight: 16,
+  },
+
+  // Security Banner (Premium Glassmorphism)
+  securityBanner: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: Radius.lg,
+    padding: 16,
+    marginBottom: 8,
+    marginTop: 6,
+  },
+  securityBannerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  securityBannerTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#94A3B8',
+    letterSpacing: 0.3,
+  },
+  securityBannerText: {
+    fontSize: 11.5,
+    color: '#64748B',
+    lineHeight: 18,
+    marginBottom: 6,
+  },
+  securityBannerTextLast: {
+    fontSize: 11.5,
+    color: '#64748B',
+    lineHeight: 18,
   },
 
   // Footer

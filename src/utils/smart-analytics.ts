@@ -16,6 +16,10 @@ export interface SubjectCategoryPerformance {
 }
 
 export interface SmartAnalytics {
+  isValid: boolean;
+  hasIncompleteData: boolean;
+  validationMessage?: string;
+  
   semestersCompleted: number;
   totalSubjects: number;
   activeBacklogsCount: number;
@@ -52,31 +56,50 @@ function categorizeSubject(name: string, code: string): string {
 }
 
 export function generateSmartAnalytics(results: SemesterResult[]): SmartAnalytics {
+  const emptyAnalytics: SmartAnalytics = {
+    isValid: false,
+    hasIncompleteData: false,
+    semestersCompleted: 0,
+    totalSubjects: 0,
+    activeBacklogsCount: 0,
+    clearedBacklogsCount: 0,
+    latestSgpa: null,
+    bestSgpa: null,
+    performanceTrend: 'Insufficient Data',
+    healthScore: 0,
+    healthStatus: 'Needs Attention',
+    improvements: [],
+    insights: [],
+    categories: [],
+    badges: [],
+    backlogs: []
+  };
+
   if (!results || results.length === 0) {
     return {
-      semestersCompleted: 0,
-      totalSubjects: 0,
-      activeBacklogsCount: 0,
-      clearedBacklogsCount: 0,
-      latestSgpa: null,
-      bestSgpa: null,
-      performanceTrend: 'Insufficient Data',
-      healthScore: 0,
-      healthStatus: 'Needs Attention',
-      improvements: [],
-      insights: [],
-      categories: [],
-      badges: [],
-      backlogs: []
+      ...emptyAnalytics,
+      validationMessage: 'No results found to generate analytics.'
     };
   }
 
-  // Use the robust backlog calculation we already wrote
-  const { allBacklogs, activeCount, clearedCount } = calculateBacklogs(results);
+  // Detect inconsistent or processing data
+  const validResults = results.filter(r => r.sgpa !== null && r.subjects.length > 0);
+  const hasIncompleteData = results.length > validResults.length;
+
+  if (validResults.length === 0) {
+    return {
+      ...emptyAnalytics,
+      hasIncompleteData: true,
+      validationMessage: 'Your academic data is currently processing or incomplete. Analytics will be enabled when official complete results are published.'
+    };
+  }
+
+  // Use the robust backlog calculation we already wrote, but only on fully published results
+  const { allBacklogs, activeCount, clearedCount } = calculateBacklogs(validResults);
   
   // Sort descending for SGPA/Trend extraction
-  const sortedDesc = [...results].sort((a, b) => b.semester - a.semester);
-  const validSgpas = sortedDesc.filter(r => r.sgpa !== null).map(r => r.sgpa as number);
+  const sortedDesc = [...validResults].sort((a, b) => b.semester - a.semester);
+  const validSgpas = sortedDesc.map(r => r.sgpa as number);
   
   const semestersCompleted = validSgpas.length;
   const latestSgpa = validSgpas[0] ?? null;
@@ -107,7 +130,7 @@ export function generateSmartAnalytics(results: SemesterResult[]): SmartAnalytic
   let totalSubjects = 0;
   
   // Process ascending for chronological subject history
-  const sortedAsc = [...results].sort((a, b) => a.semester - b.semester);
+  const sortedAsc = [...validResults].sort((a, b) => a.semester - b.semester);
   sortedAsc.forEach(sem => {
     sem.subjects.forEach(sub => {
       totalSubjects++; // total subjects completed (or attempted)
@@ -202,6 +225,8 @@ export function generateSmartAnalytics(results: SemesterResult[]): SmartAnalytic
   }
 
   return {
+    isValid: true,
+    hasIncompleteData,
     semestersCompleted,
     totalSubjects,
     activeBacklogsCount: activeCount,

@@ -26,7 +26,7 @@ import {
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import { SpringButton } from '@/components/ui';
+import { SpringButton, ErrorState } from '@/components/ui';
 import { Radius, Spacing, Shadows } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useResults } from '@/hooks/queries/use-results';
@@ -53,7 +53,7 @@ export function DocumentsScreen() {
   
   const student = useStudentStore(s => s.student);
   const profile = useAuthStore(s => s.profile);
-  const { data: results, isLoading: resultsLoading } = useResults();
+  const { data: results, isLoading: resultsLoading, isError, refetch } = useResults();
 
   const [activeCategory, setActiveCategory] = useState<Category>('grade_cards');
   const [searchQuery, setSearchQuery] = useState('');
@@ -219,7 +219,15 @@ export function DocumentsScreen() {
           <Animated.View entering={FadeInDown.duration(400).delay(200)} style={s.listWrap}>
             {resultsLoading && <ActivityIndicator size="large" color={theme.colors.primary} style={{ marginTop: 40 }} />}
             
-            {!resultsLoading && filteredSemesters.length === 0 && (
+            {isError && !resultsLoading && (
+              <ErrorState 
+                title="Failed to Load Grade Cards"
+                message="We could not fetch your academic results. Please try again."
+                onRetry={() => refetch()}
+              />
+            )}
+
+            {!resultsLoading && !isError && filteredSemesters.length === 0 && (
               <View style={s.emptyState}>
                 <FileBox size={40} color={theme.colors.textTertiary} />
                 <Text style={[s.emptyText, { color: theme.colors.textSecondary }]}>No grade cards found.</Text>
@@ -267,9 +275,9 @@ export function DocumentsScreen() {
                 </Text>
               </View>
               <TouchableOpacity
-                style={[s.summaryGenBtn, { backgroundColor: theme.colors.primary }]}
+                style={[s.summaryGenBtn, { backgroundColor: isError ? theme.colors.textTertiary : theme.colors.primary }]}
                 onPress={handleGenerateSummary}
-                disabled={isGenerating === 'summary'}
+                disabled={isGenerating === 'summary' || isError}
               >
                 {isGenerating === 'summary' ? (
                   <ActivityIndicator size="small" color="#fff" />

@@ -98,6 +98,7 @@ export interface Subject {
 export interface Assignment {
   id: string;
   title: string;
+  description?: string;
   subject_id: string;
   subject_name: string;
   due_date: string;

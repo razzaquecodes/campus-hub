@@ -1,4 +1,3 @@
-import { MOCK_ASSIGNMENTS } from '@/constants/mock-data';
 import { supabase } from '@/lib/supabase';
 import type { Assignment } from '@/types/database';
 
@@ -8,13 +7,12 @@ export interface AssignmentWithStatus extends Assignment {
 
 /**
  * Fetch assignments for the given semester, joined with user completion status.
- * Falls back to MOCK_ASSIGNMENTS if Supabase is unavailable.
  */
 export async function fetchAssignmentsForUser(
   userId: string,
   semesterId?: string | null,
 ): Promise<AssignmentWithStatus[]> {
-  if (!supabase) return MOCK_ASSIGNMENTS;
+  if (!supabase) return [];
 
   // Fetch assignments for semester
   let query = supabase
@@ -39,7 +37,7 @@ export async function fetchAssignmentsForUser(
 
   const { data, error } = await query;
 
-  if (error || !data) return MOCK_ASSIGNMENTS;
+  if (error || !data) return [];
 
   return data.map((row: any) => {
     const ua = Array.isArray(row.user_assignments) ? row.user_assignments[0] : row.user_assignments;

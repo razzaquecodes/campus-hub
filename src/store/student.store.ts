@@ -50,6 +50,9 @@ interface StudentState {
   restoreSession: () => Promise<void>;
   updateProfile: (partial: Partial<StudentModel>) => void;
   clearError: () => void;
+  
+  readNotices: string[];
+  markNoticeAsRead: (id: string) => void;
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────────
@@ -59,6 +62,14 @@ export const useStudentStore = create<StudentState>((set, get) => ({
   isLoading: false,
   isHydrated: false,
   error: null,
+  readNotices: [],
+
+  markNoticeAsRead: (id) => set((state) => {
+    if (!state.readNotices.includes(id)) {
+      return { readNotices: [...state.readNotices, id] };
+    }
+    return state;
+  }),
 
   // ── login ──────────────────────────────────────────────────────────────────
   login: async (rollNumber: string, password: string) => {

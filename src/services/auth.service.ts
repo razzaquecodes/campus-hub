@@ -4,7 +4,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
-import type { UserProfile } from '@/types/database';
+
 
 // ─── IMPORTANT: maybeCompleteAuthSession() must NOT be called here.
 // It must be called inside oauth-callback.tsx (the route that renders at the

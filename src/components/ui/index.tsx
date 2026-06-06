@@ -73,6 +73,11 @@ export function GlassCard({
               end={{ x: 1, y: 1 }}
             />
           )}
+          {/* Apple HIG Inner Highlight */}
+          <View 
+            style={[StyleSheet.absoluteFillObject, { borderWidth: 1.5, borderColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.5)', borderRadius: radius }]} 
+            pointerEvents="none" 
+          />
           <View style={{ padding }}>{children}</View>
         </BlurView>
       ) : (
@@ -81,6 +86,7 @@ export function GlassCard({
             backgroundColor: isDark
               ? theme.colors.glassMedium
               : theme.colors.glassStrong,
+            flex: 1,
           }}>
           {gradient && (
             <LinearGradient
@@ -90,6 +96,11 @@ export function GlassCard({
               end={{ x: 1, y: 1 }}
             />
           )}
+          {/* Apple HIG Inner Highlight */}
+          <View 
+            style={[StyleSheet.absoluteFillObject, { borderWidth: 1.5, borderColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.5)', borderRadius: radius }]} 
+            pointerEvents="none" 
+          />
           <View style={{ padding }}>{children}</View>
         </View>
       )}
@@ -143,7 +154,7 @@ export function SpringButton({
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   const handlePressIn = useCallback(() => {
-    scale.value = withSpring(scaleDown, Animation.spring.snappy);
+    scale.value = withSpring(scaleDown, { damping: 14, stiffness: 330, mass: 0.5 });
     if (haptic) {
       Haptics.impactAsync(
         haptic === 'light'
@@ -156,12 +167,13 @@ export function SpringButton({
   }, [haptic, scale, scaleDown]);
 
   const handlePressOut = useCallback(() => {
-    scale.value = withSpring(1, Animation.spring.bouncy);
+    scale.value = withSpring(1, { damping: 14, stiffness: 330, mass: 0.5 });
   }, [scale]);
 
   return (
     <Animated.View style={[animStyle, style as any]}>
       <Pressable
+        accessibilityRole="button"
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={onPress}

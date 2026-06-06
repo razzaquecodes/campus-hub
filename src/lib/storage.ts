@@ -8,6 +8,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 const isWeb = Platform.OS === 'web';
+const hasBrowserStorage = () => typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 
 let secureStoreAvailable: boolean | null = null;
 
@@ -35,30 +36,28 @@ async function deleteItemSecureStore(key: string): Promise<void> {
 }
 
 function getItemWeb(key: string): string | null {
-  if (typeof localStorage === 'undefined') return null;
+  if (!hasBrowserStorage()) return null;
   try {
-    return localStorage.getItem(key);
+    return window.localStorage.getItem(key);
   } catch {
     return null;
   }
 }
 
 function setItemWeb(key: string, value: string): void {
-  if (typeof localStorage === 'undefined') return;
-  localStorage.setItem(key, value);
+  if (!hasBrowserStorage()) return;
+  window.localStorage.setItem(key, value);
 }
 
 function deleteItemWeb(key: string): void {
-  if (typeof localStorage === 'undefined') return;
-  localStorage.removeItem(key);
+  if (!hasBrowserStorage()) return;
+  window.localStorage.removeItem(key);
 }
 
 /** Read a persisted string value */
 export async function storageGetItem(key: string): Promise<string | null> {
   if (isWeb) {
-    const webVal = getItemWeb(key);
-    if (webVal !== null) return webVal;
-    return AsyncStorage.getItem(key);
+    return getItemWeb(key);
   }
 
   if (await canUseSecureStore()) {
@@ -77,7 +76,6 @@ export async function storageGetItem(key: string): Promise<string | null> {
 export async function storageSetItem(key: string, value: string): Promise<void> {
   if (isWeb) {
     setItemWeb(key, value);
-    await AsyncStorage.setItem(key, value);
     return;
   }
 
@@ -97,7 +95,6 @@ export async function storageSetItem(key: string, value: string): Promise<void> 
 export async function storageRemoveItem(key: string): Promise<void> {
   if (isWeb) {
     deleteItemWeb(key);
-    await AsyncStorage.removeItem(key);
     return;
   }
 
@@ -117,7 +114,7 @@ export async function storageRemoveItem(key: string): Promise<void> {
  * Uses AsyncStorage — official Expo + Supabase recommendation (works on web & native).
  */
 export const supabaseAuthStorage = {
-  getItem: (key: string) => AsyncStorage.getItem(key),
-  setItem: (key: string, value: string) => AsyncStorage.setItem(key, value),
-  removeItem: (key: string) => AsyncStorage.removeItem(key),
+  getItem: (key: string) => storageGetItem(key),
+  setItem: (key: string, value: string) => storageSetItem(key, value),
+  removeItem: (key: string) => storageRemoveItem(key),
 };

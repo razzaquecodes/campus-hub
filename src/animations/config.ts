@@ -24,7 +24,7 @@ export function springTo(value: number) {
   return withSpring(value, SPRING_CONFIG);
 }
 
-export function fadeIn(delay = 0) {
+export function fadeIn() {
   'worklet';
   return withTiming(1, { ...TIMING_CONFIG, duration: 400 }, undefined);
 }

@@ -4,13 +4,12 @@
  * QR Code Verification Screen
  */
 
-import * as Haptics from 'expo-haptics';
+
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import {
   AlertCircle,
   ArrowLeft,
-  BadgeCheck,
   ShieldCheck,
   User,
 } from 'lucide-react-native';
@@ -151,7 +150,7 @@ export function VerificationScreen({ id }: { id: string }) {
               { label: 'Registration No', value: data.registrationNumber },
               { label: 'Department', value: data.department },
               { label: 'Current Semester', value: data.currentSemester ? `Semester ${data.currentSemester}` : '' },
-            ].map((item, idx) => {
+            ].map((item) => {
               if (!item.value) return null;
               return (
                 <View key={item.label} style={s.detailRow}>

@@ -164,7 +164,7 @@ export default function StudentNoticesScreen() {
           <View style={[ss.emptyState, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
             <Search color={theme.colors.textTertiary} size={32} />
             <Text style={[Typography.body.md, { color: theme.colors.textSecondary, marginTop: 12 }]}>
-              No results found for "{searchQuery}"
+              No results found for {searchQuery}
             </Text>
           </View>
         ) : (

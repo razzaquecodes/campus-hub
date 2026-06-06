@@ -1,11 +1,8 @@
 // constants/mock-data.ts
 // Fallback data for when Supabase is unavailable
-// Only MOCK_ANNOUNCEMENTS and MOCK_ASSIGNMENTS are still referenced
+// Only MOCK_ANNOUNCEMENTS is still referenced
 
-import type {
-  Announcement,
-  Assignment,
-} from '@/types/database';
+import type { Announcement } from '@/types/database';
 
 export const MOCK_ANNOUNCEMENTS: Announcement[] = [
   {
@@ -44,11 +41,4 @@ export const MOCK_ANNOUNCEMENTS: Announcement[] = [
     created_at: new Date(Date.now() - 172800000).toISOString(),
     read: true,
   },
-];
-
-export const MOCK_ASSIGNMENTS: Assignment[] = [
-  { id: '1', title: 'Graph Algorithms Analysis',     subject_id: '1', subject_name: 'DAA',           due_date: '2026-05-28T23:59:00Z', priority: 'high',   completed: false, progress: 70 },
-  { id: '2', title: 'DFA/NFA Conversion',            subject_id: '2', subject_name: 'FLAT',          due_date: '2026-05-30T23:59:00Z', priority: 'medium', completed: false, progress: 35 },
-  { id: '3', title: 'Cache Memory Design Report',    subject_id: '3', subject_name: 'Comp. Arch.',   due_date: '2026-05-26T23:59:00Z', priority: 'urgent', completed: false, progress: 85 },
-  { id: '4', title: 'Discrete Math Problem Set 4',   subject_id: '4', subject_name: 'Discrete Math', due_date: '2026-06-01T23:59:00Z', priority: 'low',    completed: true,  progress: 100 },
 ];

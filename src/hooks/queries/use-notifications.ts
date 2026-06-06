@@ -1,62 +1,42 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNotificationsStore } from '@/store/notifications.store';
 
-import {
-  fetchNotifications,
-  getUnreadCount,
-  markAllNotificationsRead,
-  markNotificationRead,
-} from '@/api/notifications.api';
-import { useAuthStore } from '@/store/auth.store';
-
-export const notificationKeys = {
-  all: ['notifications'] as const,
-  list: (userId?: string) => [...notificationKeys.all, userId] as const,
-  unread: (userId?: string) => [...notificationKeys.all, 'unread', userId] as const,
-};
+// For the Showcase Module, we bypass React Query and Supabase entirely,
+// but we keep the identical hook signatures so the UI requires zero changes.
+// To revert to real backend integration, simply restore the original React Query + Supabase code.
 
 export function useNotifications() {
-  const profile = useAuthStore((s) => s.profile);
-
-  return useQuery({
-    queryKey: notificationKeys.list(profile?.id),
-    enabled: !!profile?.id && profile.id !== 'guest-id',
-    queryFn: () => fetchNotifications(profile!.id),
-    staleTime: 30_000, // 30s
-  });
+  const notifications = useNotificationsStore((s) => s.notifications);
+  
+  return {
+    data: notifications,
+    isLoading: false,
+    isError: false,
+    isRefetching: false,
+    refetch: async () => {}, // Mock refetch
+  };
 }
 
 export function useUnreadNotificationCount() {
-  const profile = useAuthStore((s) => s.profile);
-
-  return useQuery({
-    queryKey: notificationKeys.unread(profile?.id),
-    enabled: !!profile?.id && profile.id !== 'guest-id',
-    queryFn: () => getUnreadCount(profile!.id),
-    staleTime: 30_000,
-    refetchInterval: 60_000, // Poll every 60s
-  });
+  const notifications = useNotificationsStore((s) => s.notifications);
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+  
+  return {
+    data: unreadCount,
+  };
 }
 
 export function useMarkNotificationRead() {
-  const qc = useQueryClient();
-  const profile = useAuthStore((s) => s.profile);
-
-  return useMutation({
-    mutationFn: (notificationId: string) => markNotificationRead(notificationId),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: notificationKeys.all });
-    },
-  });
+  const markAsRead = useNotificationsStore((s) => s.markAsRead);
+  
+  return {
+    mutate: (notificationId: string) => markAsRead(notificationId),
+  };
 }
 
 export function useMarkAllNotificationsRead() {
-  const qc = useQueryClient();
-  const profile = useAuthStore((s) => s.profile);
-
-  return useMutation({
-    mutationFn: () => markAllNotificationsRead(profile!.id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: notificationKeys.all });
-    },
-  });
+  const markAllAsRead = useNotificationsStore((s) => s.markAllAsRead);
+  
+  return {
+    mutate: () => markAllAsRead(),
+  };
 }

@@ -1,12 +1,12 @@
 import { router } from 'expo-router';
-import { ArrowLeft, Bell, BellDot, Check, CheckCircle2, ChevronRight, GraduationCap, Megaphone, Calendar } from 'lucide-react-native';
+import { ArrowLeft, Bell, BellDot, Check, CheckCircle2, ChevronRight, GraduationCap, Megaphone, Calendar, FileWarning, CalendarClock } from 'lucide-react-native';
 import React, { useMemo } from 'react';
 import { Dimensions, FlatList, StatusBar, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import Animated, { FadeIn, FadeInDown, Layout } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SpringButton } from '@/components/ui';
-import { Radius, Shadows, Spacing } from '@/constants/theme';
+import { SpringButton, ErrorState } from '@/components/ui';
+import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import {
   useMarkAllNotificationsRead,
@@ -14,16 +14,17 @@ import {
   useNotifications,
 } from '@/hooks/queries/use-notifications';
 
-import type { Notification } from '@/api/notifications.api';
+import type { ShowcaseNotification } from '@/store/notifications.store';
 
-const { width: W } = Dimensions.get('window');
 
-function getIconForCategory(category: Notification['category'], color: string) {
+
+function getIconForCategory(category: ShowcaseNotification['category'], color: string) {
   switch (category) {
     case 'result': return <GraduationCap color={color} size={20} />;
-    case 'assignment': return <CheckCircle2 color={color} size={20} />;
+    case 'ca_marks': return <CheckCircle2 color={color} size={20} />;
+    case 'backlog': return <FileWarning color={color} size={20} />;
     case 'announcement': return <Megaphone color={color} size={20} />;
-    case 'event': return <Calendar color={color} size={20} />;
+    case 'academic_update': return <CalendarClock color={color} size={20} />;
     default: return <Bell color={color} size={20} />;
   }
 }
@@ -40,13 +41,13 @@ function getRelativeTime(value: string): string {
 export function NotificationsScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { data: notifications = [], isLoading, refetch, isRefetching } = useNotifications();
+  const { data: notifications = [], isLoading, isError, refetch, isRefetching } = useNotifications();
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
 
   const unreadCount = useMemo(() => notifications.filter((n) => !n.is_read).length, [notifications]);
 
-  const handlePress = (notif: Notification) => {
+  const handlePress = (notif: ShowcaseNotification) => {
     if (!notif.is_read) {
       markRead.mutate(notif.id);
     }
@@ -55,7 +56,7 @@ export function NotificationsScreen() {
     }
   };
 
-  const renderItem = ({ item, index }: { item: Notification; index: number }) => {
+  const renderItem = ({ item, index }: { item: ShowcaseNotification; index: number }) => {
     const isUnread = !item.is_read;
     const catColor = isUnread ? theme.colors.primaryLight : theme.colors.textTertiary;
     const bg = isUnread ? (isDark ? 'rgba(99,102,241,0.06)' : 'rgba(79,70,229,0.04)') : theme.colors.surface;
@@ -114,7 +115,17 @@ export function NotificationsScreen() {
         refreshing={isRefetching}
         onRefresh={refetch}
         ListEmptyComponent={
-          !isLoading ? (
+          isLoading ? (
+            <ActivityIndicator size="large" color={theme.colors.primaryLight} style={{ marginTop: 40 }} />
+          ) : isError ? (
+            <View style={{ marginTop: 60 }}>
+              <ErrorState 
+                title="Unable to Load Notifications"
+                message="We could not fetch your notifications. Please check your connection."
+                onRetry={refetch}
+              />
+            </View>
+          ) : (
             <Animated.View entering={FadeIn.duration(400)} style={s.emptyState}>
               <View style={[s.emptyIcon, { backgroundColor: `${theme.colors.textTertiary}15` }]}>
                 <BellDot color={theme.colors.textTertiary} size={40} />
@@ -122,8 +133,6 @@ export function NotificationsScreen() {
               <Text style={[s.emptyTitle, { color: theme.colors.textPrimary }]}>All Caught Up!</Text>
               <Text style={[s.emptySub, { color: theme.colors.textSecondary }]}>You have no new notifications.</Text>
             </Animated.View>
-          ) : (
-            <ActivityIndicator size="large" color={theme.colors.primaryLight} style={{ marginTop: 40 }} />
           )
         }
       />

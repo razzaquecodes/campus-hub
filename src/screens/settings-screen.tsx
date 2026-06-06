@@ -23,6 +23,7 @@ import { Image } from 'expo-image';
 import Animated, {
   FadeIn, FadeInDown,
 } from 'react-native-reanimated';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   AlertCircle,
@@ -49,6 +50,7 @@ import {
   Trash2,
   User,
   X,
+  RefreshCw,
 } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 
@@ -131,6 +133,9 @@ function SettingRow({
   return (
     <>
       <Pressable
+        accessibilityRole={toggle ? 'switch' : 'button'}
+        accessibilityLabel={label}
+        accessibilityState={toggle ? { checked: toggleValue } : undefined}
         onPress={onPress}
         style={({ pressed }) => [
           ss.settingRow,
@@ -236,6 +241,9 @@ export function SettingsScreen() {
   const student = useStudentStore((s) => s.student);
   const isAdmin = useAdminStore((s) => s.isAdmin);
   const studentLogout = useStudentStore((s) => s.logout);
+  const queryClient = useQueryClient();
+
+  const [refreshingData, setRefreshingData] = useState(false);
 
   const profilePhoto = profile?.avatar_url || student?.profilePhotoUrl;
 
@@ -285,6 +293,27 @@ export function SettingsScreen() {
       ]
     );
   }, []);
+
+  const handleRefreshAcademicData = useCallback(async () => {
+    if (refreshingData) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    setRefreshingData(true);
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['results'] }),
+        queryClient.invalidateQueries({ queryKey: ['internal-marks'] }),
+        queryClient.invalidateQueries({ queryKey: ['student-stats'] }),
+        queryClient.invalidateQueries({ queryKey: ['student'] })
+      ]);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      Alert.alert('Success', 'Academic records refreshed successfully.');
+    } catch {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      Alert.alert('Error', 'Unable to refresh academic data. Please try again.');
+    } finally {
+      setRefreshingData(false);
+    }
+  }, [queryClient, refreshingData]);
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.void }}>
@@ -429,6 +458,17 @@ export function SettingsScreen() {
             icon={<IconChip icon={Clock} color={theme.colors.info} />}
             label="Timetable"
             onPress={() => router.push('/(tabs)/courses' as any)}
+          />
+          <SettingRow
+            icon={refreshingData ? (
+              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: `${theme.colors.primaryLight}15`, alignItems: 'center', justifyContent: 'center' }}>
+                <ActivityIndicator size="small" color={theme.colors.primaryLight} />
+              </View>
+            ) : (
+              <IconChip icon={RefreshCw} color={theme.colors.primaryLight} />
+            )}
+            label="🔄 Refresh Academic Data"
+            onPress={handleRefreshAcademicData}
             last
           />
         </SettingGroup>
@@ -489,7 +529,7 @@ export function SettingsScreen() {
         <SettingGroup title="About" entering={FadeInDown.duration(500).delay(380)}>
           <SettingRow
             icon={<IconChip icon={Info} color={theme.colors.textSecondary} />}
-            label="About BBIT"
+            label="About Institution"
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
               setAboutModalVisible(true);
@@ -533,10 +573,10 @@ export function SettingsScreen() {
           entering={FadeInDown.duration(400).delay(450)}
           style={ss.footerContainer}>
           <Text style={[Typography.caption, { color: theme.colors.textTertiary, fontWeight: '500' }]}>
-            CampusHub v1.0.0 · Budge Budge Institute of Technology
+            CampusHub v1.0.0 · {student?.instituteName || profile?.college || 'MAKAUT Affiliated Institution'}
           </Text>
           <Text style={[Typography.caption, { color: theme.colors.textTertiary, fontSize: 10, marginTop: 2 }]}>
-            Designed for CSE B.Tech Undergraduates
+            Designed for Technical Undergraduates
           </Text>
         </Animated.View>
       </ScrollView>
@@ -554,7 +594,7 @@ export function SettingsScreen() {
             {/* Modal Header */}
             <View style={[ss.modalHeader, { borderBottomColor: theme.colors.border }]}>
               <View>
-                <Text style={[ss.modalTitle, { color: theme.colors.textPrimary }]}>Budge Budge Institute of Technology</Text>
+                <Text style={[ss.modalTitle, { color: theme.colors.textPrimary }]}>{student?.instituteName || profile?.college || 'MAKAUT Institution'}</Text>
                 <Text style={[ss.modalSub, { color: theme.colors.textTertiary }]}>Institutional accreditation & details</Text>
               </View>
               <Pressable
@@ -569,12 +609,12 @@ export function SettingsScreen() {
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={ss.modalScroll}>
               <View style={ss.modalHeroLogoRow}>
                 <View style={ss.collegeTagPill}>
-                  <Text style={ss.collegeTagText}>BBIT CAMPUS</Text>
+                  <Text style={ss.collegeTagText}>AFFILIATED CAMPUS</Text>
                 </View>
               </View>
 
               <Text style={[ss.modalBodyText, { color: theme.colors.textSecondary }]}>
-                Budge Budge Institute of Technology (BBIT), established in 2009 under the trust of Jagannath Gupta Family Trust, is an esteemed technical college situated in Budge Budge, Kolkata, West Bengal.
+                {student?.instituteName || profile?.college || 'This institution'} is an esteemed technical college situated in West Bengal, India, providing high-quality engineering and management education.
               </Text>
 
               {/* Accreditations list */}
@@ -591,8 +631,8 @@ export function SettingsScreen() {
                 </View>
                 <View style={[ss.gridBox, { backgroundColor: theme.colors.void, borderColor: theme.colors.border }]}>
                   <BookOpen color={theme.colors.info} size={20} />
-                  <Text style={[ss.gridTitle, { color: theme.colors.textPrimary }]}>NBA Accredited</Text>
-                  <Text style={[ss.gridDesc, { color: theme.colors.textTertiary }]}>CSE Department</Text>
+                  <Text style={[ss.gridTitle, { color: theme.colors.textPrimary }]}>Recognized</Text>
+                  <Text style={[ss.gridDesc, { color: theme.colors.textTertiary }]}>UGC Guidelines</Text>
                 </View>
               </View>
 
@@ -603,9 +643,9 @@ export function SettingsScreen() {
 
               <Text style={[ss.modalHeaderSmall, { color: theme.colors.textPrimary }]}>Accreditations</Text>
               <Text style={[ss.modalBodyText, { color: theme.colors.textSecondary }]}>
-                • NAAC Accredited B+ Institution{"\n"}
-                • NBA Accredited Department (B.Tech Computer Science){"\n"}
-                • MAKAUT University Code: 285
+                • Approved by AICTE, New Delhi{"\n"}
+                • Affiliated to MAKAUT, West Bengal{"\n"}
+                • Recognized by Govt. of West Bengal
               </Text>
             </ScrollView>
 

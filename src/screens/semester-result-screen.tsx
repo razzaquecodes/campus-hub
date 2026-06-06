@@ -29,7 +29,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 
 import { Skeleton, SpringButton } from '@/components/ui';
-import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
+import { Radius, Shadows, Spacing } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useStudentStore } from '@/store/student.store';
 import { API_CONFIG } from '@/config/api';
@@ -289,7 +289,7 @@ export function SemesterResultScreen() {
               </View>
               <Text style={[s.stateTitle, { color: theme.colors.textPrimary }]}>Grade Card Unavailable</Text>
               <Text style={[s.stateSub, { color: theme.colors.textSecondary }]}>
-                Details for Semester {semester} are not yet published or haven't been synchronized.
+                Details for Semester {semester} are not yet published or have not been synchronized.
               </Text>
             </View>
           </Animated.View>

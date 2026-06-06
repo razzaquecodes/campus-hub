@@ -19,11 +19,10 @@ import { signInWithGoogle } from '@/services/auth.service';
 import { supabase } from '@/lib/supabase';
 import { useAdminStore } from '@/store/admin.store';
 
-export default function AdminLoginScreen() {
+export default function FacultyLoginScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
-  const setAdmin = useAdminStore((s) => s.setAdmin);
 
   const handleGoogleLogin = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -55,51 +54,14 @@ export default function AdminLoginScreen() {
       console.info(`USER ID => ${userData.user.id}`);
       console.info('=============================================');
 
-      console.info(`[admin-login] 3. Checking 'public.admins' table for email...`);
-      // 3. Query the admins table for the authenticated email
-      const { data: adminData, error: adminError } = await supabase
-        .from('admins')
-        .select('*')
-        .eq('email', authenticatedEmail)
-        .maybeSingle();
-
-
-      if (adminError) {
-        console.error('[admin-login] ✗ Database query failed:', adminError.message);
-        throw new Error('Failed to verify administrator status.');
-      }
-
-      if (!adminData) {
-        console.info('[admin-login] ✗ Query returned null. Email not found in admins table.');
-      }
-
-      // Safe Comparison
-      let isAuthorized = false;
-      if (adminData && adminData.email) {
-        const returnedEmail = adminData.email.trim().toLowerCase();
-        console.info(`ADMIN RECORD =>`, adminData);
-        console.info(`NORMALIZED DB EMAIL => "${returnedEmail}"`);
-        
-        if (returnedEmail === normalizedEmail) {
-          isAuthorized = true;
-        }
-      }
-
-      console.info('=============================================');
-      console.info(`AUTHORIZED => ${isAuthorized}`);
-      console.info('=============================================');
-
-      if (isAuthorized) {
-        console.info('[admin-login] ✓ Admin authorized. Updating store and navigating to /admin.');
-        setAdmin(normalizedEmail);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-        router.replace('/admin');
-      } else {
-        console.warn('[admin-login] ✗ Unauthorized user. Signing out.');
-        await supabase.auth.signOut();
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-        Alert.alert('Access Denied', 'You are not an authorized administrator.');
-      }
+      console.info(`[faculty-login] 3. Bypassing DB check for Faculty Demo Preview...`);
+      
+      // Showcase Mode: Allow any authenticated Google user to view the Faculty Demo
+      console.info('[faculty-login] ✓ Faculty demo authorized. Setting store and navigating to /faculty.');
+      useAdminStore.getState().setAdmin(normalizedEmail);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      router.replace('/faculty');
+      
     } catch (error: any) {
       console.error('[admin-login] Authentication failed:', error);
       if (error.message !== 'Sign-in was cancelled') {
@@ -140,10 +102,10 @@ export default function AdminLoginScreen() {
 
         <Animated.View entering={FadeInDown.duration(500).delay(200)} style={ss.textWrap}>
           <Text style={[Typography.display.small, { color: theme.colors.textPrimary, textAlign: 'center' }]}>
-            Campus Hub Admin Portal
+            Campus Hub Faculty Portal
           </Text>
           <Text style={[Typography.body.md, { color: theme.colors.textSecondary, textAlign: 'center', marginTop: 8 }]}>
-            Secure access restricted to authorized administrators only.
+            Secure access restricted to authorized faculty members only.
           </Text>
         </Animated.View>
 

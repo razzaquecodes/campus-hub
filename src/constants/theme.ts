@@ -12,15 +12,15 @@ export const Typography = {
   },
   // Headlines
   headline: {
-    xl: { fontSize: 24, fontWeight: '700' as const, letterSpacing: -0.5, lineHeight: 30 },
-    lg: { fontSize: 20, fontWeight: '600' as const, letterSpacing: -0.3, lineHeight: 26 },
-    md: { fontSize: 17, fontWeight: '600' as const, letterSpacing: -0.2, lineHeight: 22 },
-    sm: { fontSize: 15, fontWeight: '600' as const, letterSpacing: -0.1, lineHeight: 20 },
+    xl: { fontSize: 24, fontWeight: '700' as const, letterSpacing: -0.8, lineHeight: 30 },
+    lg: { fontSize: 20, fontWeight: '600' as const, letterSpacing: -0.6, lineHeight: 26 },
+    md: { fontSize: 17, fontWeight: '600' as const, letterSpacing: -0.4, lineHeight: 22 },
+    sm: { fontSize: 15, fontWeight: '600' as const, letterSpacing: -0.2, lineHeight: 20 },
   },
   // Body
   body: {
-    lg: { fontSize: 17, fontWeight: '400' as const, letterSpacing: -0.1, lineHeight: 26 },
-    md: { fontSize: 15, fontWeight: '400' as const, letterSpacing: 0, lineHeight: 22 },
+    lg: { fontSize: 17, fontWeight: '400' as const, letterSpacing: -0.2, lineHeight: 26 },
+    md: { fontSize: 15, fontWeight: '400' as const, letterSpacing: -0.1, lineHeight: 22 },
     sm: { fontSize: 13, fontWeight: '400' as const, letterSpacing: 0, lineHeight: 18 },
   },
   // Labels
@@ -111,8 +111,8 @@ export const LightTheme = {
     surfaceElevated: '#FFFFFF',
     surfaceOverlay:  '#FFFFFF',
 
-    border:        'rgba(0,0,0,0.08)',
-    borderStrong:  'rgba(0,0,0,0.14)',
+    border:        'rgba(0,0,0,0.05)',
+    borderStrong:  'rgba(0,0,0,0.10)',
     borderFocus:   'rgba(0,0,0,0.30)',
 
     textPrimary:   '#0D0D0D',
@@ -216,30 +216,30 @@ export const Shadows = {
   // Dark mode: same values work since card backgrounds are already dark
   card: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,  // was 0.25 — too heavy in light theme
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
     elevation: 3,
   },
   cardLight: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,  // was 0.12 — too heavy in light theme
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.02,
+    shadowRadius: 10,
     elevation: 1,
   },
   float: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
     elevation: 10,
   },
   glow: (color: string) => ({
     shadowColor: color,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
     elevation: 8,
   }),
 } as const;

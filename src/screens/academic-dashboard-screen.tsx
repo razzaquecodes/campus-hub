@@ -10,19 +10,16 @@ import {
   AlertCircle,
   ArrowLeft,
   Award,
-  BarChart2,
   BookOpen,
   ChevronRight,
   TrendingDown,
   TrendingUp,
   AlertTriangle,
   Target,
-  Zap,
 } from 'lucide-react-native';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dimensions,
-  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -36,8 +33,8 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Path, Stop } from 'react-native-svg';
 
-import { Skeleton, SpringButton, Badge } from '@/components/ui';
-import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
+import { Skeleton, SpringButton, ErrorState } from '@/components/ui';
+import { Radius, Shadows, Spacing } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useStudentStore } from '@/store/student.store';
 import { API_CONFIG } from '@/config/api';
@@ -133,16 +130,20 @@ export function AcademicDashboardScreen() {
   const student = useStudentStore((s) => s.student);
 
   // Internal Marks Stream
-  const { data: internalMarks = [], isLoading: internalLoading, isError: internalError } = useInternalMarks();
+  const { data: internalMarks = [], isLoading: internalLoading, isError: internalError, refetch: refetchInt } = useInternalMarks();
 
   // Results Stream
-  const { data: unsortedResults = [], isLoading: resultsLoading, isError: resultsError } = useResults();
+  const { data: unsortedResults = [], isLoading: resultsLoading, isError: resultsError, refetch: refetchRes } = useResults();
   
   // Academic dashboard expects ascending sort, but useResults provides descending sort by default
   const results = useMemo(() => [...unsortedResults].sort((a, b) => a.semester - b.semester), [unsortedResults]);
 
   const isLoading = internalLoading || resultsLoading;
   const isError = internalError || resultsError;
+
+  const handleRetry = React.useCallback(async () => {
+    await Promise.all([refetchInt(), refetchRes()]);
+  }, [refetchInt, refetchRes]);
 
   // ─── Analytics Engine ──────────────────────────────────────────────────────────
   const analytics = useMemo(() => {
@@ -279,11 +280,11 @@ export function AcademicDashboardScreen() {
         )}
 
         {isError && !isLoading && (
-          <View style={[s.errorCard, { backgroundColor: isDark ? 'rgba(248,113,113,0.06)' : 'rgba(220,38,38,0.05)', borderColor: isDark ? 'rgba(248,113,113,0.20)' : 'rgba(220,38,38,0.14)' }]}>
-            <AlertCircle color={theme.colors.danger} size={32} />
-            <Text style={[s.stateTitle, { color: theme.colors.textPrimary }]}>Data Sync Failed</Text>
-            <Text style={[s.stateSub, { color: theme.colors.textSecondary }]}>Ensure both Results and Internal Marks APIs are available to generate analytics.</Text>
-          </View>
+          <ErrorState 
+            title="Data Sync Failed"
+            message="Ensure both Results and Internal Marks APIs are available to generate analytics."
+            onRetry={handleRetry}
+          />
         )}
 
         {!isLoading && !isError && analytics && (
