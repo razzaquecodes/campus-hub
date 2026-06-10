@@ -1,0 +1,8 @@
+env: load .env
+env: export EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY EXPO_PUBLIC_MAKAUT_API_URL EXPO_PUBLIC_MAKAUT_VERIFY_URL EXPO_PUBLIC_API_URL
+Starting project at /Users/razzaque/campus-hub
+React Compiler enabled
+Starting Metro Bundler
+warning: Bundler cache is empty, rebuilding (this may take a minute)
+Waiting on http://localhost:8081
+Logs for your project will appear below.

@@ -66,7 +66,7 @@ export const updaterService = {
     try {
       const downloadResumable = FileSystem.createDownloadResumable(
         url,
-        FileSystem.documentDirectory + 'campus-hub-update.apk',
+        (FileSystem as any).documentDirectory + 'campus-hub-update.apk',
         {},
         (downloadProgress) => {
           const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite;

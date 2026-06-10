@@ -1,6 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
-import { calculateFullTextSimilarity } from '../../utils/text-similarity';
 import { BackendGoogleVisionService } from './google-vision.service';
+
+// Lightweight word-overlap similarity as a fallback for backend verification
+function calculateFullTextSimilarity(a: string, b: string): number {
+  if (!a || !b) return 0;
+  const normalize = (s: string) => s.replace(/[\W_]+/g, ' ').toLowerCase().split(/\s+/).filter(Boolean);
+  const wa = normalize(a);
+  const wb = normalize(b);
+  const setB = new Set(wb);
+  const common = wa.filter(w => setB.has(w)).length;
+  const denom = Math.max(wa.length, wb.length, 1);
+  return Math.round((common / denom) * 100);
+}
 
 /**
  * BACKEND ONLY: Board Verification Service

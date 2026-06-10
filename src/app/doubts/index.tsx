@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown, FadeInUp, Layout, FadeIn } from 'react-native-reanimated';
-import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { ArrowLeft, MessageSquare, Send, CheckCircle2, HelpCircle } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { ArrowLeft, CheckCircle2, HelpCircle, Send } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInDown, FadeInUp, Layout } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTheme } from '@/context/ThemeContext';
-import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { GlassCard, SpringButton } from '@/components/ui';
+import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 interface Doubt {
   id: string;
@@ -19,6 +19,11 @@ interface Doubt {
   askedOn: string;
 }
 
+export default function DoubtsScreen() {
+  const { theme, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+  const [mode, setMode] = useState<'browse' | 'ask'>('browse');
+
   const [doubts, setDoubts] = useState<Doubt[]>([]);
 
   // Form
@@ -28,7 +33,7 @@ interface Doubt {
 
   const handleAsk = () => {
     if (!subject || !question) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     const newDoubt: Doubt = {
       id: Date.now().toString(),
       subject,
@@ -45,6 +50,7 @@ interface Doubt {
 
   return (
     <View style={[ss.root, { backgroundColor: theme.colors.void }]}>
+
       <Animated.View entering={FadeInDown.duration(400)} style={[ss.header, { paddingTop: insets.top + Spacing.sm }]}>
         <View style={ss.headerTopRow}>
           <SpringButton onPress={() => router.back()} scaleDown={0.88}>

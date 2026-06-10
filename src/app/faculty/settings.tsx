@@ -1,21 +1,21 @@
 import { router } from 'expo-router';
+import { ArrowLeft, Bell, DownloadCloud, Info, LogOut, Moon } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, Switch, Alert } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, Bell, DownloadCloud, Info, LogOut, Moon, User } from 'lucide-react-native';
 
 import { GlassCard, SpringButton } from '@/components/ui';
 import { Radius, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
-import { useFacultyStore } from '@/store/faculty.store';
 import { useAuthStore } from '@/store/auth.store';
+import { useFacultyStore } from '@/store/faculty.store';
 
 export default function FacultySettingsScreen() {
   const { theme, isDark, toggleTheme } = useTheme();
   const insets = useSafeAreaInsets();
   const { profile } = useFacultyStore();
-  const logout = useAuthStore(s => s.logout);
+  const logout = useAuthStore(s => s.signOut);
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);

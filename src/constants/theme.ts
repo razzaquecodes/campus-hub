@@ -9,6 +9,10 @@ export const Typography = {
     large: { fontSize: 48, fontWeight: '700' as const, letterSpacing: -1.5, lineHeight: 56 },
     medium: { fontSize: 36, fontWeight: '700' as const, letterSpacing: -1.0, lineHeight: 44 },
     small: { fontSize: 28, fontWeight: '700' as const, letterSpacing: -0.8, lineHeight: 34 },
+    // Backwards-compat aliases used across the codebase
+    md: { fontSize: 36, fontWeight: '700' as const, letterSpacing: -1.0, lineHeight: 44 },
+    sm: { fontSize: 28, fontWeight: '700' as const, letterSpacing: -0.8, lineHeight: 34 },
+    xs: { fontSize: 20, fontWeight: '700' as const, letterSpacing: -0.6, lineHeight: 24 },
   },
   // Titles — between display and headline
   title: {

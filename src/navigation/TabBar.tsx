@@ -1,21 +1,20 @@
 // navigation/TabBar.tsx — Premium Floating Tab Bar with Labels
+import { Animation, Radius, Shadows } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
+import { type BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
-import { type BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { BookOpen, Home, Settings, User } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { Dimensions, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  withTiming,
-  interpolateColor,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
+    withTiming
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Animation, Radius, Shadows, Typography } from '@/constants/theme';
-import { useTheme } from '@/context/ThemeContext';
-import { Home, BookOpen, User, Settings } from 'lucide-react-native';
 
 const { width: W } = Dimensions.get('window');
 
@@ -59,11 +58,11 @@ function TabItem({ route, isFocused, onPress, onLongPress }: TabItemProps) {
 
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }, { translateY: translateY.value }],
-  }));
+  } as any)) as any;
 
   const labelStyle = useAnimatedStyle(() => ({
     opacity: labelOpacity.value,
-  }));
+  } as any)) as any;
 
   const config = TAB_CONFIG[route.name];
   const iconColor = isFocused ? theme.colors.primaryLight : theme.colors.textSecondary;
@@ -136,7 +135,7 @@ export function PremiumTabBar({ state, navigation }: BottomTabBarProps) {
       transform: [{ translateX }],
       opacity: visualActiveIndex !== -1 ? 1 : 0,
     };
-  });
+  }) as any;
 
   return (
     <View

@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { Modal, View, Text, StyleSheet, Platform, Pressable, Linking } from 'react-native';
-import { BlurView } from 'expo-blur';
-import { DownloadCloud, X } from 'lucide-react-native';
-import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
+import { Radius, Shadows, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
-import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
-import { updaterService, UpdateInfo } from '@/services/updater.service';
+import { UpdateInfo } from '@/services/updater.service';
+import { BlurView } from 'expo-blur';
+import { DownloadCloud } from 'lucide-react-native';
+import React from 'react';
+import { Linking, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown, FadeOut } from 'react-native-reanimated';
 
 export const UpdateModal = ({
   visible,
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: 'center',
     borderWidth: 1,
-    ...Shadows.modal,
+    ...Shadows.card,
   },
   iconContainer: {
     width: 64,
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: Radius.round,
+    borderRadius: Radius.xl,
   },
   buttonContainer: {
     width: '100%',

@@ -74,6 +74,7 @@ export function useNotifications() {
     data: notifications,
     isLoading: false,
     isError: false,
+    isRefetching: false,
     refetch: async () => {
       const userId = profile?.id;
       if (!userId) return;

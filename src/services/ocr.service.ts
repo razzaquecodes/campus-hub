@@ -1,5 +1,5 @@
+import { GoogleVisionOcrProvider } from './google-vision.provider';
 import { OcrProvider, OcrResult } from './ocr.types';
-import { GoogleVisionOcrProvider } from './providers/google-vision.provider';
 
 export class OcrService {
   // Connects securely via the backend proxy to prevent API key leakage

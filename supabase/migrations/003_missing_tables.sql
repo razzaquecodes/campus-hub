@@ -9,8 +9,7 @@ CREATE TABLE IF NOT EXISTS notifications (
   user_id     UUID REFERENCES student_profiles(user_id) ON DELETE CASCADE,
   title       TEXT NOT NULL,
   body        TEXT NOT NULL,
-  category    TEXT NOT NULL DEFAULT 'general'
-              CHECK (category IN ('general','announcement','event','attendance','assignment','placement','result')),
+  category    TEXT NOT NULL DEFAULT 'general' CHECK (category IN ('general','announcement','event','attendance','assignment','result')),
   is_read     BOOLEAN NOT NULL DEFAULT FALSE,
   action_url  TEXT,
   metadata    JSONB DEFAULT '{}',
@@ -104,29 +103,10 @@ CREATE POLICY IF NOT EXISTS "users_update_own_stats"
   ON student_stats FOR ALL
   USING (auth.uid() = user_id);
 
--- ─── Placements ─────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS placements (
-  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id      UUID REFERENCES student_profiles(user_id) ON DELETE CASCADE,
-  company      TEXT NOT NULL,
-  role         TEXT NOT NULL,
-  package_lpa  NUMERIC(6,2),
-  placed_at    DATE,
-  offer_type   TEXT DEFAULT 'fulltime' CHECK (offer_type IN ('fulltime','internship','ppo')),
-  created_at   TIMESTAMPTZ DEFAULT NOW()
-);
-
-ALTER TABLE placements ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY IF NOT EXISTS "authenticated_read_placements"
-  ON placements FOR SELECT
-  USING (auth.uid() IS NOT NULL);
-
 -- ─── Helper: seed sample notifications for newly joined users ───────────────
 -- (Call this from an Edge Function or trigger — not auto-run here)
 
 -- ─── Updated Indexes ────────────────────────────────────────────────────────
-CREATE INDEX IF NOT EXISTS idx_placements_date ON placements(placed_at DESC);
 CREATE INDEX IF NOT EXISTS idx_student_stats_user ON student_stats(user_id);
 
 -- ─── RLS: enable on tables missing it ───────────────────────────────────────

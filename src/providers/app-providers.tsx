@@ -21,11 +21,15 @@
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import React, { useEffect, useRef } from 'react';
 
+import { Env } from '@/lib/env';
 import { asyncStoragePersister, queryClient } from '@/lib/query-client';
+import { BackendFaceProvider } from '@/repositories/face.backend.provider';
+import { FaceService } from '@/repositories/face.service';
 import { resolveMasterProfile } from '@/services/profile.service';
 import { mapStudentToUserProfile, useAuthStore } from '@/store/auth.store';
 import { useStudentStore } from '@/store/student.store';
 import { useProfileStore } from '@/store/useProfileStore';
+import { AppState } from 'react-native';
 
 function hydratorLog(message: string, details?: Record<string, unknown>) {
   const ts = new Date().toISOString().slice(11, 23);

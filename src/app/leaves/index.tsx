@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown, FadeInUp, Layout, FadeIn } from 'react-native-reanimated';
-import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { ArrowLeft, CalendarX2, Send, CheckCircle2, XCircle, Clock } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { ArrowLeft, CalendarX2, CheckCircle2, Clock, Send, XCircle } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeInDown, FadeInUp, Layout } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTheme } from '@/context/ThemeContext';
-import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { GlassCard, SpringButton } from '@/components/ui';
+import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 type LeaveStatus = 'Pending' | 'Approved' | 'Rejected';
 
@@ -22,6 +22,11 @@ interface LeaveRequest {
   appliedOn: string;
 }
 
+export default function LeavesScreen() {
+  const { theme, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+  const [mode, setMode] = useState<'history' | 'apply'>('history');
+
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
 
   // Form
@@ -32,7 +37,7 @@ interface LeaveRequest {
 
   const handleApply = () => {
     if (!startDate || !endDate || !reason) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     const newLeave: LeaveRequest = {
       id: Date.now().toString(),
       type,

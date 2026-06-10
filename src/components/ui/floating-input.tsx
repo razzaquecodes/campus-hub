@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { TextInput, View, Text, type TextInputProps } from 'react-native';
+import { Text, TextInput, View, type TextInputProps } from 'react-native';
 import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  interpolateColor,
+    interpolateColor,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
 } from 'react-native-reanimated';
 
-import { Colors } from '@/constants/colors';
 import { SPRING_CONFIG } from '@/animations/config';
+import { Colors } from '@/constants/colors';
 
 interface FloatingInputProps extends TextInputProps {
   label: string;
@@ -44,7 +44,7 @@ export function FloatingInput({ label, error, value, onFocus, onBlur, ...props }
       [0, 1],
       [Colors.textTertiary, isFocused ? Colors.primaryLight : Colors.textSecondary],
     ),
-  }));
+  }) as any);
 
   const borderStyle = useAnimatedStyle(() => ({
     borderColor: interpolateColor(
@@ -52,7 +52,7 @@ export function FloatingInput({ label, error, value, onFocus, onBlur, ...props }
       [0, 1],
       [Colors.border, Colors.primary],
     ),
-  }));
+  }) as any);
 
   return (
     <View className="mb-5">

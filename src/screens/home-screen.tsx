@@ -2,74 +2,70 @@
 // CampusHub BBIT — Premium Home Dashboard Redesigned
 // Features responsive light/dark aesthetics, custom assignments tracking, and live schedule cards
 
-import { LinearGradient } from 'expo-linear-gradient';
+import { EmptyState, ErrorState, Skeleton, SpringButton } from '@/components/ui';
+import { ActiveAttendanceCard } from '@/components/ui/ActiveAttendanceCard';
+import { getCurrentAndNextClass, getTodayClasses } from '@/constants/routine';
+import { Radius, Shadows, Typography } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
+import { useCampusAnnouncementFeed } from '@/hooks/queries/use-announcement-system';
+import { useAnnouncements } from '@/hooks/queries/use-announcements';
+import { useUnreadNotificationCount } from '@/hooks/queries/use-notifications';
+import { useStudentStats } from '@/hooks/queries/use-student-stats';
+import { useAssignments } from '@/hooks/use-assignments';
+import { useMasterProfile } from '@/hooks/use-master-profile';
+import { useRealtimeAnnouncements } from '@/hooks/use-realtime';
+import { useAuthStore } from '@/store/auth.store';
+import { useStudentStore } from '@/store/student.store';
 import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import {
-  Award,
-  BarChart3,
-  Bell,
-  BookOpen,
-  Calendar,
-  ChevronRight,
-  Clock,
-  CreditCard,
-  GraduationCap,
-  MapPin,
-  Star,
-  TrendingUp,
-  Award as AwardIcon,
-  Users,
-  Zap,
-  CheckCircle2,
-  Circle,
-  FileText,
-  FileWarning,
-  Activity,
-  PieChart,
-  Layers,
-  HelpCircle,
-  CalendarX2,
-  Trophy,
-  Briefcase
+    Activity,
+    Award,
+    BarChart3,
+    Bell,
+    BookOpen,
+    Briefcase,
+    Calendar,
+    CalendarX2,
+    ChevronRight,
+    Circle,
+    Clock,
+    CreditCard,
+    FileText,
+    GraduationCap,
+    HelpCircle,
+    Layers,
+    MapPin,
+    PieChart,
+    Star,
+    TrendingUp,
+    Users,
+    Zap
 } from 'lucide-react-native';
 import React, { useCallback, useMemo } from 'react';
 import {
-  Dimensions,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  View,
+    Dimensions,
+    Pressable,
+    RefreshControl,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
-import { Image } from 'expo-image';
 import Animated, {
-  Extrapolation,
-  FadeIn,
-  FadeInDown,
-  FadeInUp,
-  interpolate,
-  useAnimatedScrollHandler,
-  useAnimatedStyle,
-  useSharedValue,
+    Extrapolation,
+    FadeIn,
+    FadeInDown,
+    FadeInUp,
+    interpolate,
+    useAnimatedScrollHandler,
+    useAnimatedStyle,
+    useSharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAuthStore } from '@/store/auth.store';
-import { useStudentStore } from '@/store/student.store';
-import { getTodayClasses, getCurrentAndNextClass } from '@/constants/routine';
-import { useTheme } from '@/context/ThemeContext';
-import { Radius, Shadows } from '@/constants/theme';
-import { useAssignments } from '@/hooks/use-assignments';
-import { useAnnouncements } from '@/hooks/queries/use-announcements';
-import { useCampusAnnouncementFeed } from '@/hooks/queries/use-announcement-system';
-import { useRealtimeAnnouncements } from '@/hooks/use-realtime';
-import { useMasterProfile } from '@/hooks/use-master-profile';
-import { useUnreadNotificationCount } from '@/hooks/queries/use-notifications';
-import { ActiveAttendanceCard } from '@/components/ui/ActiveAttendanceCard';
-import { useStudentStats } from '@/hooks/queries/use-student-stats';
-import { SpringButton, GlassCard, Skeleton, EmptyState, ErrorState } from '@/components/ui';
 
 const { width: W } = Dimensions.get('window');
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
@@ -78,7 +74,6 @@ const WORKFLOW_ACTIONS = [
   { id: 'leaves',      label: 'Leaves',       icon: CalendarX2, color: '#F87171', route: '/leaves' },
   { id: 'doubts',      label: 'Doubt Desk',   icon: HelpCircle, color: '#3B82F6', route: '/doubts' },
   { id: 'office-hours',label: 'Office Hours', icon: Clock,      color: '#8B5CF6', route: '/office-hours' },
-  { id: 'achievements',label: 'Achievements', icon: Trophy,     color: '#F59E0B', route: '/achievements' },
   { id: 'placements',  label: 'Placements',   icon: Briefcase,  color: '#10B981', route: '/placements' },
 ];
 

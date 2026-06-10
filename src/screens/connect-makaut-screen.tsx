@@ -1,24 +1,24 @@
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
+import { Lock, ShieldCheck, User } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  Pressable,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Dimensions,
+    Dimensions,
+    KeyboardAvoidingView,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeInUp, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Lock, User, ShieldCheck } from 'lucide-react-native';
-import { router } from 'expo-router';
 
 import { useAuthStore } from '@/store/auth.store';
-import { connectMakautAccount } from '@/services/makaut.service';
+import { linkMakautAccount } from '@/services/makaut.service';
 
 const { height: H } = Dimensions.get('window');
 
@@ -135,7 +135,7 @@ export function ConnectMakautScreen() {
     setLoading(true);
 
     try {
-      const makautData = await connectMakautAccount(profile.id, rollNumber, password, profile);
+      const makautData = await linkMakautAccount(profile.id, rollNumber, password, profile);
       setMakautProfile(makautData);
       
       // Successfully linked, navigate to dashboard

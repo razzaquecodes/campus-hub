@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SpringButton } from '@/components/ui';
 import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
+import { useNotices } from '@/hooks/queries/use-notices';
 
 // Using the exact schema established in the Admin Notices module
 interface NoticeRecord {
@@ -35,7 +36,7 @@ export default function StudentNoticesScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   
-  const { data: notices = [], refetch, isLoading, isError, isRefetching } = useNotices();
+  const { data: notices = [], refetch, isLoading, isError, isRefetching, error } = useNotices();
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -62,9 +63,9 @@ export default function StudentNoticesScreen() {
   const filteredNotices = useMemo(() => {
     if (!searchQuery.trim()) return notices;
     const lowerQuery = searchQuery.toLowerCase();
-    return notices.filter((n) => 
+    return notices.filter((n: NoticeRecord) => 
       n.title.toLowerCase().includes(lowerQuery) || 
-      n.pdf_name.toLowerCase().includes(lowerQuery)
+      (n.pdf_name || '').toLowerCase().includes(lowerQuery)
     );
   }, [notices, searchQuery]);
 
@@ -117,15 +118,15 @@ export default function StudentNoticesScreen() {
           />
         }
       >
-        {loading && !refreshing ? (
+        {isLoading && !refreshing ? (
           <View style={ss.centerContent}>
             <ActivityIndicator size="large" color={theme.colors.primary} />
           </View>
-        ) : error ? (
+        ) : isError ? (
           <View style={[ss.emptyState, { borderColor: theme.colors.danger, backgroundColor: `${theme.colors.danger}10` }]}>
             <BellRing color={theme.colors.danger} size={32} />
             <Text style={[Typography.body.md, { color: theme.colors.danger, marginTop: 12, textAlign: 'center' }]}>
-              {error}
+              {error?.message ?? String(error)}
             </Text>
             <SpringButton onPress={onRefresh} scaleDown={0.95}>
               <View style={[ss.retryBtn, { backgroundColor: theme.colors.danger }]}>
@@ -149,7 +150,7 @@ export default function StudentNoticesScreen() {
           </View>
         ) : (
           <View style={{ gap: Spacing.md }}>
-            {filteredNotices.map((record, idx) => {
+            {filteredNotices.map((record: NoticeRecord, idx: number) => {
               const dateObj = new Date(record.uploaded_at);
               const formattedDate = dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
               

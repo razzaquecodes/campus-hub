@@ -20,8 +20,8 @@ import React, { useEffect, useState } from 'react';
 import {
     Dimensions,
     Platform,
-    ScrollView,
     RefreshControl,
+    ScrollView,
     StatusBar,
     StyleSheet,
     Text,
@@ -38,6 +38,7 @@ import Svg, { Circle, Defs, Path, Stop, LinearGradient as SvgGradient } from 're
 import { Badge, EmptyState, ErrorState, Skeleton, SpringButton } from '@/components/ui';
 import { Radius, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
+import { useResults } from '@/hooks/queries/use-results';
 import { useStudentStore } from '@/store/student.store';
 
 const { width: W } = Dimensions.get('window');
@@ -146,10 +147,10 @@ export function ResultsScreen() {
   const { data: apiResults = [], isLoading, isError, refetch, isFetching } = useResults();
 
   // Map API results to local SemesterSummary shape
-  const semesters: SemesterSummary[] = (apiResults || []).map((r) => ({
+  const semesters: SemesterSummary[] = (apiResults || []).map((r: any) => ({
     semester: r.semester,
     sgpa: r.sgpa,
-    totalCredits: Array.isArray(r.subjects) ? r.subjects.reduce((s, sub) => s + (Number(sub.credit ?? sub.credits) || 0), 0) : 0,
+    totalCredits: Array.isArray(r.subjects) ? r.subjects.reduce((s: number, sub: any) => s + (Number(sub.credit ?? sub.credits) || 0), 0) : 0,
     status: r.status,
     publishedDate: undefined,
   }));
@@ -182,11 +183,6 @@ export function ResultsScreen() {
     ? 'empty'
     : 'data';
 
-  const handleRetry = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-    setRetrying(true);
-    fetchResults();
-  };
 
   return (
     <View style={[s.root, { backgroundColor: theme.colors.void }]}>

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import type { BranchCode, SectionCode } from '@/types/targeting';
 
 export interface FacultyProfile {
+  id?: string;
   name: string;
   department: string;
   designation: string;
@@ -23,6 +24,7 @@ export interface ClassRoutine {
   endTime: string;
   type: 'Theory' | 'Practical';
   status: 'Completed' | 'Ongoing' | 'Upcoming';
+  year?: string;
 }
 
 export interface NoticeTarget {
@@ -69,7 +71,7 @@ export interface FacultyAssignment {
 }
 
 interface FacultyState {
-  profile: FacultyProfile;
+  profile: FacultyProfile | null;
   todayRoutine: ClassRoutine[];
   
   // Announcement System
@@ -79,7 +81,7 @@ interface FacultyState {
   activeAssignments: FacultyAssignment[];
   
   // Actions
-  setProfile: (profile: FacultyProfile) => void;
+  setProfile: (profile: FacultyProfile | null) => void;
   setTodayRoutine: (routine: ClassRoutine[]) => void;
   setActiveNotices: (notices: FacultyNotice[]) => void;
   setActiveAssignments: (assignments: FacultyAssignment[]) => void;
@@ -87,6 +89,7 @@ interface FacultyState {
   createNotice: (notice: Omit<FacultyNotice, 'id' | 'analytics' | 'date' | 'status'>) => Promise<FacultyNotice>;
   editNotice: (id: string, updates: Partial<FacultyNotice>) => Promise<FacultyNotice>;
   archiveNotice: (id: string) => Promise<void>;
+  deleteNotice: (id: string) => Promise<void>;
 
   createAssignment: (assignment: Omit<FacultyAssignment, 'id' | 'date'>) => Promise<FacultyAssignment>;
   deleteAssignment: (id: string) => Promise<void>;
@@ -144,8 +147,15 @@ export const useFacultyStore = create<FacultyState>((set, get) => ({
       .from('notices')
       .update({ status: 'Archived' })
       .eq('id', id);
-    
+     
     if (error) throw error;
+  },
+
+  // Backwards-compatible alias expected by UI: deleteNotice
+  deleteNotice: async (id) => {
+    // Default to archiving to preserve data; UI calls this when "deleting" a notice
+    const state = get();
+    await state.archiveNotice(id);
   },
 
   createAssignment: async (assignmentData) => {
