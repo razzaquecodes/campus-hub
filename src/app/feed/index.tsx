@@ -11,6 +11,10 @@ import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { GlassCard, SpringButton } from '@/components/ui';
 import { useFacultyStore, FacultyNotice, FacultyAssignment } from '@/store/faculty.store';
 import { useAuthStore } from '@/store/auth.store';
+import { useCampusAnnouncementFeed } from '@/hooks/queries/use-announcement-system';
+import { useRealtimeAnnouncements } from '@/hooks/use-realtime';
+import { useMasterProfile } from '@/hooks/use-master-profile';
+import type { CampusAnnouncement } from '@/types/announcement';
 
 // Feed Items can be Notices or Assignments
 type FeedItem = 
@@ -33,11 +37,33 @@ export default function UnifiedCampusFeed() {
   const insets = useSafeAreaInsets();
   
   const profile = useAuthStore(s => s.profile);
+  const masterProfile = useMasterProfile();
   const { activeNotices, activeAssignments } = useFacultyStore();
+  const { data: campusAnnouncements = [], refetch } = useCampusAnnouncementFeed(masterProfile);
+  useRealtimeAnnouncements(() => { void refetch(); });
 
   const feedItems = useMemo(() => {
-    // Filter Notices
-    const myNotices = activeNotices.filter(n => {
+    const supabaseNotices: FacultyNotice[] = campusAnnouncements.map((a: CampusAnnouncement) => ({
+      id: a.id,
+      title: a.title,
+      description: a.description,
+      type: a.category as FacultyNotice['type'],
+      target: a.target.entireCollege ? { isAll: true } : {
+        isAll: false,
+        branch: a.target.branch,
+        year: a.target.year ? String(a.target.year) : undefined,
+        section: a.target.section,
+      },
+      analytics: a.analytics,
+      date: a.createdAt,
+      status: 'Active' as const,
+      isPinned: a.isPinned,
+      priority: a.priority,
+    }));
+
+    const mergedNotices = [...supabaseNotices, ...activeNotices.filter((n) => !supabaseNotices.some((s) => s.id === n.id))];
+
+    const myNotices = mergedNotices.filter(n => {
       if (n.status !== 'Active') return false;
       if (n.target.isAll) return true;
       const bMatch = !n.target.branch || n.target.branch === profile?.branch;
@@ -67,7 +93,7 @@ export default function UnifiedCampusFeed() {
     });
 
     return combined;
-  }, [activeNotices, activeAssignments, profile]);
+  }, [activeNotices, activeAssignments, profile, campusAnnouncements]);
 
   return (
     <View style={[ss.root, { backgroundColor: theme.colors.void }]}>

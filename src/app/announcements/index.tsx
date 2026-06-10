@@ -14,7 +14,6 @@ import { useCampusAnnouncementFeed } from '@/hooks/queries/use-announcement-syst
 import { useRealtimeAnnouncements } from '@/hooks/use-realtime';
 import type { CampusAnnouncement } from '@/types/announcement';
 
-
 const FILTERS: { id: string, label: string }[] = [
   { id: 'all', label: 'All Updates' },
   { id: 'General Notice', label: 'General' },
@@ -34,51 +33,34 @@ function getRelativeTime(value: string): string {
   return `${days} days ago`;
 }
 
-function noticeTargetToAudience(notice: FacultyNotice): AudienceTarget {
-  if (notice.target.isAll) return { entireCollege: true };
-  const year = notice.target.year
-    ? normalizeYear(notice.target.year)
-    : normalizeYear(notice.target.semester ? Math.ceil(Number.parseInt(notice.target.semester, 10) / 2) : undefined);
-
-  return {
-    branch: notice.target.branch,
-    year,
-    section: notice.target.section,
-    allSections: !notice.target.section,
-  };
-}
-
 export default function StudentAnnouncementCenter() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const profile = useMasterProfile();
-  const activeNotices = useFacultyStore(s => s.activeNotices);
-  const { readNotices, markNoticeAsRead } = useStudentStore();
-  
+  const { data: announcements = [], refetch } = useCampusAnnouncementFeed(profile);
   const [activeFilter, setActiveFilter] = useState('all');
+  const [readIds, setReadIds] = useState<string[]>([]);
 
-  // Filter notices for the student
+  useRealtimeAnnouncements(() => { void refetch(); });
+
   const myNotices = useMemo(() => {
-    let filtered = activeNotices.filter(n => {
-      if (n.status !== 'Active') return false;
-      if (activeFilter !== 'all' && n.type !== activeFilter) return false;
-      if (!profile) return true;
-      return matchesAudience(profile, noticeTargetToAudience(n));
+    let filtered = announcements.filter((n) => {
+      if (activeFilter !== 'all' && n.category !== activeFilter) return false;
+      return true;
     });
-    
-    // Sort: Pinned first, then by date descending
+
     filtered.sort((a, b) => {
       if (a.isPinned && !b.isPinned) return -1;
       if (!a.isPinned && b.isPinned) return 1;
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-    
-    return filtered;
-  }, [activeNotices, profile, activeFilter]);
 
-  const handlePressNotice = (notice: FacultyNotice) => {
+    return filtered;
+  }, [announcements, activeFilter]);
+
+  const handlePressNotice = (notice: CampusAnnouncement) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    markNoticeAsRead(notice.id);
+    setReadIds((prev) => (prev.includes(notice.id) ? prev : [...prev, notice.id]));
   };
 
   return (
@@ -149,7 +131,7 @@ export default function StudentAnnouncementCenter() {
           </Animated.View>
         ) : (
           myNotices.map((notice, i) => {
-            const isRead = readNotices.includes(notice.id);
+            const isRead = readIds.includes(notice.id);
             return (
             <Animated.View key={notice.id} entering={FadeInDown.duration(400).delay(i * 100)} layout={Layout.springify()}>
               <View style={ss.timelineRow}>
@@ -164,7 +146,7 @@ export default function StudentAnnouncementCenter() {
                 {/* Timeline Card */}
                 <View style={{ flex: 1, paddingBottom: Spacing.xl }}>
                   <Text style={[Typography.label.sm, { color: theme.colors.textTertiary, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }]}>
-                    {getRelativeTime(notice.date)}
+                    {getRelativeTime(notice.createdAt)}
                   </Text>
                   
                   <SpringButton scaleDown={0.98} onPress={() => handlePressNotice(notice)}>
@@ -189,7 +171,7 @@ export default function StudentAnnouncementCenter() {
                             </View>
                           )}
                           <View style={[ss.typeTag, { backgroundColor: `${theme.colors.primary}12` }]}>
-                            <Text style={[Typography.label.sm, { color: theme.colors.primaryLight, fontWeight: '600' }]}>{notice.type}</Text>
+                            <Text style={[Typography.label.sm, { color: theme.colors.primaryLight, fontWeight: '600' }]}>{notice.category}</Text>
                           </View>
                         </View>
 
@@ -200,8 +182,7 @@ export default function StudentAnnouncementCenter() {
                           {notice.description}
                         </Text>
 
-                        {/* Faux Attachment (Linear style reference) */}
-                        {notice.type === 'Study Material' && (
+                        {notice.category === 'Study Material' && (
                           <View style={[ss.attachmentBox, { borderColor: theme.colors.border, backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }]}>
                             <FileText color={theme.colors.textSecondary} size={16} />
                             <Text style={[Typography.label.sm, { color: theme.colors.textSecondary, marginLeft: 8 }]}>Material_Document.pdf</Text>

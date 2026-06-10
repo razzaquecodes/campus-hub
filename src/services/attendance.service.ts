@@ -23,6 +23,8 @@ export async function startAttendanceSession(
   branch?: string,
   year?: string,
   section?: string,
+  boardImageUrl?: string,
+  facultyLocation?: { latitude: number; longitude: number },
 ): Promise<AttendanceSession | null> {
   useAttendanceStore.getState().setLoading(true);
   useAttendanceStore.getState().setError(null);
@@ -33,13 +35,15 @@ export async function startAttendanceSession(
       year: year ? (Number.parseInt(year, 10) as AcademicYear) : undefined,
       section: section as SectionCode | undefined,
       allSections: !section,
+      ...(facultyLocation ? { facultyLocation } : {}),
     };
 
     return await createAttendanceSession({
       facultyId,
       subject,
       target,
-      requiredMethods: ['MANUAL'],
+      requiredMethods: ['FACE', 'OCR', 'GPS'],
+      boardImageUrl,
       durationMinutes: 5,
     });
   } catch (error) {
@@ -145,13 +149,15 @@ export const attendanceService = {
     sessionId: string,
     studentId: string,
     methods: VerificationMethod[],
+    selfieUrl: string,
+    boardImageUrl: string,
   ): Promise<AttendanceSubmission> {
     return attendanceRepository.submitAttendance({
       sessionId,
       studentId,
       studentRoll: studentId,
-      selfieUrl: 'mock://manual-selfie',
-      boardImageUrl: 'mock://manual-board',
+      selfieUrl,
+      boardImageUrl,
       verifiedMethods: methods,
     });
   },

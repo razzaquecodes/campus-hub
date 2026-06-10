@@ -42,7 +42,7 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
     android: {
       ...config.android,
       package: ANDROID_PACKAGE,
-      versionCode: 3,
+      versionCode: 4,
       adaptiveIcon: {
         backgroundColor: '#020617',
         foregroundImage: './assets/images/android-icon-foreground.png',
@@ -79,6 +79,27 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
         'expo-router',
         {
           root: './src/app',
+        },
+      ],
+      [
+        'expo-camera',
+        {
+          cameraPermission: 'Campus Hub needs camera access for live attendance verification.',
+          microphonePermission: false,
+          recordAudioAndroid: false,
+        },
+      ],
+      [
+        'expo-location',
+        {
+          locationWhenInUsePermission: 'Campus Hub uses your location to verify classroom attendance.',
+        },
+      ],
+      [
+        'expo-notifications',
+        {
+          icon: './assets/images/icon.png',
+          color: '#6366F1',
         },
       ],
       [

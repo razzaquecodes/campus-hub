@@ -1,7 +1,8 @@
 {
   "id": "/",
   "short_name": "Campus Hub",
-  "name": "Campus Hub",
+  "name": "Campus Hub — BBIT Student Portal",
+  "description": "Campus Hub is the official BBIT student and faculty portal for attendance, announcements, results, and academic tools.",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -22,9 +23,28 @@
       "purpose": "maskable"
     }
   ],
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Campus Hub mobile dashboard"
+    },
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Campus Hub desktop view"
+    }
+  ],
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "theme_color": "#0A0A0B",
   "background_color": "#0A0A0B",
-  "orientation": "portrait"
+  "orientation": "portrait",
+  "categories": ["education", "productivity"]
 }

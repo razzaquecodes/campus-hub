@@ -17,11 +17,14 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Aperture, ArrowLeft, Camera, CheckCircle2, Play } from 'lucide-react-native';
 
+import { LiveCameraCapture } from '@/components/camera/LiveCameraCapture';
 import { Badge, GlassCard, SpringButton } from '@/components/ui';
 import { Animation, Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useFacultyStore } from '@/store/faculty.store';
 import { startAttendanceSession } from '@/services/attendance.service';
+import { buildCapturePath, uploadAttendanceImage } from '@/services/attendance-upload.service';
+import { LocationService } from '@/services/location.service';
 
 // ─── Step Item ────────────────────────────────────────────────────────────────
 function StepPill({
@@ -75,6 +78,8 @@ export default function FacultyCaptureBoard() {
   const { profile } = useFacultyStore();
 
   const [boardCaptured, setBoardCaptured] = useState(false);
+  const [boardUri, setBoardUri] = useState<string | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
 
   // ── Pulsing ring animation (pending state) ─────────────────────────────────
@@ -135,12 +140,11 @@ export default function FacultyCaptureBoard() {
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleCapture = () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setBoardCaptured(true);
+    setShowCamera(true);
   };
 
   const handleStartSession = async () => {
-    if (!boardCaptured) {
+    if (!boardCaptured || !boardUri) {
       Alert.alert('Incomplete', 'Please capture the whiteboard before starting the session.');
       return;
     }
@@ -148,20 +152,34 @@ export default function FacultyCaptureBoard() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsStarting(true);
 
-    const session = await startAttendanceSession(
-      profile.employeeId,
-      params.subject as string,
-      params.branch as string,
-      params.year as string,
-      params.section as string,
-    );
+    try {
+      const facultyLocation = await LocationService.getCurrentLocation();
+      const tempSessionId = `faculty_${profile.employeeId}_${Date.now()}`;
+      const boardImageUrl = await uploadAttendanceImage(
+        boardUri,
+        buildCapturePath(tempSessionId, profile.employeeId, 'board'),
+      );
 
-    setIsStarting(false);
+      const session = await startAttendanceSession(
+        profile.employeeId,
+        params.subject as string,
+        params.branch as string,
+        params.year as string,
+        params.section as string,
+        boardImageUrl,
+        facultyLocation,
+      );
 
-    if (session) {
-      router.replace(`/faculty/attendance/session/${session.id}`);
-    } else {
-      Alert.alert('Error', 'Failed to start attendance session.');
+      if (session) {
+        router.replace(`/faculty/attendance/session/${session.id}`);
+      } else {
+        Alert.alert('Error', 'Failed to start attendance session.');
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to start session';
+      Alert.alert('Error', message);
+    } finally {
+      setIsStarting(false);
     }
   };
 
@@ -438,6 +456,20 @@ export default function FacultyCaptureBoard() {
           )}
         </SpringButton>
       </Animated.View>
+
+      <LiveCameraCapture
+        visible={showCamera}
+        facing="back"
+        title="Capture Whiteboard"
+        hint="Ensure slide or board content is clearly visible"
+        onClose={() => setShowCamera(false)}
+        onCapture={(result) => {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          setBoardUri(result.uri);
+          setBoardCaptured(true);
+          setShowCamera(false);
+        }}
+      />
     </View>
   );
 }

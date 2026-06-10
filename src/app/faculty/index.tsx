@@ -13,19 +13,34 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { GlassCard, SpringButton } from '@/components/ui';
 import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
+import { useCampusAnnouncementFeed } from '@/hooks/queries/use-announcement-system';
+import { useRealtimeAnnouncements } from '@/hooks/use-realtime';
 import { useFacultyStore, ClassRoutine, FacultyNotice } from '@/store/faculty.store';
+import { attendanceService } from '@/services/attendance.service';
 
 export default function FacultyAnnouncementDashboard() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   
   const { profile, todayRoutine, activeNotices, deleteNotice, archiveNotice } = useFacultyStore();
+  const { data: supabaseNotices = [], refetch: refetchNotices } = useCampusAnnouncementFeed(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [attendanceStats, setAttendanceStats] = useState({ sessions: 0, submissions: 0 });
+
+  useRealtimeAnnouncements(() => { void refetchNotices(); });
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1200);
+    const timer = setTimeout(() => setIsLoading(false), 600);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    attendanceService.getActiveSessions().then((sessions) => {
+      const facultySessions = sessions.filter((s) => s.faculty_id === profile.employeeId);
+      const totalSubs = facultySessions.reduce((sum, s) => sum + (s.live_count ?? 0), 0);
+      setAttendanceStats({ sessions: facultySessions.length, submissions: totalSubs });
+    }).catch(() => {});
+  }, [profile.employeeId]);
 
   const nextClass = todayRoutine.find(c => c.status === 'Upcoming') || todayRoutine[0];
 
@@ -98,7 +113,23 @@ export default function FacultyAnnouncementDashboard() {
           </LinearGradient>
         </Animated.View>
 
-        {/* ── 2. Next Class Widget ── */}
+        {/* ── 2. Analytics Row ── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(80)} style={[ss.section, { flexDirection: 'row', gap: 12 }]}>
+          <GlassCard intensity={isDark ? 25 : 60} style={[ss.analyticsCard, { borderColor: theme.colors.border }]}>
+            <Text style={[Typography.label.sm, { color: theme.colors.textTertiary }]}>Active Sessions</Text>
+            <Text style={[Typography.display.small, { color: theme.colors.primary, marginTop: 4 }]}>{attendanceStats.sessions}</Text>
+          </GlassCard>
+          <GlassCard intensity={isDark ? 25 : 60} style={[ss.analyticsCard, { borderColor: theme.colors.border }]}>
+            <Text style={[Typography.label.sm, { color: theme.colors.textTertiary }]}>Submissions Today</Text>
+            <Text style={[Typography.display.small, { color: theme.colors.success, marginTop: 4 }]}>{attendanceStats.submissions}</Text>
+          </GlassCard>
+          <GlassCard intensity={isDark ? 25 : 60} style={[ss.analyticsCard, { borderColor: theme.colors.border }]}>
+            <Text style={[Typography.label.sm, { color: theme.colors.textTertiary }]}>Broadcasts</Text>
+            <Text style={[Typography.display.small, { color: theme.colors.info, marginTop: 4 }]}>{supabaseNotices.length || activeNotices.filter(n => n.status === 'Active').length}</Text>
+          </GlassCard>
+        </Animated.View>
+
+        {/* ── 2.5 Next Class Widget ── */}
         <Animated.View entering={FadeInDown.duration(500).delay(100)} style={ss.section}>
           <NextClassWidget nextClass={nextClass} />
         </Animated.View>
@@ -420,6 +451,12 @@ const ss = StyleSheet.create({
   },
   section: {
     marginBottom: Spacing.xxl,
+  },
+  analyticsCard: {
+    flex: 1,
+    padding: Spacing.md,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
   },
   sectionHeader: {
     flexDirection: 'row',

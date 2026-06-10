@@ -63,11 +63,13 @@ import { useTheme } from '@/context/ThemeContext';
 import { Radius, Shadows } from '@/constants/theme';
 import { useAssignments } from '@/hooks/use-assignments';
 import { useAnnouncements } from '@/hooks/queries/use-announcements';
+import { useCampusAnnouncementFeed } from '@/hooks/queries/use-announcement-system';
+import { useRealtimeAnnouncements } from '@/hooks/use-realtime';
+import { useMasterProfile } from '@/hooks/use-master-profile';
 import { useUnreadNotificationCount } from '@/hooks/queries/use-notifications';
 import { ActiveAttendanceCard } from '@/components/ui/ActiveAttendanceCard';
 import { useStudentStats } from '@/hooks/queries/use-student-stats';
 import { SpringButton, GlassCard } from '@/components/ui';
-import { useFacultyStore } from '@/store/faculty.store';
 
 const { width: W } = Dimensions.get('window');
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
@@ -119,25 +121,23 @@ export function HomeScreen() {
   const student = useStudentStore((s) => s.student);
   const todayClasses = useMemo(() => getTodayClasses(), []);
   const { pending, toggleComplete } = useAssignments();
+  const masterProfile = useMasterProfile();
   const { data: announcements = [], isLoading: annLoading, isError: annError, refetch: refetchAnn } = useAnnouncements();
+  const { data: campusAnnouncements = [], refetch: refetchCampusAnn } = useCampusAnnouncementFeed(masterProfile);
+  useRealtimeAnnouncements(() => { void refetchAnn(); void refetchCampusAnn(); });
   const { data: unreadCount = 0 } = useUnreadNotificationCount();
   const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useStudentStats();
 
   // Get active class info
   const { current: currentClass } = useMemo(() => getCurrentAndNextClass(), []);
 
-  // Faculty Announcements Visibility Logic
-  const activeNotices = useFacultyStore((s) => s.activeNotices);
   const facultyNotices = useMemo(() => {
-    return activeNotices.filter(n => {
-      if (n.status !== 'Active') return false;
-      if (n.target.isAll) return true;
-      const bMatch = !n.target.branch || n.target.branch === profile?.branch;
-      const semMatch = !n.target.semester || n.target.semester === profile?.semester;
-      const secMatch = !n.target.section || n.target.section === profile?.section;
-      return bMatch && semMatch && secMatch;
+    return [...campusAnnouncements].sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-  }, [activeNotices, profile]);
+  }, [campusAnnouncements]);
 
   const scrollHandler = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
@@ -697,9 +697,9 @@ export function HomeScreen() {
                       backgroundColor: `${theme.colors.primary}12`,
                       borderColor: `${theme.colors.primary}24`,
                     }]}>
-                      <Text style={[ss.annoCatText, { color: theme.colors.primary }]}>{notice.type}</Text>
+                      <Text style={[ss.annoCatText, { color: theme.colors.primary }]}>{notice.category}</Text>
                     </View>
-                    <Text style={[ss.annoTime, { color: theme.colors.textTertiary }]}>{getRelativeTime(notice.date)}</Text>
+                    <Text style={[ss.annoTime, { color: theme.colors.textTertiary }]}>{getRelativeTime(notice.createdAt)}</Text>
                   </View>
                 </View>
               </Animated.View>

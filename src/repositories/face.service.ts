@@ -1,5 +1,5 @@
 import { FaceProvider, FaceVerificationResult, LivenessResult } from './face.types';
-import { MockFaceProvider } from './providers/mock.provider';
+import { MockFaceProvider } from './mock.provider';
 
 export class FaceService {
   // Default to a mock provider. Can be swapped at runtime or initialization.

@@ -1,13 +1,14 @@
-import * as BackgroundFetch from 'expo-background-fetch';
-import * as TaskManager from 'expo-task-manager';
-import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as BackgroundFetch from 'expo-background-fetch';
+import * as Notifications from 'expo-notifications';
 import * as SecureStore from 'expo-secure-store';
+import * as TaskManager from 'expo-task-manager';
+import { Platform } from 'react-native';
 
 import { fetchInternalMarks } from '@/api/internal-marks.api';
+import { insertNotification } from '@/api/notifications.api';
 import { API_CONFIG } from '@/config/api';
 import { apiClient } from '@/lib/api-client';
-import { insertNotification } from '@/api/notifications.api';
 
 const BACKGROUND_ACADEMIC_SYNC = 'BACKGROUND_ACADEMIC_SYNC';
 
@@ -24,15 +25,17 @@ interface SemesterResult {
 }
 
 // Ensure Push notifications behavior
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 async function triggerLocalPush(title: string, body: string, data: Record<string, unknown> = {}) {
   await Notifications.scheduleNotificationAsync({

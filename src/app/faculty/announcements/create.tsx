@@ -10,6 +10,7 @@ import { GlassCard, SpringButton } from '@/components/ui';
 import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useFacultyStore, NoticeType } from '@/store/faculty.store';
+import { createAnnouncement } from '@/services/announcement.service';
 import { estimateAudience, normalizeYear } from '@/services/targeting.service';
 import type { BranchCode, SectionCode } from '@/types/targeting';
 
@@ -24,7 +25,7 @@ const SECTIONS: SectionCode[] = ['A', 'B', 'C', 'D'];
 export default function FacultyCreateNotice() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { createNotice } = useFacultyStore();
+  const { profile, createNotice } = useFacultyStore();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -44,31 +45,56 @@ export default function FacultyCreateNotice() {
     return estimateAudience(target).estimatedCount;
   }, [isAll, branch, year, section]);
 
-  const handleBroadcast = () => {
+  const handleBroadcast = async () => {
     if (!title.trim() || !description.trim()) {
       Alert.alert('Validation Error', 'Title and description are required.');
       return;
     }
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    
-    createNotice({
-      title,
-      description,
-      type,
-      isPinned,
-      priority,
-      target: {
-        isAll,
-        branch: isAll ? undefined : branch,
-        year: isAll ? undefined : year,
-        section: isAll ? undefined : section,
-      }
-    });
 
-    Alert.alert('Success', 'Announcement broadcasted successfully!', [
-      { text: 'OK', onPress: () => router.back() }
-    ]);
+    const target = isAll
+      ? { entireCollege: true as const }
+      : {
+          branch,
+          year: normalizeYear(year),
+          section,
+          allSections: false,
+        };
+
+    try {
+      await createAnnouncement({
+        title: title.trim(),
+        description: description.trim(),
+        category: type,
+        target,
+        authorId: profile.employeeId,
+        authorName: profile.name,
+        priority,
+        isPinned,
+      });
+
+      createNotice({
+        title,
+        description,
+        type,
+        isPinned,
+        priority,
+        target: {
+          isAll,
+          branch: isAll ? undefined : branch,
+          year: isAll ? undefined : year,
+          section: isAll ? undefined : section,
+        },
+      });
+
+      Alert.alert('Success', 'Announcement broadcasted successfully!', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to broadcast announcement';
+      Alert.alert('Error', message);
+    }
   };
 
   const SegmentedControl = ({ options, selected, onSelect }: { options: string[], selected: string, onSelect: (s: string) => void }) => (

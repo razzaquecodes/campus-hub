@@ -1,23 +1,37 @@
+const GALLERY_PATTERNS = [
+  /ImagePicker/i,
+  /imagepicker/i,
+  /DCIM/i,
+  /gallery/i,
+  /Photos\//i,
+  /mock:\/\//i,
+  /screenshot/i,
+];
+
+const MAX_CAPTURE_AGE_MS = 3 * 60 * 1000;
+
 export const SecurityUtils = {
-  // Simulates EXIF validation to detect screenshots or gallery uploads vs raw camera captures.
-  // In a real implementation, this would use expo-file-system or an EXIF parser library.
-  async validateExifIntegrity(mediaUri: string): Promise<boolean> {
-    if (!mediaUri) return false;
-    // Mock EXIF validation logic
-    return !mediaUri.includes('mock://screenshot');
+  async validateLiveCapture(mediaUri: string, capturedAt: string): Promise<boolean> {
+    if (!mediaUri || !capturedAt) return false;
+
+    for (const pattern of GALLERY_PATTERNS) {
+      if (pattern.test(mediaUri)) return false;
+    }
+
+    const age = Date.now() - new Date(capturedAt).getTime();
+    if (age < 0 || age > MAX_CAPTURE_AGE_MS) return false;
+
+    return true;
   },
 
-  // Simulates timestamp validation
   validateCaptureTime(captureTimestamp: string, sessionStart: string, sessionEnd: string): boolean {
     const capture = new Date(captureTimestamp).getTime();
     const start = new Date(sessionStart).getTime();
     const end = new Date(sessionEnd).getTime();
-    return capture >= start && capture <= end;
+    return capture >= start - 30_000 && capture <= end + 30_000;
   },
 
-  // Simulates session token validation
   validateSessionToken(token: string, activeSessionId: string): boolean {
-    // Logic to decrypt and validate session token payload
     return token.startsWith(activeSessionId);
-  }
+  },
 };

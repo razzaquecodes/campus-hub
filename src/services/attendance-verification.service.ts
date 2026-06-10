@@ -1,7 +1,7 @@
 import { apiClient } from '@/lib/api-client';
-import * as FileSystem from 'expo-file-system';
+import { readAsStringAsync, EncodingType } from 'expo-file-system/legacy';
 import { AuditRepository } from '../repositories/audit.repository';
-import { FaceService } from './face/face.service';
+import { FaceService } from '@/repositories/face.service';
 import { Coordinates, LocationService } from './location.service';
 
 export interface FacePipelineResult {
@@ -110,19 +110,20 @@ export class AttendanceVerificationService {
   ): Promise<BoardPipelineResult> {
     try {
       // Read image as Base64 for secure backend upload and processing
-      const base64Image = await FileSystem.readAsStringAsync(studentBoardUri, {
-        encoding: FileSystem.EncodingType.Base64,
+      const base64Image = await readAsStringAsync(studentBoardUri, {
+        encoding: EncodingType.Base64,
       });
 
       // Delegate entire OCR, comparison, and scoring pipeline to the Backend.
       // Backend will securely call Google Cloud Vision (DOCUMENT_TEXT_DETECTION),
       // compare student text with teacher text, and return the similarity score.
+      const { API_CONFIG } = await import('@/config/api');
       const response = await apiClient.post<{
         verified: boolean;
         score: number;
         extractedText: string;
         reason?: string;
-      }>('/api/verification/board', {
+      }>(`${API_CONFIG.BASE_URL}/api/verification/board`, {
         studentImageBase64: base64Image,
         teacherReferenceData,
         sessionId,

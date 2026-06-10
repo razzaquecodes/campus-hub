@@ -2,33 +2,35 @@ import '@/global.css';
 import 'react-native-reanimated';
 
 import {
-  DarkTheme as NavigationDarkTheme,
-  DefaultTheme as NavigationLightTheme,
-  ThemeProvider as NavigationThemeProvider,
+    DarkTheme as NavigationDarkTheme,
+    DefaultTheme as NavigationLightTheme,
+    ThemeProvider as NavigationThemeProvider,
 } from '@react-navigation/native';
+import * as Notifications from 'expo-notifications';
 import { Stack, router, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import * as Notifications from 'expo-notifications';
 
 import { SplashScreen } from '@/components/animations/splash/SplashScreen';
 import { ThemeProvider as AppThemeProvider, useTheme } from '@/context/ThemeContext';
 import { AppProviders } from '@/providers/app-providers';
-import { useAuthStore } from '@/store/auth.store';
-import { useAdminStore } from '@/store/admin.store';
 import { registerBackgroundSync } from '@/services/background-sync.service';
+import { useAdminStore } from '@/store/admin.store';
+import { useAuthStore } from '@/store/auth.store';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 /**
  * useAuthGuard — Reactive navigation guard.
@@ -65,25 +67,42 @@ function useAuthGuard() {
       segments,
     });
 
+    const inFacultyGroup = segments[0] === 'faculty';
+
     if (!isAuthenticated) {
       if (!inAuthGroup) {
         console.info('[router-decision] Navigating to login');
         router.replace('/(auth)/login');
       }
+    } else if (isAdmin) {
+      if (inAuthGroup || isRoot) {
+        console.info('[router-decision] Navigating to faculty portal');
+        router.replace('/faculty');
+      }
     } else {
-      if (isAdmin) {
-        if (inAuthGroup || isRoot) {
-          console.info('[router-decision] Navigating to faculty portal');
-          router.replace('/faculty');
-        }
-      } else {
-        if (inAuthGroup || isRoot) {
-          console.info('[router-decision] Navigating to dashboard (tabs)');
-          router.replace('/(tabs)');
-        }
+      if (inFacultyGroup) {
+        console.info('[router-decision] Blocking student from faculty routes');
+        router.replace('/(tabs)');
+      } else if (inAuthGroup || isRoot) {
+        console.info('[router-decision] Navigating to dashboard (tabs)');
+        router.replace('/(tabs)');
       }
     }
   }, [profile, isAdmin, isHydrated, segments, isAuthenticated]);
+}
+
+function NotificationBootstrap() {
+  if (Platform.OS === 'web') return null;
+
+  const response = Notifications.useLastNotificationResponse();
+
+  useEffect(() => {
+    if (response?.notification?.request?.content?.data?.url) {
+      router.push(response.notification.request.content.data.url as any);
+    }
+  }, [response]);
+
+  return null;
 }
 
 function AppShell() {
@@ -107,17 +126,6 @@ function AppShell() {
       });
     }
   }, []);
-  
-  const lastNotificationResponse = Notifications.useLastNotificationResponse();
-  useEffect(() => {
-    if (isHydrated && lastNotificationResponse) {
-      const data = lastNotificationResponse.notification.request.content.data;
-      if (data && typeof data.url === 'string') {
-        console.info('[notifications] Deep linking to:', data.url);
-        router.push(data.url as any);
-      }
-    }
-  }, [lastNotificationResponse, isHydrated]);
 
   const ready = animationDone && isHydrated;
 
@@ -150,6 +158,7 @@ function AppShell() {
   return (
     <NavigationThemeProvider value={navTheme}>
       <StatusBar style={isDark ? 'light' : 'dark'} />
+      {Platform.OS !== 'web' && <NotificationBootstrap />}
       <Stack
         screenOptions={{
           headerShown: false,

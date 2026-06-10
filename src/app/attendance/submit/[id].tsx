@@ -1,18 +1,30 @@
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View, Alert } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ArrowLeft, Camera, CheckCircle, UploadCloud } from 'lucide-react-native';
+import { ArrowLeft, Camera, CheckCircle, Clock, UploadCloud } from 'lucide-react-native';
 
+import { LiveCameraCapture } from '@/components/camera/LiveCameraCapture';
 import { GlassCard, SpringButton } from '@/components/ui';
 import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useMasterProfile } from '@/hooks/use-master-profile';
 import { useAttendanceSession } from '@/hooks/queries/use-attendance';
 import { useAttendanceStore } from '@/store/attendance.store';
-import { submitStudentAttendance } from '@/services/attendance.service';
+import {
+  createSubmissionNonce,
+  submitVerifiedAttendance,
+} from '@/services/attendance-submit.service';
+
+function formatCountdown(expiresAt: string | null | undefined): string {
+  if (!expiresAt) return '—';
+  const diff = Math.max(0, new Date(expiresAt).getTime() - Date.now());
+  const mins = Math.floor(diff / 60000);
+  const secs = Math.floor((diff % 60000) / 1000);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
 
 export default function StudentSubmitAttendance() {
   const { theme, isDark } = useTheme();
@@ -23,42 +35,49 @@ export default function StudentSubmitAttendance() {
   const patchDraft = useAttendanceStore((state) => state.patchDraft);
   const clearDraft = useAttendanceStore((state) => state.clearDraft);
   const { data: session } = useAttendanceSession(id);
-  
-  const [selfieCaptured, setSelfieCaptured] = useState(false);
-  const [boardCaptured, setBoardCaptured] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Guard: redirect if session no longer active
+  const [selfieUri, setSelfieUri] = useState<string | null>(null);
+  const [selfieCapturedAt, setSelfieCapturedAt] = useState<string | null>(null);
+  const [boardUri, setBoardUri] = useState<string | null>(null);
+  const [boardCapturedAt, setBoardCapturedAt] = useState<string | null>(null);
+  const [cameraMode, setCameraMode] = useState<'selfie' | 'board' | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [countdown, setCountdown] = useState('—');
+
+  const submissionNonce = useMemo(
+    () => (id ? createSubmissionNonce(id) : ''),
+    [id],
+  );
+
+  useEffect(() => {
+    if (!session?.expires_at) return;
+    const tick = () => setCountdown(formatCountdown(session.expires_at));
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [session?.expires_at]);
+
   useEffect(() => {
     if (session && session.status !== 'active') {
       Alert.alert(
         'Session Unavailable',
         `This attendance session is ${session.status}. You can no longer submit.`,
-        [{ text: 'OK', onPress: () => router.back() }]
+        [{ text: 'OK', onPress: () => router.back() }],
       );
     }
   }, [session]);
 
-  const handleCapture = (type: 'selfie' | 'board') => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setDraft({
-      sessionId: id,
-      step: type === 'selfie' ? 'board' : 'submit',
-      updatedAt: new Date().toISOString(),
-    });
-    if (type === 'selfie') {
-      setSelfieCaptured(true);
-      patchDraft({ selfieUri: 'mock://selfie', step: 'board' });
+  useEffect(() => {
+    if (session?.expires_at && Date.now() > new Date(session.expires_at).getTime()) {
+      Alert.alert('Session Expired', 'The attendance window has closed.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
     }
-    if (type === 'board') {
-      setBoardCaptured(true);
-      patchDraft({ boardUri: 'mock://board', step: 'submit' });
-    }
-  };
+  }, [session?.expires_at, countdown]);
 
   const handleSubmit = async () => {
-    if (!selfieCaptured || !boardCaptured) {
-      Alert.alert('Incomplete', 'Please capture both selfie and board images to verify your attendance.');
+    if (!selfieUri || !boardUri || !selfieCapturedAt || !boardCapturedAt || !session) {
+      Alert.alert('Incomplete', 'Please capture both selfie and board images using the live camera.');
       return;
     }
 
@@ -69,55 +88,61 @@ export default function StudentSubmitAttendance() {
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsSubmitting(true);
-    
-    // Using mock URLs since we aren't doing actual uploads yet
-    const success = await submitStudentAttendance(
-      id as string, 
-      profile.rollNumber, 
-      'https://mock.url/selfie.jpg',
-      'https://mock.url/board.jpg',
-      profile.id,
-      profile.fullName
-    );
-    
+
+    const result = await submitVerifiedAttendance({
+      session,
+      studentId: profile.id ?? profile.rollNumber,
+      studentRoll: profile.rollNumber,
+      studentName: profile.fullName,
+      selfieUri,
+      selfieCapturedAt,
+      boardUri,
+      boardCapturedAt,
+      submissionNonce,
+      referencePhotoUri: profile.profilePhoto,
+    });
+
     setIsSubmitting(false);
 
-    if (success) {
-      Alert.alert('Success', 'Attendance submitted and is pending verification.', [
-        { text: 'OK', onPress: () => { clearDraft(); router.back(); } }
+    if (result.success) {
+      Alert.alert('Success', 'Attendance submitted and verified.', [
+        { text: 'OK', onPress: () => { clearDraft(); router.back(); } },
       ]);
     } else {
-      Alert.alert('Error', 'Failed to submit attendance.');
+      Alert.alert('Verification Failed', result.error ?? 'Failed to submit attendance.');
     }
   };
 
   return (
     <View style={[ss.root, { backgroundColor: theme.colors.void }]}>
       <Animated.View entering={FadeInDown.duration(400)} style={[ss.header, { paddingTop: insets.top + Spacing.sm }]}>
-        <SpringButton onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          router.back();
-        }} scaleDown={0.88}>
+        <SpringButton onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.back(); }} scaleDown={0.88}>
           <GlassCard intensity={isDark ? 30 : 50} style={ss.backBtn}>
             <ArrowLeft color={theme.colors.textPrimary} size={20} strokeWidth={2.5} />
           </GlassCard>
         </SpringButton>
         <View style={{ flex: 1, marginLeft: 16 }}>
           <Text style={[Typography.display.small, { color: theme.colors.textPrimary, letterSpacing: -0.5 }]}>Submit Attendance</Text>
+          {session && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 6 }}>
+              <Clock color={theme.colors.warning} size={14} />
+              <Text style={[Typography.label.sm, { color: theme.colors.warning }]}>
+                Expires in {countdown}
+              </Text>
+            </View>
+          )}
         </View>
       </Animated.View>
 
       <ScrollView contentContainerStyle={[ss.scroll, { paddingBottom: insets.bottom + 120 }]} showsVerticalScrollIndicator={false}>
-        
         <Animated.View entering={FadeInUp.duration(500).delay(100)} style={{ marginBottom: Spacing.xl }}>
           <Text style={[Typography.body.md, { color: theme.colors.textSecondary, marginBottom: 16 }]}>
-            To verify your presence in the classroom, please take a selfie and a photo of the whiteboard/screen.
+            Live camera capture is required. Gallery uploads are disabled for fraud prevention.
           </Text>
 
-          {/* Selfie Capture Box */}
-          <SpringButton onPress={() => handleCapture('selfie')} scaleDown={0.97}>
-            <GlassCard intensity={isDark ? 20 : 60} style={[ss.captureBox, { borderColor: selfieCaptured ? theme.colors.success : theme.colors.border }]}>
-              {selfieCaptured ? (
+          <SpringButton onPress={() => { setDraft({ sessionId: id, step: 'selfie', updatedAt: new Date().toISOString() }); setCameraMode('selfie'); }} scaleDown={0.97}>
+            <GlassCard intensity={isDark ? 20 : 60} style={[ss.captureBox, { borderColor: selfieUri ? theme.colors.success : theme.colors.border }]}>
+              {selfieUri ? (
                 <View style={ss.capturedState}>
                   <CheckCircle color={theme.colors.success} size={32} />
                   <Text style={[Typography.headline.sm, { color: theme.colors.success, marginTop: 12 }]}>Selfie Captured</Text>
@@ -126,16 +151,15 @@ export default function StudentSubmitAttendance() {
                 <View style={ss.pendingState}>
                   <Camera color={theme.colors.textSecondary} size={32} />
                   <Text style={[Typography.headline.sm, { color: theme.colors.textPrimary, marginTop: 12 }]}>Tap to take Selfie</Text>
-                  <Text style={[Typography.label.sm, { color: theme.colors.textTertiary, marginTop: 4 }]}>Face must be clearly visible</Text>
+                  <Text style={[Typography.label.sm, { color: theme.colors.textTertiary, marginTop: 4 }]}>Front camera · live only</Text>
                 </View>
               )}
             </GlassCard>
           </SpringButton>
 
-          {/* Board Capture Box */}
-          <SpringButton onPress={() => handleCapture('board')} scaleDown={0.97} style={{ marginTop: Spacing.md }}>
-            <GlassCard intensity={isDark ? 20 : 60} style={[ss.captureBox, { borderColor: boardCaptured ? theme.colors.success : theme.colors.border }]}>
-              {boardCaptured ? (
+          <SpringButton onPress={() => { patchDraft({ step: 'board' }); setCameraMode('board'); }} scaleDown={0.97} style={{ marginTop: Spacing.md }}>
+            <GlassCard intensity={isDark ? 20 : 60} style={[ss.captureBox, { borderColor: boardUri ? theme.colors.success : theme.colors.border }]}>
+              {boardUri ? (
                 <View style={ss.capturedState}>
                   <CheckCircle color={theme.colors.success} size={32} />
                   <Text style={[Typography.headline.sm, { color: theme.colors.success, marginTop: 12 }]}>Board Captured</Text>
@@ -144,25 +168,44 @@ export default function StudentSubmitAttendance() {
                 <View style={ss.pendingState}>
                   <Camera color={theme.colors.textSecondary} size={32} />
                   <Text style={[Typography.headline.sm, { color: theme.colors.textPrimary, marginTop: 12 }]}>Tap to capture Board</Text>
-                  <Text style={[Typography.label.sm, { color: theme.colors.textTertiary, marginTop: 4 }]}>Include current slide/writing</Text>
+                  <Text style={[Typography.label.sm, { color: theme.colors.textTertiary, marginTop: 4 }]}>Rear camera · include slide/writing</Text>
                 </View>
               )}
             </GlassCard>
           </SpringButton>
         </Animated.View>
-
       </ScrollView>
 
       <Animated.View entering={FadeInUp.duration(500).delay(300)} style={[ss.footerArea, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, paddingBottom: insets.bottom + 16 }]}>
         <SpringButton onPress={handleSubmit} scaleDown={0.96} style={{ flex: 1 }} disabled={isSubmitting}>
-          <View style={[ss.submitBtn, { backgroundColor: (!selfieCaptured || !boardCaptured || isSubmitting) ? theme.colors.textTertiary : theme.colors.primary }]}>
+          <View style={[ss.submitBtn, { backgroundColor: (!selfieUri || !boardUri || isSubmitting) ? theme.colors.textTertiary : theme.colors.primary }]}>
             <UploadCloud color="#fff" size={20} />
             <Text style={[Typography.headline.sm, { color: '#fff', marginLeft: 8 }]}>
-              {isSubmitting ? 'Submitting...' : 'Verify Attendance'}
+              {isSubmitting ? 'Verifying...' : 'Verify Attendance'}
             </Text>
           </View>
         </SpringButton>
       </Animated.View>
+
+      <LiveCameraCapture
+        visible={cameraMode !== null}
+        facing={cameraMode === 'selfie' ? 'front' : 'back'}
+        title={cameraMode === 'selfie' ? 'Take Selfie' : 'Capture Board'}
+        hint={cameraMode === 'selfie' ? 'Face must be clearly visible' : 'Include the classroom board or slide'}
+        onClose={() => setCameraMode(null)}
+        onCapture={(result) => {
+          if (cameraMode === 'selfie') {
+            setSelfieUri(result.uri);
+            setSelfieCapturedAt(result.capturedAt);
+            patchDraft({ selfieUri: result.uri, step: 'board' });
+          } else {
+            setBoardUri(result.uri);
+            setBoardCapturedAt(result.capturedAt);
+            patchDraft({ boardUri: result.uri, step: 'submit' });
+          }
+          setCameraMode(null);
+        }}
+      />
     </View>
   );
 }
@@ -194,12 +237,8 @@ const ss = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pendingState: {
-    alignItems: 'center',
-  },
-  capturedState: {
-    alignItems: 'center',
-  },
+  pendingState: { alignItems: 'center' },
+  capturedState: { alignItems: 'center' },
   footerArea: {
     position: 'absolute',
     bottom: 0,
