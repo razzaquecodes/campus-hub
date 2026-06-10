@@ -1,19 +1,19 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
-import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { ArrowLeft, Megaphone, BookOpen, Layers, CheckCircle2, Pin } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { ArrowLeft, BookOpen, CheckCircle2, Layers, Megaphone, Pin } from 'lucide-react-native';
+import React, { useMemo } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTheme } from '@/context/ThemeContext';
-import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { GlassCard, SpringButton } from '@/components/ui';
-import { useFacultyStore, FacultyNotice, FacultyAssignment } from '@/store/faculty.store';
-import { useAuthStore } from '@/store/auth.store';
+import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 import { useCampusAnnouncementFeed } from '@/hooks/queries/use-announcement-system';
-import { useRealtimeAnnouncements } from '@/hooks/use-realtime';
 import { useMasterProfile } from '@/hooks/use-master-profile';
+import { useRealtimeAnnouncements } from '@/hooks/use-realtime';
+import { useAuthStore } from '@/store/auth.store';
+import { FacultyAssignment, FacultyNotice, useFacultyStore } from '@/store/faculty.store';
 import type { CampusAnnouncement } from '@/types/announcement';
 
 // Feed Items can be Notices or Assignments
@@ -95,6 +95,17 @@ export default function UnifiedCampusFeed() {
     return combined;
   }, [activeNotices, activeAssignments, profile, campusAnnouncements]);
 
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <View style={[ss.root, { backgroundColor: theme.colors.void }]}>
       {/* ── Header ── */}
@@ -114,7 +125,7 @@ export default function UnifiedCampusFeed() {
         </View>
       </Animated.View>
 
-      <ScrollView contentContainerStyle={[ss.listContent, { paddingBottom: insets.bottom + 60 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[ss.listContent, { paddingBottom: insets.bottom + 60 }]} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />}>
         {feedItems.length === 0 ? (
           <View style={ss.emptyState}>
             <View style={[ss.emptyIcon, { backgroundColor: `${theme.colors.textTertiary}15` }]}>

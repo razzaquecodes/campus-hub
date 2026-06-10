@@ -94,6 +94,22 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       console.info('[AppProviders] Configuring backend face provider', { url: Env.faceServiceUrl });
       FaceService.setProvider(new BackendFaceProvider());
     }
+
+    // Refresh academic data whenever app becomes active (user opens app)
+    const handleAppState = (nextState: string) => {
+      if (nextState === 'active') {
+        console.info('[AppProviders] App active — invalidating queries to refresh academic data');
+        try {
+          queryClient.invalidateQueries();
+        } catch (e) {
+          console.warn('[AppProviders] Failed invalidateQueries', e);
+        }
+      }
+    };
+
+    // Use AppState from react-native
+    const subscription = AppState.addEventListener('change', handleAppState);
+    return () => subscription.remove();
   }, []);
 
   return (
