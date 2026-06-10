@@ -1,3 +1,4 @@
+import { Env } from '@/lib/env';
 import { supabase } from '@/lib/supabase';
 import type { StudentProfile, UserProfile } from '@/types/database';
 
@@ -26,67 +27,48 @@ export async function getMakautProfile(userId: string): Promise<StudentProfile |
  * In a real app, this would hit an API endpoint or a secure backend service
  * that performs the scraping/API call to MAKAUT and returns the data.
  */
-export async function connectMakautAccount(
+export async function linkMakautAccount(
   userId: string,
   rollNumber: string,
-  _password: string, // Currently not used in the mock, but would be sent to the backend securely
+  password: string,
   existingProfile: UserProfile
 ): Promise<StudentProfile> {
   if (!supabase) throw new Error('Supabase not configured');
+  if (!Env.makautApiUrl) throw new Error('MAKAUT verification endpoint is not configured.');
 
-  // Simulate network delay for "verification"
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+  // The backend function is responsible for verifying credentials against MAKAUT,
+  // fetching the student's data, and returning it.
+  // The function should NOT return the password.
+  const response = await fetch(Env.makautApiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      // Pass the Supabase JWT to authorize the user on the backend
+      Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+    },
+    body: JSON.stringify({
+      rollNumber,
+      password,
+      userId, // Pass userId for linking
+    }),
+  });
 
-  // Mock checking validity (e.g. valid length of roll number)
-  if (rollNumber.length < 5) {
-    throw new Error('Invalid MAKAUT Roll Number');
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({ message: 'An unknown error occurred.' }));
+    throw new Error(errorBody.message || 'Failed to connect MAKAUT account.');
   }
 
-  // Mocked data that would theoretically be returned from MAKAUT
-  const mockedMakautData = {
-    user_id: userId,
-    full_name: existingProfile.full_name,
-    roll_number: rollNumber,
-    registration_number: `REG${Math.floor(Math.random() * 9000000) + 1000000}`,
-    email: existingProfile.email,
-    mobile: existingProfile.phone || `+91 ${Math.floor(Math.random() * 9000000000) + 1000000000}`,
-    institute_name: 'Budge Budge Institute of Technology',
-    course_name: 'B.Tech in Computer Science & Engineering',
-    abc_id: `ABC-${Math.floor(Math.random() * 9000) + 1000}-${Math.floor(Math.random() * 9000) + 1000}-${Math.floor(Math.random() * 9000) + 1000}`,
-    photo_url: existingProfile.avatar_url,
+  const makautData = await response.json();
+
+  // The backend function should return data that can be upserted into student_profiles.
+  // It should also handle the upsert itself for better security and data integrity.
+  // Here we assume the backend does the upsert and returns the final profile.
+  const studentProfile: StudentProfile = {
+    ...makautData,
     last_synced_at: new Date().toISOString(),
   };
 
-  // Check if profile exists
-  const { data: existingMakaut } = await supabase
-    .from('student_profiles')
-    .select('id')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  let data, error;
-  
-  if (existingMakaut) {
-    // Update existing
-    ({ data, error } = await supabase
-      .from('student_profiles')
-      .update(mockedMakautData)
-      .eq('user_id', userId)
-      .select('*')
-      .single());
-  } else {
-    // Insert new
-    ({ data, error } = await supabase
-      .from('student_profiles')
-      .insert(mockedMakautData)
-      .select('*')
-      .single());
-  }
-
-  if (error) {
-    console.error('[makaut.service] Error saving makaut profile:', error);
-    throw new Error('Failed to save MAKAUT profile to database.');
-  }
-
-  return data as StudentProfile;
+  // The backend Edge Function should have already performed the upsert.
+  // The client receives the confirmed, up-to-date profile.
+  return studentProfile;
 }

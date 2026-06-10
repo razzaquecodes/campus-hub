@@ -22,8 +22,10 @@ import {
   GraduationCap,
   Lock,
   ShieldCheck,
-  User,
   Shield,
+  User,
+  Fingerprint,
+  Zap,
 } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -344,7 +346,7 @@ export function MakautLoginScreen() {
           <View style={s.hero}>
             <Animated.View style={[s.logoContainer, logoAnimStyle]}>
               <View style={s.logoShadow}>
-                <BBITLogoSVG size={112} />
+                <BBITLogoSVG size={108} />
               </View>
             </Animated.View>
 
@@ -361,6 +363,22 @@ export function MakautLoginScreen() {
               <Text style={s.institutionName}>
                 Budge Budge Institute of Technology
               </Text>
+            </Animated.View>
+
+            {/* Animated feature highlight pills */}
+            <Animated.View entering={FadeIn.duration(500).delay(420)} style={s.featurePills}>
+              <View style={[s.featurePill, { backgroundColor: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.25)' }]}>
+                <Shield color="#34D399" size={11} strokeWidth={2.5} />
+                <Text style={[s.featurePillText, { color: '#34D399' }]}>Privacy First</Text>
+              </View>
+              <View style={[s.featurePill, { backgroundColor: 'rgba(96,165,250,0.12)', borderColor: 'rgba(96,165,250,0.25)' }]}>
+                <Fingerprint color="#60A5FA" size={11} strokeWidth={2.5} />
+                <Text style={[s.featurePillText, { color: '#60A5FA' }]}>Secure Auth</Text>
+              </View>
+              <View style={[s.featurePill, { backgroundColor: 'rgba(167,139,250,0.12)', borderColor: 'rgba(167,139,250,0.25)' }]}>
+                <Zap color="#A78BFA" size={11} strokeWidth={2.5} />
+                <Text style={[s.featurePillText, { color: '#A78BFA' }]}>Official Portal</Text>
+              </View>
             </Animated.View>
           </View>
 
@@ -469,10 +487,15 @@ export function MakautLoginScreen() {
                 {/* ── Security Trust Banner ── */}
                 <View style={s.securityBanner}>
                   <View style={s.securityBannerTitleRow}>
-                    <Text style={s.securityBannerTitle}>🔒 Secure Authentication</Text>
+                    <View style={s.securityIconWrap}>
+                      <ShieldCheck color="#34D399" size={14} strokeWidth={2.5} />
+                    </View>
+                    <Text style={s.securityBannerTitle}>Secure Authentication</Text>
                   </View>
                   <Text style={s.securityBannerText}>
-                    Campus Hub never stores your MAKAUT password.
+                    Campus Hub{' '}
+                    <Text style={s.securityHighlight}>never stores</Text>
+                    {' '}your MAKAUT password.
                   </Text>
                   <Text style={s.securityBannerTextLast}>
                     Credentials are used only for authentication with the official MAKAUT portal and are never saved in our database or servers.
@@ -528,7 +551,28 @@ const s = StyleSheet.create({
   },
 
   // Hero
-  hero: { alignItems: 'center', marginBottom: 24, marginTop: 8 },
+  hero: { alignItems: 'center', marginBottom: 20, marginTop: 4 },
+  featurePills: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 16,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  featurePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 100,
+  },
+  featurePillText: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+  },
   logoContainer: { marginBottom: 16 },
   logoShadow: {
     shadowColor: '#3B82F6',
@@ -707,11 +751,11 @@ const s = StyleSheet.create({
     lineHeight: 16,
   },
 
-  // Security Banner (Premium Glassmorphism)
+  // Security Trust Banner
   securityBanner: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: 'rgba(16, 185, 129, 0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(52, 211, 153, 0.15)',
     borderRadius: Radius.lg,
     padding: 16,
     marginBottom: 8,
@@ -721,23 +765,35 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 8,
+    marginBottom: 10,
+  },
+  securityIconWrap: {
+    width: 24,
+    height: 24,
+    borderRadius: 8,
+    backgroundColor: 'rgba(52,211,153,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   securityBannerTitle: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '700',
-    color: '#94A3B8',
-    letterSpacing: 0.3,
+    color: '#34D399',
+    letterSpacing: 0.2,
+  },
+  securityHighlight: {
+    fontWeight: '700',
+    color: '#F1F5F9',
   },
   securityBannerText: {
-    fontSize: 11.5,
+    fontSize: 12,
     color: '#64748B',
-    lineHeight: 18,
+    lineHeight: 19,
     marginBottom: 6,
   },
   securityBannerTextLast: {
     fontSize: 11.5,
-    color: '#64748B',
+    color: '#475569',
     lineHeight: 18,
   },
 

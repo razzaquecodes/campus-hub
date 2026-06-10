@@ -17,8 +17,10 @@ import { SplashScreen } from '@/components/animations/splash/SplashScreen';
 import { ThemeProvider as AppThemeProvider, useTheme } from '@/context/ThemeContext';
 import { AppProviders } from '@/providers/app-providers';
 import { registerBackgroundSync } from '@/services/background-sync.service';
+import { updaterService, UpdateInfo } from '@/services/updater.service';
 import { useAdminStore } from '@/store/admin.store';
 import { useAuthStore } from '@/store/auth.store';
+import { UpdateModal } from '@/components/modals/UpdateModal';
 
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
@@ -110,6 +112,24 @@ function AppShell() {
   const [animationDone, setAnimationDone] = useState(false);
   const isHydrated = useAuthStore((s) => s.isHydrated);
   useAuthGuard();
+
+  // Updater State
+  const [updateModalVisible, setUpdateModalVisible] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+
+  useEffect(() => {
+    // Check for updates on startup
+    const checkUpdates = async () => {
+      const info = await updaterService.checkForUpdates();
+      if (info.isAvailable) {
+        setUpdateInfo(info);
+        setUpdateModalVisible(true);
+      }
+    };
+    // Optional delay so it doesn't block UI right away
+    const timeout = setTimeout(checkUpdates, 1500);
+    return () => clearTimeout(timeout);
+  }, []);
   
   useEffect(() => {
     if (isHydrated) {
@@ -202,6 +222,13 @@ function AppShell() {
           <SplashScreen onAnimationComplete={() => setAnimationDone(true)} />
         </View>
       )}
+
+      {/* Global Update Modal */}
+      <UpdateModal
+        visible={updateModalVisible}
+        updateInfo={updateInfo}
+        onClose={() => setUpdateModalVisible(false)}
+      />
     </NavigationThemeProvider>
   );
 }

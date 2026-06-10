@@ -51,6 +51,7 @@ import {
   User,
   X,
   RefreshCw,
+  DownloadCloud,
 } from 'lucide-react-native';
 import React, { useCallback, useState } from 'react';
 
@@ -60,6 +61,8 @@ import { useTheme } from '@/context/ThemeContext';
 import { useAuthStore } from '@/store/auth.store';
 import { useStudentStore } from '@/store/student.store';
 import { useAdminStore } from '@/store/admin.store';
+import { updaterService, UpdateInfo } from '@/services/updater.service';
+import { UpdateModal } from '@/components/modals/UpdateModal';
 
 type ThemeMode = 'dark' | 'light' | 'system';
 
@@ -235,6 +238,9 @@ export function SettingsScreen() {
   // Modals state
   const [aboutModalVisible, setAboutModalVisible] = useState(false);
   const [clearingCache, setClearingCache] = useState(false);
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateModalVisible, setUpdateModalVisible] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
 
   const signOut = useAuthStore((s) => s.signOut);
   const profile = useAuthStore((s) => s.profile);
@@ -314,6 +320,27 @@ export function SettingsScreen() {
       setRefreshingData(false);
     }
   }, [queryClient, refreshingData]);
+
+  const handleCheckUpdate = useCallback(async () => {
+    if (checkingUpdate) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    setCheckingUpdate(true);
+    try {
+      const info = await updaterService.checkForUpdates(true);
+      if (info.isAvailable) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        setUpdateInfo(info);
+        setUpdateModalVisible(true);
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+        Alert.alert('Up to date', `Campus Hub is already on the latest version (${info.version}).`);
+      }
+    } catch {
+      Alert.alert('Error', 'Failed to check for updates. Please try again later.');
+    } finally {
+      setCheckingUpdate(false);
+    }
+  }, [checkingUpdate]);
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.void }}>
@@ -544,6 +571,17 @@ export function SettingsScreen() {
             }}
           />
           <SettingRow
+            icon={checkingUpdate ? (
+              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: `${theme.colors.primaryLight}15`, alignItems: 'center', justifyContent: 'center' }}>
+                <ActivityIndicator size="small" color={theme.colors.primaryLight} />
+              </View>
+            ) : (
+              <IconChip icon={DownloadCloud} color={theme.colors.primaryLight} />
+            )}
+            label="Check for Updates"
+            onPress={handleCheckUpdate}
+          />
+          <SettingRow
             icon={<IconChip icon={Tag} color={theme.colors.textSecondary} />}
             label="Version"
             value="v1.0.0"
@@ -662,6 +700,12 @@ export function SettingsScreen() {
           </View>
         </View>
       </Modal>
+
+      <UpdateModal
+        visible={updateModalVisible}
+        updateInfo={updateInfo}
+        onClose={() => setUpdateModalVisible(false)}
+      />
     </View>
   );
 }

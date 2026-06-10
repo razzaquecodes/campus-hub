@@ -20,17 +20,11 @@ interface ApprovalRequest {
   submittedAt: string;
 }
 
-const MOCK_REQUESTS: ApprovalRequest[] = [
-  { id: '1', studentName: 'Ayan Biswas', studentId: 'CSE/20/012', type: 'Sick Leave', duration: 'Jun 10 - Jun 12', reason: 'High fever, doctor advised bed rest.', submittedAt: '2 hours ago' },
-  { id: '2', studentName: 'Rohan Sharma', studentId: 'CSE/20/045', type: 'Event Participation', duration: 'Jun 15 - Jun 16', reason: 'Attending Smart India Hackathon finals at nodal center.', submittedAt: '5 hours ago' },
-  { id: '3', studentName: 'Priya Das', studentId: 'CSE/20/088', type: 'Personal Leave', duration: 'Jun 18', reason: 'Family medical emergency.', submittedAt: '1 day ago' },
-];
-
 export default function FacultyApprovalsScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   
-  const [requests, setRequests] = useState<ApprovalRequest[]>(MOCK_REQUESTS);
+  const [requests, setRequests] = useState<ApprovalRequest[]>([]);
 
   const handleAction = (id: string, action: 'approve' | 'reject') => {
     Haptics.impactAsync(action === 'approve' ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Heavy);

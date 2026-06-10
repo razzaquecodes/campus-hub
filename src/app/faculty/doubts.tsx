@@ -19,16 +19,11 @@ interface StudentDoubt {
   askedOn: string;
 }
 
-const MOCK_DOUBTS: StudentDoubt[] = [
-  { id: '1', studentName: 'Ravi Kumar', studentId: 'CSE/20/015', subject: 'Computer Networks', question: 'Why does TCP use a 3-way handshake instead of a 2-way handshake?', askedOn: '2 hours ago' },
-  { id: '2', studentName: 'Sneha Roy', studentId: 'CSE/20/089', subject: 'Data Structures', question: 'Can you explain the time complexity of building a heap from an array?', askedOn: '5 hours ago' },
-];
-
 export default function FacultyDoubtsScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   
-  const [doubts, setDoubts] = useState<StudentDoubt[]>(MOCK_DOUBTS);
+  const [doubts, setDoubts] = useState<StudentDoubt[]>([]);
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
 

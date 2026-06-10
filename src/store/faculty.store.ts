@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { estimateAudience, normalizeYear } from '@/services/targeting.service';
+
+import { supabase } from '@/lib/supabase';
 import type { BranchCode, SectionCode } from '@/types/targeting';
 
 export interface FacultyProfile {
@@ -78,158 +79,101 @@ interface FacultyState {
   activeAssignments: FacultyAssignment[];
   
   // Actions
-  createNotice: (notice: Omit<FacultyNotice, 'id' | 'analytics' | 'date' | 'status'>) => void;
-  editNotice: (id: string, updates: Partial<FacultyNotice>) => void;
-  deleteNotice: (id: string) => void;
-  archiveNotice: (id: string) => void;
+  setProfile: (profile: FacultyProfile) => void;
+  setTodayRoutine: (routine: ClassRoutine[]) => void;
+  setActiveNotices: (notices: FacultyNotice[]) => void;
+  setActiveAssignments: (assignments: FacultyAssignment[]) => void;
 
-  createAssignment: (assignment: Omit<FacultyAssignment, 'id' | 'date'>) => void;
-  deleteAssignment: (id: string) => void;
+  createNotice: (notice: Omit<FacultyNotice, 'id' | 'analytics' | 'date' | 'status'>) => Promise<FacultyNotice>;
+  editNotice: (id: string, updates: Partial<FacultyNotice>) => Promise<FacultyNotice>;
+  archiveNotice: (id: string) => Promise<void>;
+
+  createAssignment: (assignment: Omit<FacultyAssignment, 'id' | 'date'>) => Promise<FacultyAssignment>;
+  deleteAssignment: (id: string) => Promise<void>;
 }
 
 export const useFacultyStore = create<FacultyState>((set, get) => ({
-  profile: {
-    name: 'Dr. Arindam Roy',
-    department: 'Computer Science & Engineering',
-    designation: 'Associate Professor',
-    employeeId: 'EMP-CSE-2041',
-    email: 'arindam.roy@bbit.edu.in',
-    phone: '+91 9876543210',
-    joiningDate: '12th August 2018',
+  profile: null,
+
+  todayRoutine: [],
+  activeNotices: [],
+  activeAssignments: [],
+
+  setProfile: (profile) => set({ profile }),
+  setTodayRoutine: (routine) => set({ todayRoutine: routine }),
+  setActiveNotices: (notices) => set({ activeNotices: notices }),
+  setActiveAssignments: (assignments) => set({ activeAssignments: assignments }),
+
+  createNotice: async (noticeData) => {
+    if (!supabase) throw new Error('Supabase not configured');
+    // In a real app, author_id would be derived from the logged-in faculty's session
+    const { data, error } = await supabase
+      .from('notices')
+      .insert({
+        title: noticeData.title,
+        description: noticeData.description,
+        type: noticeData.type,
+        target: noticeData.target,
+        priority: noticeData.priority,
+        is_pinned: noticeData.isPinned,
+        // author_id should be set on the backend via RLS or trigger
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as FacultyNotice; // The UI layer will use this to update React Query cache
   },
 
-  todayRoutine: [
-    {
-      id: '1',
-      subject: 'Data Structures & Algorithms',
-      branch: 'CSE',
-      section: 'A',
-      room: 'Room 402',
-      startTime: '10:00 AM',
-      endTime: '11:00 AM',
-      type: 'Theory',
-      status: 'Completed',
-    },
-    {
-      id: '2',
-      subject: 'Operating Systems Lab',
-      branch: 'CSE',
-      section: 'B',
-      room: 'Lab 3',
-      startTime: '11:30 AM',
-      endTime: '01:30 PM',
-      type: 'Practical',
-      status: 'Ongoing',
-    },
-    {
-      id: '3',
-      subject: 'Computer Networks',
-      branch: 'IT',
-      section: 'A',
-      room: 'Room 305',
-      startTime: '02:30 PM',
-      endTime: '03:30 PM',
-      type: 'Theory',
-      status: 'Upcoming',
-    },
-  ],
+  editNotice: async (id, updates) => {
+    if (!supabase) throw new Error('Supabase not configured');
+    const { data, error } = await supabase
+      .from('notices')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data as FacultyNotice;
+  },
 
-  activeNotices: [
-    {
-      id: 'n1',
-      title: 'Final Year Project Submissions Deadline',
-      description: 'All final year students must submit their project reports by next Friday. Late submissions will not be entertained under any circumstances.',
-      type: 'Important Alert',
-      target: { isAll: false, branch: 'CSE', year: '4' },
-      analytics: { delivered: 120, viewed: 95 },
-      date: new Date().toISOString(),
-      status: 'Active',
-      isPinned: true,
-    },
-    {
-      id: 'n2',
-      title: 'Machine Learning Study Materials',
-      description: 'I have attached the complete study material for Module 4. Please go through it before tomorrow\'s class.',
-      type: 'Study Material',
-      target: { isAll: false, branch: 'CSE', section: 'A', year: '3' },
-      analytics: { delivered: 60, viewed: 45 },
-      date: new Date(Date.now() - 86400000).toISOString(),
-      status: 'Active',
-      isPinned: false,
-    },
-  ],
+  archiveNotice: async (id) => {
+    if (!supabase) throw new Error('Supabase not configured');
+    const { error } = await supabase
+      .from('notices')
+      .update({ status: 'Archived' })
+      .eq('id', id);
+    
+    if (error) throw error;
+  },
 
-  activeAssignments: [
-    {
-      id: 'a1',
-      title: 'Implement AVL Tree in C++',
-      subject_name: 'Data Structures & Algorithms',
-      description: 'Write a full C++ program to implement AVL tree insertions and deletions with proper rotation functions.',
-      due_date: new Date(Date.now() + 3 * 86400000).toISOString(), // +3 days
-      priority: 'high',
-      target: { isAll: false, branch: 'CSE', semester: '4', section: 'A' },
-      date: new Date().toISOString(),
-    },
-    {
-      id: 'a2',
-      title: 'Shell Scripting Basics',
-      subject_name: 'Operating Systems Lab',
-      description: 'Complete the shell scripting exercises provided in Lab Manual 4.',
-      due_date: new Date(Date.now() + 5 * 86400000).toISOString(), // +5 days
-      priority: 'medium',
-      target: { isAll: false, branch: 'CSE', semester: '4', section: 'B' },
-      date: new Date().toISOString(),
-    }
-  ],
+  createAssignment: async (assignmentData) => {
+    if (!supabase) throw new Error('Supabase not configured');
+    const { data, error } = await supabase
+      .from('assignments')
+      .insert({
+        title: assignmentData.title,
+        subject_name: assignmentData.subject_name,
+        description: assignmentData.description,
+        due_date: assignmentData.due_date,
+        priority: assignmentData.priority,
+        target: assignmentData.target,
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data as FacultyAssignment;
+  },
 
-  createNotice: (noticeData) => set((state) => {
-    const target = noticeData.target.isAll
-      ? { entireCollege: true as const }
-      : {
-          branch: noticeData.target.branch,
-          year: normalizeYear(noticeData.target.year),
-          section: noticeData.target.section,
-          allSections: !noticeData.target.section,
-        };
-    const mockDelivered = estimateAudience(target).estimatedCount;
+  deleteAssignment: async (id) => {
+    if (!supabase) throw new Error('Supabase not configured');
+    const { error } = await supabase
+      .from('assignments')
+      .delete()
+      .eq('id', id);
 
-    const newNotice: FacultyNotice = {
-      ...noticeData,
-      id: Math.random().toString(36).substring(7),
-      analytics: { delivered: mockDelivered, viewed: 0 },
-      date: new Date().toISOString(),
-      status: 'Active',
-      isPinned: noticeData.isPinned ?? false,
-    };
-    return { activeNotices: [newNotice, ...state.activeNotices] };
-  }),
-
-  deleteNotice: (id) => set((state) => ({
-    activeNotices: state.activeNotices.filter((n) => n.id !== id),
-  })),
-
-  editNotice: (id, updates) => set((state) => ({
-    activeNotices: state.activeNotices.map((n) => 
-      n.id === id ? { ...n, ...updates } : n
-    ),
-  })),
-
-  archiveNotice: (id) => set((state) => ({
-    activeNotices: state.activeNotices.map((n) => 
-      n.id === id ? { ...n, status: 'Archived' } : n
-    ),
-  })),
-
-  createAssignment: (assignmentData) => set((state) => {
-    const newAssignment: FacultyAssignment = {
-      ...assignmentData,
-      id: Math.random().toString(36).substring(7),
-      date: new Date().toISOString(),
-    };
-    return { activeAssignments: [newAssignment, ...state.activeAssignments] };
-  }),
-
-  deleteAssignment: (id) => set((state) => ({
-    activeAssignments: state.activeAssignments.filter((a) => a.id !== id),
-  })),
+    if (error) throw error;
+  },
 }));

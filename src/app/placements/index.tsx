@@ -20,17 +20,7 @@ interface JobDrive {
   status: 'Open' | 'Applied' | 'Shortlisted';
 }
 
-const MOCK_DRIVES: JobDrive[] = [
-  { id: '1', company: 'Google', role: 'Software Engineer (University Grad)', location: 'Bangalore / Remote', ctc: '32 LPA', deadline: 'Jun 20, 2026', status: 'Applied' },
-  { id: '2', company: 'TCS Digital', role: 'System Engineer', location: 'Pan India', ctc: '7.5 LPA', deadline: 'Jun 15, 2026', status: 'Open' },
-  { id: '3', company: 'Cognizant', role: 'GenC Next', location: 'Kolkata', ctc: '6.75 LPA', deadline: 'Jun 10, 2026', status: 'Shortlisted' },
-];
-
-export default function PlacementCellScreen() {
-  const { theme, isDark } = useTheme();
-  const insets = useSafeAreaInsets();
-  
-  const [drives, setDrives] = useState<JobDrive[]>(MOCK_DRIVES);
+  const [drives, setDrives] = useState<JobDrive[]>([]);
   const [mode, setMode] = useState<'all' | 'my-applications'>('all');
 
   const filteredDrives = mode === 'all' ? drives : drives.filter(d => d.status !== 'Open');
@@ -82,61 +72,73 @@ export default function PlacementCellScreen() {
 
       <ScrollView contentContainerStyle={[ss.content, { paddingBottom: insets.bottom + 60 }]} showsVerticalScrollIndicator={false}>
         <Animated.View entering={FadeInUp.duration(400)}>
-          {filteredDrives.map((drive, i) => (
-            <Animated.View key={drive.id} entering={FadeInDown.duration(400).delay(i * 100)} layout={Layout.springify()}>
-              <GlassCard intensity={isDark ? 30 : 70} style={[ss.card, { borderColor: theme.colors.border }]}>
-                
-                <View style={ss.cardHeader}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <View style={[ss.companyLogo, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
-                      <Building2 color={theme.colors.textPrimary} size={20} />
-                    </View>
-                    <View style={{ marginLeft: 12 }}>
-                      <Text style={[Typography.headline.md, { color: theme.colors.textPrimary, letterSpacing: -0.3 }]}>{drive.company}</Text>
-                      <Text style={[Typography.body.sm, { color: theme.colors.textSecondary }]}>{drive.role}</Text>
-                    </View>
-                  </View>
-                </View>
-
-                <View style={ss.tagsRow}>
-                  <View style={[ss.tag, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
-                    <MapPin color={theme.colors.textSecondary} size={14} />
-                    <Text style={[Typography.label.md, { color: theme.colors.textSecondary, marginLeft: 6 }]}>{drive.location}</Text>
-                  </View>
-                  <View style={[ss.tag, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
-                    <DollarSign color={theme.colors.success} size={14} />
-                    <Text style={[Typography.label.md, { color: theme.colors.success, marginLeft: 6 }]}>{drive.ctc}</Text>
-                  </View>
-                </View>
-
-                <View style={[ss.divider, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} />
-
-                <View style={ss.footerRow}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Calendar color={theme.colors.warning} size={14} />
-                    <Text style={[Typography.label.sm, { color: theme.colors.textTertiary, marginLeft: 6 }]}>Deadline: {drive.deadline}</Text>
-                  </View>
+          {filteredDrives.length === 0 ? (
+            <View style={{ alignItems: 'center', marginTop: 40, padding: 20 }}>
+              <Briefcase color={theme.colors.textTertiary} size={48} strokeWidth={1.5} />
+              <Text style={[Typography.title.md, { color: theme.colors.textSecondary, marginTop: 16, textAlign: 'center' }]}>
+                No placement drives
+              </Text>
+              <Text style={[Typography.body.sm, { color: theme.colors.textTertiary, marginTop: 8, textAlign: 'center' }]}>
+                Job opportunities and placement drives will appear here when posted by the Placement Cell.
+              </Text>
+            </View>
+          ) : (
+            filteredDrives.map((drive, i) => (
+              <Animated.View key={drive.id} entering={FadeInDown.duration(400).delay(i * 100)} layout={Layout.springify()}>
+                <GlassCard intensity={isDark ? 30 : 70} style={[ss.card, { borderColor: theme.colors.border }]}>
                   
-                  {drive.status === 'Open' ? (
-                    <SpringButton onPress={() => handleApply(drive.id)} scaleDown={0.9}>
-                      <View style={[ss.applyBtn, { backgroundColor: theme.colors.primary }]}>
-                        <Briefcase color="#fff" size={14} />
-                        <Text style={[Typography.label.sm, { color: '#fff', marginLeft: 6, fontWeight: '700' }]}>Apply Now</Text>
+                  <View style={ss.cardHeader}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <View style={[ss.companyLogo, { backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+                        <Building2 color={theme.colors.textPrimary} size={20} />
                       </View>
-                    </SpringButton>
-                  ) : (
-                    <View style={[ss.statusBadge, { backgroundColor: `${getStatusColor(drive.status)}15` }]}>
-                      <CheckCircle2 color={getStatusColor(drive.status)} size={14} />
-                      <Text style={[Typography.label.sm, { color: getStatusColor(drive.status), marginLeft: 6, fontWeight: '700' }]}>
-                        {drive.status}
-                      </Text>
+                      <View style={{ marginLeft: 12 }}>
+                        <Text style={[Typography.headline.md, { color: theme.colors.textPrimary, letterSpacing: -0.3 }]}>{drive.company}</Text>
+                        <Text style={[Typography.body.sm, { color: theme.colors.textSecondary }]}>{drive.role}</Text>
+                      </View>
                     </View>
-                  )}
-                </View>
+                  </View>
 
-              </GlassCard>
-            </Animated.View>
-          ))}
+                  <View style={ss.tagsRow}>
+                    <View style={[ss.tag, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
+                      <MapPin color={theme.colors.textSecondary} size={14} />
+                      <Text style={[Typography.label.md, { color: theme.colors.textSecondary, marginLeft: 6 }]}>{drive.location}</Text>
+                    </View>
+                    <View style={[ss.tag, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)' }]}>
+                      <DollarSign color={theme.colors.success} size={14} />
+                      <Text style={[Typography.label.md, { color: theme.colors.success, marginLeft: 6 }]}>{drive.ctc}</Text>
+                    </View>
+                  </View>
+
+                  <View style={[ss.divider, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} />
+
+                  <View style={ss.footerRow}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <Calendar color={theme.colors.warning} size={14} />
+                      <Text style={[Typography.label.sm, { color: theme.colors.textTertiary, marginLeft: 6 }]}>Deadline: {drive.deadline}</Text>
+                    </View>
+                    
+                    {drive.status === 'Open' ? (
+                      <SpringButton onPress={() => handleApply(drive.id)} scaleDown={0.9}>
+                        <View style={[ss.applyBtn, { backgroundColor: theme.colors.primary }]}>
+                          <Briefcase color="#fff" size={14} />
+                          <Text style={[Typography.label.sm, { color: '#fff', marginLeft: 6, fontWeight: '700' }]}>Apply Now</Text>
+                        </View>
+                      </SpringButton>
+                    ) : (
+                      <View style={[ss.statusBadge, { backgroundColor: `${getStatusColor(drive.status)}15` }]}>
+                        <CheckCircle2 color={getStatusColor(drive.status)} size={14} />
+                        <Text style={[Typography.label.sm, { color: getStatusColor(drive.status), marginLeft: 6, fontWeight: '700' }]}>
+                          {drive.status}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                </GlassCard>
+              </Animated.View>
+            ))
+          )}
         </Animated.View>
       </ScrollView>
     </View>

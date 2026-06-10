@@ -1,9 +1,17 @@
 import { FaceProvider, FaceVerificationResult, LivenessResult } from './face.types';
-import { MockFaceProvider } from './mock.provider';
+
+class NoOpFaceProvider implements FaceProvider {
+  async verifyFace(selfieUri: string, referenceImageUri: string): Promise<FaceVerificationResult> {
+    return { verified: false, confidence: 0, error: 'No live face provider configured.' };
+  }
+  async checkLiveness(selfieUri: string): Promise<LivenessResult> {
+    return { isLive: false, confidence: 0, error: 'No live face provider configured.' };
+  }
+}
 
 export class FaceService {
-  // Default to a mock provider. Can be swapped at runtime or initialization.
-  private static provider: FaceProvider = new MockFaceProvider();
+  // Default to a no-op provider. Must be swapped at runtime with a real provider.
+  private static provider: FaceProvider = new NoOpFaceProvider();
 
   /**
    * Configure the active face provider (e.g., inject AwsRekognitionProvider in production)

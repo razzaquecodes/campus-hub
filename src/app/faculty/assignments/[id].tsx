@@ -21,18 +21,14 @@ interface Submission {
   fileUrl?: string;
 }
 
-const MOCK_SUBMISSIONS: Submission[] = [
-  { id: 'sub-1', studentName: 'Ayan Biswas', studentId: 'CSE/20/012', submittedAt: '2 hours ago', status: 'pending_review', fileUrl: 'Assignment_1_Ayan.pdf' },
-  { id: 'sub-2', studentName: 'Rohan Sharma', studentId: 'CSE/20/045', submittedAt: '5 hours ago', status: 'pending_review', fileUrl: 'DBMS_Schema_Design.pdf' },
-  { id: 'sub-3', studentName: 'Priya Das', studentId: 'CSE/20/088', submittedAt: '1 day ago', status: 'graded', grade: '18/20', feedback: 'Great job!', fileUrl: 'Priya_Assignment.pdf' },
-];
+
 
 export default function FacultyAssignmentReviewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const [submissions, setSubmissions] = useState<Submission[]>(MOCK_SUBMISSIONS);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [selectedSub, setSelectedSub] = useState<Submission | null>(null);
   
   const [gradeInput, setGradeInput] = useState('');
@@ -150,35 +146,47 @@ export default function FacultyAssignmentReviewScreen() {
 
       <ScrollView contentContainerStyle={[ss.content, { paddingBottom: insets.bottom + 60 }]} showsVerticalScrollIndicator={false}>
         <Animated.View entering={FadeInUp.duration(400)}>
-          {submissions.map((sub, i) => (
-            <Animated.View key={sub.id} entering={FadeInDown.duration(400).delay(i * 100)} layout={Layout.springify()}>
-              <SpringButton scaleDown={0.97} onPress={() => handleSelect(sub)}>
-                <GlassCard intensity={isDark ? 30 : 70} style={[ss.subCard, { borderColor: sub.status === 'graded' ? `${theme.colors.success}30` : theme.colors.border }]}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <View style={[ss.avatar, { backgroundColor: theme.colors.primaryMuted }]}>
-                      <User color={theme.colors.primaryLight} size={16} />
-                    </View>
-                    <View style={{ marginLeft: 12, flex: 1 }}>
-                      <Text style={[Typography.headline.sm, { color: theme.colors.textPrimary }]}>{sub.studentName}</Text>
-                      <Text style={[Typography.label.sm, { color: theme.colors.textSecondary }]}>{sub.studentId}</Text>
-                    </View>
-                    
-                    {sub.status === 'graded' ? (
-                      <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={[Typography.headline.md, { color: theme.colors.success }]}>{sub.grade}</Text>
-                        <Text style={[Typography.label.xs, { color: theme.colors.success, marginTop: 2 }]}>Graded</Text>
+          {submissions.length === 0 ? (
+            <View style={{ alignItems: 'center', marginTop: 40, padding: 20 }}>
+              <FileText color={theme.colors.textTertiary} size={48} strokeWidth={1.5} />
+              <Text style={[Typography.title.md, { color: theme.colors.textSecondary, marginTop: 16, textAlign: 'center' }]}>
+                No Submissions Yet
+              </Text>
+              <Text style={[Typography.body.sm, { color: theme.colors.textTertiary, marginTop: 8, textAlign: 'center' }]}>
+                Students have not submitted their work yet.
+              </Text>
+            </View>
+          ) : (
+            submissions.map((sub, i) => (
+              <Animated.View key={sub.id} entering={FadeInDown.duration(400).delay(i * 100)} layout={Layout.springify()}>
+                <SpringButton scaleDown={0.97} onPress={() => handleSelect(sub)}>
+                  <GlassCard intensity={isDark ? 30 : 70} style={[ss.subCard, { borderColor: sub.status === 'graded' ? `${theme.colors.success}30` : theme.colors.border }]}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <View style={[ss.avatar, { backgroundColor: theme.colors.primaryMuted }]}>
+                        <User color={theme.colors.primaryLight} size={16} />
                       </View>
-                    ) : (
-                      <View style={[ss.statusPill, { backgroundColor: `${theme.colors.warning}15` }]}>
-                        <Clock color={theme.colors.warning} size={12} />
-                        <Text style={[Typography.label.xs, { color: theme.colors.warning, marginLeft: 4, fontWeight: '700' }]}>Pending</Text>
+                      <View style={{ marginLeft: 12, flex: 1 }}>
+                        <Text style={[Typography.headline.sm, { color: theme.colors.textPrimary }]}>{sub.studentName}</Text>
+                        <Text style={[Typography.label.sm, { color: theme.colors.textSecondary }]}>{sub.studentId}</Text>
                       </View>
-                    )}
-                  </View>
-                </GlassCard>
-              </SpringButton>
-            </Animated.View>
-          ))}
+                      
+                      {sub.status === 'graded' ? (
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <Text style={[Typography.headline.md, { color: theme.colors.success }]}>{sub.grade}</Text>
+                          <Text style={[Typography.label.xs, { color: theme.colors.success, marginTop: 2 }]}>Graded</Text>
+                        </View>
+                      ) : (
+                        <View style={[ss.statusPill, { backgroundColor: `${theme.colors.warning}15` }]}>
+                          <Clock color={theme.colors.warning} size={12} />
+                          <Text style={[Typography.label.xs, { color: theme.colors.warning, marginLeft: 4, fontWeight: '700' }]}>Pending</Text>
+                        </View>
+                      )}
+                    </View>
+                  </GlassCard>
+                </SpringButton>
+              </Animated.View>
+            ))
+          )}
         </Animated.View>
       </ScrollView>
     </View>

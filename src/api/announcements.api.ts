@@ -1,4 +1,4 @@
-import { MOCK_ANNOUNCEMENTS } from '@/constants/mock-data';
+
 import { isSupabaseConfigured } from '@/lib/env';
 import { supabase } from '@/lib/supabase';
 import type { Announcement, UserProfile } from '@/types/database';
@@ -44,7 +44,7 @@ export async function fetchAnnouncements(profile: UserProfile): Promise<Announce
     }
   }
 
-  return MOCK_ANNOUNCEMENTS;
+  return [];
 }
 
 export async function markAnnouncementRead(

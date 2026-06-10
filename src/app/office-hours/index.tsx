@@ -19,17 +19,11 @@ interface FacultySlot {
   status: 'Available' | 'Booked';
 }
 
-const MOCK_SLOTS: FacultySlot[] = [
-  { id: '1', facultyName: 'Dr. S. K. Singh', department: 'Computer Science', date: 'Today', time: '02:00 PM - 02:30 PM', status: 'Available' },
-  { id: '2', facultyName: 'Prof. A. Nandi', department: 'Mathematics', date: 'Tomorrow', time: '11:00 AM - 11:30 AM', status: 'Available' },
-  { id: '3', facultyName: 'Dr. S. K. Singh', department: 'Computer Science', date: 'Tomorrow', time: '03:00 PM - 03:30 PM', status: 'Available' },
-];
-
 export default function OfficeHoursScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   
-  const [slots, setSlots] = useState<FacultySlot[]>(MOCK_SLOTS);
+  const [slots, setSlots] = useState<FacultySlot[]>([]);
   const [bookedSlots, setBookedSlots] = useState<FacultySlot[]>([]);
   const [mode, setMode] = useState<'book' | 'my-bookings'>('book');
 

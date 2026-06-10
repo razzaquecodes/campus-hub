@@ -38,4 +38,13 @@ export class LocationService {
 
     return R * c; // Distance in meters
   }
+
+  /**
+   * Check whether a coordinate lies within a circular geofence centred at 'center'
+   * radiusMeters is the allowed radius in meters
+   */
+  static isWithinGeofence(center: Coordinates, coord: Coordinates, radiusMeters: number): boolean {
+    const distance = LocationService.calculateDistance(center, coord);
+    return distance <= radiusMeters;
+  }
 }

@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
-import { useAuthStore } from '@/store/auth.store';
 
 /**
  * Subscribe to realtime announcement INSERTs.
@@ -19,7 +18,6 @@ import { useAuthStore } from '@/store/auth.store';
  *    ALTER PUBLICATION supabase_realtime ADD TABLE public.announcements;
  */
 export function useRealtimeAnnouncements(onInsert: () => void) {
-  const profile = useAuthStore((s) => s.profile);
   // Stable ref so channel isn't re-created when onInsert identity changes
   const onInsertRef = useRef(onInsert);
   useEffect(() => { onInsertRef.current = onInsert; }, [onInsert]);
@@ -45,6 +43,66 @@ export function useRealtimeAnnouncements(onInsert: () => void) {
     };
   // Only re-subscribe if Supabase config changes — NOT on every onInsert change
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+}
+
+/**
+ * Subscribe to realtime notice INSERTs.
+ * This is for notices published by faculty.
+ */
+export function useRealtimeNotices(onInsert: () => void) {
+  const onInsertRef = useRef(onInsert);
+  useEffect(() => { onInsertRef.current = onInsert; }, [onInsert]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+
+    const channelName = `notices_feed_${Date.now()}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notices' },
+        () => onInsertRef.current(),
+      )
+      .subscribe((status) => {
+        if (__DEV__) console.log('[realtime][notices] status:', status);
+      });
+
+    return () => {
+      void supabase?.removeChannel(channel);
+    };
+  }, []);
+}
+
+/**
+ * Subscribe to realtime notifications for the current user.
+ * This powers the main "Campus Hub Feed".
+ *
+ * RLS policy must be in place: "users_own_notifications_select"
+ */
+export function useRealtimeNotifications(onInsert: () => void) {
+  const onInsertRef = useRef(onInsert);
+  useEffect(() => { onInsertRef.current = onInsert; }, [onInsert]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+
+    const channelName = `notifications_feed_${Date.now()}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications' },
+        () => onInsertRef.current(),
+      )
+      .subscribe((status) => {
+        if (__DEV__) console.log('[realtime][notifications] status:', status);
+      });
+
+    return () => {
+      void supabase?.removeChannel(channel);
+    };
   }, []);
 }
 

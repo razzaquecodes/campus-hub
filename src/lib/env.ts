@@ -38,6 +38,8 @@ export const Env = {
   makautApiUrl: safeUrl(readEnv('EXPO_PUBLIC_MAKAUT_API_URL')),
   /** Dedicated verify-student endpoint. Falls back to makautApiUrl if not set. */
   makautVerifyUrl: safeUrl(readEnv('EXPO_PUBLIC_MAKAUT_VERIFY_URL') || readEnv('EXPO_PUBLIC_MAKAUT_API_URL')),
+  /** Optional backend face recognition service URL (e.g. https://faces.example.com) */
+  faceServiceUrl: safeUrl(readEnv('EXPO_PUBLIC_FACE_SERVICE_URL') || ''),
 } as const;
 
 const isValidSupabaseUrl =

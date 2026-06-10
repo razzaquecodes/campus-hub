@@ -20,17 +20,7 @@ interface Achievement {
   isVerified: boolean;
 }
 
-const MOCK_ACHIEVEMENTS: Achievement[] = [
-  { id: '1', title: 'Smart India Hackathon 2026', issuer: 'MoE, Govt of India', date: 'May 2026', type: 'Hackathon', isVerified: true },
-  { id: '2', title: 'AWS Cloud Practitioner', issuer: 'Amazon Web Services', date: 'Jan 2026', type: 'Certificate', isVerified: true },
-  { id: '3', title: 'Best Coder Award', issuer: 'Tech Fest, MAKAUT', date: 'Nov 2025', type: 'Award', isVerified: false },
-];
-
-export default function AchievementsScreen() {
-  const { theme, isDark } = useTheme();
-  const insets = useSafeAreaInsets();
-  
-  const [achievements] = useState<Achievement[]>(MOCK_ACHIEVEMENTS);
+  const [achievements] = useState<Achievement[]>([]);
 
   const getTypeIcon = (type: string, color: string) => {
     switch (type) {
@@ -66,42 +56,54 @@ export default function AchievementsScreen() {
 
       <ScrollView contentContainerStyle={[ss.content, { paddingBottom: insets.bottom + 60 }]} showsVerticalScrollIndicator={false}>
         <Animated.View entering={FadeInUp.duration(400)}>
-          {achievements.map((item, i) => (
-            <Animated.View key={item.id} entering={FadeInDown.duration(400).delay(i * 100)} layout={Layout.springify()}>
-              <GlassCard intensity={isDark ? 30 : 70} style={[ss.card, { borderColor: theme.colors.border }]}>
-                
-                <View style={ss.cardHeader}>
-                  <LinearGradient
-                    colors={isDark ? ['rgba(99,102,241,0.2)', 'rgba(99,102,241,0.05)'] : ['rgba(99,102,241,0.15)', 'rgba(99,102,241,0.05)']}
-                    style={ss.iconWrapper}
-                  >
-                    {getTypeIcon(item.type, theme.colors.primary)}
-                  </LinearGradient>
+          {achievements.length === 0 ? (
+            <View style={{ alignItems: 'center', marginTop: 40, padding: 20 }}>
+              <Award color={theme.colors.textTertiary} size={48} strokeWidth={1.5} />
+              <Text style={[Typography.title.md, { color: theme.colors.textSecondary, marginTop: 16, textAlign: 'center' }]}>
+                No achievements recorded
+              </Text>
+              <Text style={[Typography.body.sm, { color: theme.colors.textTertiary, marginTop: 8, textAlign: 'center' }]}>
+                Your achievements, certificates, and awards will appear here once verified by the academic office.
+              </Text>
+            </View>
+          ) : (
+            achievements.map((item, i) => (
+              <Animated.View key={item.id} entering={FadeInDown.duration(400).delay(i * 100)} layout={Layout.springify()}>
+                <GlassCard intensity={isDark ? 30 : 70} style={[ss.card, { borderColor: theme.colors.border }]}>
                   
-                  {item.isVerified && (
-                    <View style={[ss.verifiedBadge, { backgroundColor: `${theme.colors.success}15` }]}>
-                      <CheckCircle2 color={theme.colors.success} size={12} />
-                      <Text style={[Typography.label.xs, { color: theme.colors.success, marginLeft: 4, fontWeight: '700' }]}>Verified</Text>
-                    </View>
-                  )}
-                </View>
+                  <View style={ss.cardHeader}>
+                    <LinearGradient
+                      colors={isDark ? ['rgba(99,102,241,0.2)', 'rgba(99,102,241,0.05)'] : ['rgba(99,102,241,0.15)', 'rgba(99,102,241,0.05)']}
+                      style={ss.iconWrapper}
+                    >
+                      {getTypeIcon(item.type, theme.colors.primary)}
+                    </LinearGradient>
+                    
+                    {item.isVerified && (
+                      <View style={[ss.verifiedBadge, { backgroundColor: `${theme.colors.success}15` }]}>
+                        <CheckCircle2 color={theme.colors.success} size={12} />
+                        <Text style={[Typography.label.xs, { color: theme.colors.success, marginLeft: 4, fontWeight: '700' }]}>Verified</Text>
+                      </View>
+                    )}
+                  </View>
 
-                <Text style={[Typography.headline.md, { color: theme.colors.textPrimary, marginTop: 16, letterSpacing: -0.3 }]}>
-                  {item.title}
-                </Text>
-                
-                <Text style={[Typography.body.sm, { color: theme.colors.textSecondary, marginTop: 4 }]}>
-                  Issued by {item.issuer}
-                </Text>
-                
-                <View style={[ss.cardFooter, { borderTopColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}>
-                  <Text style={[Typography.label.sm, { color: theme.colors.textTertiary }]}>{item.date}</Text>
-                  <Text style={[Typography.label.sm, { color: theme.colors.textTertiary }]}>{item.type}</Text>
-                </View>
+                  <Text style={[Typography.headline.md, { color: theme.colors.textPrimary, marginTop: 16, letterSpacing: -0.3 }]}>
+                    {item.title}
+                  </Text>
+                  
+                  <Text style={[Typography.body.sm, { color: theme.colors.textSecondary, marginTop: 4 }]}>
+                    Issued by {item.issuer}
+                  </Text>
+                  
+                  <View style={[ss.cardFooter, { borderTopColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}>
+                    <Text style={[Typography.label.sm, { color: theme.colors.textTertiary }]}>{item.date}</Text>
+                    <Text style={[Typography.label.sm, { color: theme.colors.textTertiary }]}>{item.type}</Text>
+                  </View>
 
-              </GlassCard>
-            </Animated.View>
-          ))}
+                </GlassCard>
+              </Animated.View>
+            ))
+          )}
         </Animated.View>
       </ScrollView>
     </View>

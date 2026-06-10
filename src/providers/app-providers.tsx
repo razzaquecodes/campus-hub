@@ -21,11 +21,11 @@
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import React, { useEffect, useRef } from 'react';
 
-import { queryClient, asyncStoragePersister } from '@/lib/query-client';
+import { asyncStoragePersister, queryClient } from '@/lib/query-client';
 import { resolveMasterProfile } from '@/services/profile.service';
 import { mapStudentToUserProfile, useAuthStore } from '@/store/auth.store';
-import { useProfileStore } from '@/store/useProfileStore';
 import { useStudentStore } from '@/store/student.store';
+import { useProfileStore } from '@/store/useProfileStore';
 
 function hydratorLog(message: string, details?: Record<string, unknown>) {
   const ts = new Date().toISOString().slice(11, 23);
@@ -88,6 +88,14 @@ function AuthHydrator({ children }: { children: React.ReactNode }) {
 }
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
+  // Configure runtime providers that depend on environment
+  React.useEffect(() => {
+    if (Env.faceServiceUrl) {
+      console.info('[AppProviders] Configuring backend face provider', { url: Env.faceServiceUrl });
+      FaceService.setProvider(new BackendFaceProvider());
+    }
+  }, []);
+
   return (
     <PersistQueryClientProvider client={queryClient} persistOptions={{ persister: asyncStoragePersister }}>
       <AuthHydrator>{children}</AuthHydrator>

@@ -36,25 +36,9 @@ function log(message: string, details?: Record<string, unknown>): void {
   console.info(`[makaut-auth][${ts}] ${message}${payload}`);
 }
 
-// ─── Mock student data for development (no backend yet) ───────────────────────
-const MOCK_STUDENT: Omit<StudentModel, 'verified' | 'createdAt'> = {
-  fullName: 'Test Student',
-  rollNumber: '',  // filled dynamically from input
-  registrationNumber: '242760110064',
-  email: 'student@bbit.edu.in',
-  mobile: '9876543210',
-  instituteName: 'Budge Budge Institute of Technology',
-  courseName: 'Bachelor of Technology in Computer Science & Engineering',
-  abcId: '476183106112',
-  profilePhotoUrl: 'https://ui-avatars.com/api/?name=Test+Student&background=6366f1&color=fff',
-};
-
 // ─── verifyStudent ────────────────────────────────────────────────────────────
 /**
  * Verify a student against the MAKAUT backend.
- *
- * If the backend endpoint is not yet configured (EXPO_PUBLIC_MAKAUT_API_URL),
- * this function falls back to a local mock for development purposes.
  *
  * Returns a fully populated StudentModel on success.
  * Throws an Error with a user-facing message on failure.
@@ -73,30 +57,11 @@ export async function verifyStudent(
   if (!trimmedPassword) throw new Error('Password is required.');
   if (trimmedRoll.length < 5) throw new Error('Roll number appears to be invalid.');
 
-  // ── Mock path (no backend configured) ───────────────────────────────────
+  // ── Real path (backend endpoint) ─────────────────────────────────────
   if (!isMakautVerifyConfigured) {
-    log('verifyStudent: EXPO_PUBLIC_MAKAUT_VERIFY_URL not set — using mock (development mode)');
-
-    // Simulate network latency
-    await new Promise<void>((resolve) => setTimeout(resolve, 1800));
-
-    // Simple credential gate for the mock
-    if (trimmedPassword.length < 4) {
-      throw new Error('Invalid credentials. Please check your roll number and password.');
-    }
-
-    const student: StudentModel = {
-      ...MOCK_STUDENT,
-      rollNumber: trimmedRoll,
-      verified: true,
-      createdAt: new Date().toISOString(),
-    };
-
-    log('verifyStudent: mock verification successful', { rollNumber: student.rollNumber });
-    return student;
+    throw new Error('Verification service is currently unavailable. Please contact the administrator.');
   }
 
-  // ── Real path (backend endpoint) ─────────────────────────────────────
   // EXPO_PUBLIC_MAKAUT_VERIFY_URL is the BASE url (e.g. http://localhost:3000).
   // Append /verify-student to form the full endpoint path.
   const baseUrl = (Env.makautVerifyUrl || '').replace(/\/$/, '');

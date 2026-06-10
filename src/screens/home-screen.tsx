@@ -69,7 +69,7 @@ import { useMasterProfile } from '@/hooks/use-master-profile';
 import { useUnreadNotificationCount } from '@/hooks/queries/use-notifications';
 import { ActiveAttendanceCard } from '@/components/ui/ActiveAttendanceCard';
 import { useStudentStats } from '@/hooks/queries/use-student-stats';
-import { SpringButton, GlassCard } from '@/components/ui';
+import { SpringButton, GlassCard, Skeleton, EmptyState, ErrorState } from '@/components/ui';
 
 const { width: W } = Dimensions.get('window');
 const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
@@ -443,10 +443,9 @@ export function HomeScreen() {
           </ScrollView>
         </Animated.View>
 
-        {/* ── Active & Today&apos;s Schedule ── */}
         <Animated.View entering={FadeInDown.duration(500).delay(300)} style={ss.section}>
           <View style={ss.sectionRow}>
-            <Text style={[ss.sectionTitle, { color: theme.colors.textPrimary }]}>Today&apos;s Classes</Text>
+            <Text style={[Typography.headline.lg, { color: theme.colors.textPrimary }]}>Today&apos;s Classes</Text>
             <Pressable
               onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
               onPress={() => router.push('/(tabs)/courses')}
@@ -460,11 +459,11 @@ export function HomeScreen() {
           {/* Routine List */}
           <View style={[ss.scheduleContainer, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
             {todayClasses.length === 0 ? (
-              <View style={ss.emptyState}>
-                <Text style={ss.emptyIcon}>🎉</Text>
-                <Text style={[ss.emptyText, { color: theme.colors.textPrimary }]}>No classes today</Text>
-                <Text style={[ss.emptySubText, { color: theme.colors.textTertiary }]}>Enjoy your free time!</Text>
-              </View>
+              <EmptyState
+                icon={<Calendar color={theme.colors.primary} size={32} />}
+                title="No Classes Today"
+                message="Enjoy your free time or catch up on pending assignments."
+              />
             ) : (
               todayClasses.map((cls, i) => {
                 const isActive = currentClass?.subject === cls.subject && currentClass?.time === cls.time;
@@ -516,18 +515,18 @@ export function HomeScreen() {
         {/* ── Assignments Tracker (NEW Dashboard Component) ── */}
         <Animated.View entering={FadeInDown.duration(500).delay(350)} style={ss.section}>
           <View style={ss.sectionRow}>
-            <Text style={[ss.sectionTitle, { color: theme.colors.textPrimary }]}>Pending Assignments</Text>
+            <Text style={[Typography.headline.lg, { color: theme.colors.textPrimary }]}>Pending Assignments</Text>
             <View style={[ss.countBadge, { backgroundColor: theme.colors.primaryMuted }]}>
               <Text style={[ss.countBadgeText, { color: theme.colors.primaryLight }]}>{pendingCount}</Text>
             </View>
           </View>
 
           {pending.length === 0 ? (
-            <View style={[ss.assignmentEmpty, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-              <FileWarning color={theme.colors.textTertiary} size={28} strokeWidth={1.8} />
-              <Text style={[ss.emptyText, { color: theme.colors.textPrimary, marginTop: 8 }]}>No Assignment Data Available</Text>
-              <Text style={[ss.emptySubText, { color: theme.colors.textTertiary, textAlign: 'center', paddingHorizontal: 20 }]}>Assignment tracking will be enabled when official data becomes available.</Text>
-            </View>
+            <EmptyState
+              icon={<Award color={theme.colors.success} size={32} />}
+              title="All Caught Up!"
+              message="You have no pending assignments at the moment."
+            />
           ) : (
             <View style={ss.assignmentsList}>
               {pending.slice(0, 3).map((item, i) => {
@@ -593,7 +592,7 @@ export function HomeScreen() {
         {/* ── Latest Announcements ── */}
         <Animated.View entering={FadeInDown.duration(500).delay(380)} style={ss.section}>
           <View style={ss.sectionRow}>
-            <Text style={[ss.sectionTitle, { color: theme.colors.textPrimary }]}>Latest Announcements</Text>
+            <Text style={[Typography.headline.lg, { color: theme.colors.textPrimary }]}>Latest Announcements</Text>
             <Pressable
               onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
               onPress={() => router.push('/announcements')}
@@ -605,20 +604,18 @@ export function HomeScreen() {
           </View>
           <View style={{ gap: 10 }}>
             {annLoading && !refreshing ? (
-              <View style={[ss.annoCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, height: 80, justifyContent: 'center', alignItems: 'center' }]}>
-                <Text style={{ color: theme.colors.textSecondary, fontSize: 13 }}>Loading announcements...</Text>
-              </View>
+              <>
+                <Skeleton width="100%" height={80} radius={Radius.lg} />
+                <Skeleton width="100%" height={80} radius={Radius.lg} />
+              </>
             ) : annError ? (
-              <View style={[ss.annoCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, height: 80, justifyContent: 'center', alignItems: 'center' }]}>
-                <Text style={{ color: theme.colors.danger, fontSize: 13, fontWeight: '500' }}>Failed to load announcements</Text>
-                <Pressable onPress={() => refetchAnn()} style={{ marginTop: 4 }}>
-                  <Text style={{ color: theme.colors.primaryLight, fontSize: 11, fontWeight: '600' }}>Retry</Text>
-                </Pressable>
-              </View>
+              <ErrorState title="Failed to load announcements" message="Please check your connection and try again." onRetry={refetchAnn} />
             ) : announcements.length === 0 ? (
-              <View style={[ss.annoCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, height: 80, justifyContent: 'center', alignItems: 'center' }]}>
-                <Text style={{ color: theme.colors.textSecondary, fontSize: 13 }}>No recent announcements</Text>
-              </View>
+              <EmptyState
+                icon={<Bell color={theme.colors.primary} size={32} />}
+                title="No Announcements"
+                message="You're all caught up. New announcements will appear here."
+              />
             ) : announcements.slice(0, 3).map((item, i) => {
               const urgent = item.priority === 'urgent' || item.priority === 'high';
               const catColor = urgent ? theme.colors.danger : theme.colors.primaryLight;
@@ -658,7 +655,7 @@ export function HomeScreen() {
         {/* ── Faculty Notices (New Feature) ── */}
         <Animated.View entering={FadeInDown.duration(500).delay(400)} style={ss.section}>
           <View style={ss.sectionRow}>
-            <Text style={[ss.sectionTitle, { color: theme.colors.textPrimary }]}>Faculty Notices</Text>
+            <Text style={[Typography.headline.lg, { color: theme.colors.textPrimary }]}>Faculty Notices</Text>
             <Pressable
               onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
               onPress={() => router.push('/announcements')}
@@ -670,9 +667,11 @@ export function HomeScreen() {
           </View>
           <View style={{ gap: 10 }}>
             {facultyNotices.length === 0 ? (
-              <View style={[ss.annoCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, height: 80, justifyContent: 'center', alignItems: 'center' }]}>
-                <Text style={{ color: theme.colors.textSecondary, fontSize: 13 }}>No recent notices from faculty</Text>
-              </View>
+              <EmptyState
+                icon={<Bell color={theme.colors.info} size={32} />}
+                title="No Faculty Notices"
+                message="You're up to date on faculty notices."
+              />
             ) : facultyNotices.slice(0, 3).map((notice, i) => (
               <Animated.View
                 key={notice.id}

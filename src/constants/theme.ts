@@ -10,6 +10,12 @@ export const Typography = {
     medium: { fontSize: 36, fontWeight: '700' as const, letterSpacing: -1.0, lineHeight: 44 },
     small: { fontSize: 28, fontWeight: '700' as const, letterSpacing: -0.8, lineHeight: 34 },
   },
+  // Titles — between display and headline
+  title: {
+    lg: { fontSize: 22, fontWeight: '700' as const, letterSpacing: -0.6, lineHeight: 28 },
+    md: { fontSize: 18, fontWeight: '700' as const, letterSpacing: -0.4, lineHeight: 24 },
+    sm: { fontSize: 16, fontWeight: '600' as const, letterSpacing: -0.3, lineHeight: 22 },
+  },
   // Headlines
   headline: {
     xl: { fontSize: 24, fontWeight: '700' as const, letterSpacing: -0.8, lineHeight: 30 },

@@ -19,16 +19,12 @@ interface BookedSlot {
   status: 'Confirmed';
 }
 
-const MOCK_BOOKINGS: BookedSlot[] = [
-  { id: '1', studentName: 'Ayan Biswas', studentId: 'CSE/20/012', date: 'Today', time: '02:00 PM - 02:30 PM', status: 'Confirmed' },
-];
-
 export default function FacultyOfficeHoursScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   
   const [isAccepting, setIsAccepting] = useState(true);
-  const [bookings] = useState<BookedSlot[]>(MOCK_BOOKINGS);
+  const [bookings] = useState<BookedSlot[]>([]);
 
   const toggleAccepting = () => {
     Haptics.selectionAsync();

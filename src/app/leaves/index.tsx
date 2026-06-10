@@ -22,17 +22,7 @@ interface LeaveRequest {
   appliedOn: string;
 }
 
-const MOCK_LEAVES: LeaveRequest[] = [
-  { id: '1', type: 'Sick Leave', startDate: '2026-06-01', endDate: '2026-06-03', reason: 'Viral Fever, doctor recommended 3 days rest.', status: 'Approved', appliedOn: '2026-05-31' },
-  { id: '2', type: 'Personal', startDate: '2026-05-15', endDate: '2026-05-15', reason: 'Family function.', status: 'Rejected', appliedOn: '2026-05-12' },
-];
-
-export default function StudentLeaveScreen() {
-  const { theme, isDark } = useTheme();
-  const insets = useSafeAreaInsets();
-  
-  const [mode, setMode] = useState<'history' | 'apply'>('history');
-  const [leaves, setLeaves] = useState<LeaveRequest[]>(MOCK_LEAVES);
+  const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
 
   // Form
   const [type, setType] = useState('Sick Leave');
@@ -103,31 +93,43 @@ export default function StudentLeaveScreen() {
         <ScrollView contentContainerStyle={[ss.content, { paddingBottom: insets.bottom + 60 }]} showsVerticalScrollIndicator={false}>
           {mode === 'history' ? (
             <Animated.View entering={FadeInUp.duration(400)}>
-              {leaves.map((leave, i) => {
-                const sColor = getStatusColor(leave.status);
-                return (
-                  <Animated.View key={leave.id} entering={FadeInDown.duration(400).delay(i * 100)} layout={Layout.springify()}>
-                    <GlassCard intensity={isDark ? 30 : 70} style={[ss.card, { borderColor: theme.colors.border }]}>
-                      <View style={ss.cardHeader}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={[Typography.headline.md, { color: theme.colors.textPrimary }]}>{leave.type}</Text>
-                          <Text style={[Typography.label.sm, { color: theme.colors.textTertiary, marginTop: 2 }]}>
-                            {leave.startDate} to {leave.endDate}
-                          </Text>
+              {leaves.length === 0 ? (
+                <View style={{ alignItems: 'center', marginTop: 40, padding: 20 }}>
+                  <CalendarX2 color={theme.colors.textTertiary} size={48} strokeWidth={1.5} />
+                  <Text style={[Typography.title.md, { color: theme.colors.textSecondary, marginTop: 16, textAlign: 'center' }]}>
+                    No leave history
+                  </Text>
+                  <Text style={[Typography.body.sm, { color: theme.colors.textTertiary, marginTop: 8, textAlign: 'center' }]}>
+                    You have not applied for any leaves yet.
+                  </Text>
+                </View>
+              ) : (
+                leaves.map((leave, i) => {
+                  const sColor = getStatusColor(leave.status);
+                  return (
+                    <Animated.View key={leave.id} entering={FadeInDown.duration(400).delay(i * 100)} layout={Layout.springify()}>
+                      <GlassCard intensity={isDark ? 30 : 70} style={[ss.card, { borderColor: theme.colors.border }]}>
+                        <View style={ss.cardHeader}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={[Typography.headline.md, { color: theme.colors.textPrimary }]}>{leave.type}</Text>
+                            <Text style={[Typography.label.sm, { color: theme.colors.textTertiary, marginTop: 2 }]}>
+                              {leave.startDate} to {leave.endDate}
+                            </Text>
+                          </View>
+                          <View style={[ss.statusPill, { backgroundColor: `${sColor}15` }]}>
+                            {getStatusIcon(leave.status, sColor)}
+                            <Text style={[Typography.label.sm, { color: sColor, marginLeft: 6, fontWeight: '700' }]}>{leave.status}</Text>
+                          </View>
                         </View>
-                        <View style={[ss.statusPill, { backgroundColor: `${sColor}15` }]}>
-                          {getStatusIcon(leave.status, sColor)}
-                          <Text style={[Typography.label.sm, { color: sColor, marginLeft: 6, fontWeight: '700' }]}>{leave.status}</Text>
+                        <Text style={[Typography.body.md, { color: theme.colors.textSecondary, marginTop: 12 }]} numberOfLines={2}>{leave.reason}</Text>
+                        <View style={[ss.cardFooter, { borderTopColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}>
+                          <Text style={[Typography.label.sm, { color: theme.colors.textTertiary }]}>Applied on {leave.appliedOn}</Text>
                         </View>
-                      </View>
-                      <Text style={[Typography.body.md, { color: theme.colors.textSecondary, marginTop: 12 }]} numberOfLines={2}>{leave.reason}</Text>
-                      <View style={[ss.cardFooter, { borderTopColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]}>
-                        <Text style={[Typography.label.sm, { color: theme.colors.textTertiary }]}>Applied on {leave.appliedOn}</Text>
-                      </View>
-                    </GlassCard>
-                  </Animated.View>
-                );
-              })}
+                      </GlassCard>
+                    </Animated.View>
+                  );
+                })
+              )}
             </Animated.View>
           ) : (
             <Animated.View entering={FadeInUp.duration(400)}>

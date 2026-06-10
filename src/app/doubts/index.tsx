@@ -19,17 +19,7 @@ interface Doubt {
   askedOn: string;
 }
 
-const MOCK_DOUBTS: Doubt[] = [
-  { id: '1', subject: 'Data Structures', question: 'In the AVL Tree implementation, how do we determine which rotation to perform?', answer: 'You check the balance factor of the node. If it is > 1 and the left child is >= 0, do a Right Rotation (LL case). Review slide 45 for the full matrix.', status: 'Resolved', askedOn: '1 day ago' },
-  { id: '2', subject: 'Computer Networks', question: 'Why does TCP use a 3-way handshake instead of a 2-way handshake?', status: 'Pending', askedOn: '2 hours ago' },
-];
-
-export default function DoubtDeskScreen() {
-  const { theme, isDark } = useTheme();
-  const insets = useSafeAreaInsets();
-  
-  const [mode, setMode] = useState<'browse' | 'ask'>('browse');
-  const [doubts, setDoubts] = useState<Doubt[]>(MOCK_DOUBTS);
+  const [doubts, setDoubts] = useState<Doubt[]>([]);
 
   // Form
   const [subject, setSubject] = useState('');
@@ -81,40 +71,52 @@ export default function DoubtDeskScreen() {
         <ScrollView contentContainerStyle={[ss.content, { paddingBottom: insets.bottom + 60 }]} showsVerticalScrollIndicator={false}>
           {mode === 'browse' ? (
             <Animated.View entering={FadeInUp.duration(400)}>
-              {doubts.map((doubt, i) => (
-                <Animated.View key={doubt.id} entering={FadeInDown.duration(400).delay(i * 100)} layout={Layout.springify()}>
-                  <GlassCard intensity={isDark ? 30 : 70} style={[ss.card, { borderColor: theme.colors.border }]}>
-                    
-                    <View style={ss.cardHeader}>
-                      <View style={[ss.subjectPill, { backgroundColor: `${theme.colors.info}15` }]}>
-                        <Text style={[Typography.label.sm, { color: theme.colors.info, fontWeight: '700' }]}>{doubt.subject}</Text>
-                      </View>
-                      <View style={[ss.statusBadge, { backgroundColor: doubt.status === 'Resolved' ? `${theme.colors.success}15` : `${theme.colors.warning}15` }]}>
-                        <Text style={[Typography.label.xs, { color: doubt.status === 'Resolved' ? theme.colors.success : theme.colors.warning, fontWeight: '700' }]}>
-                          {doubt.status}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <Text style={[Typography.headline.md, { color: theme.colors.textPrimary, marginTop: 12, lineHeight: 22 }]}>
-                      Q: {doubt.question}
-                    </Text>
-
-                    {doubt.answer && (
-                      <View style={[ss.answerBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderColor: theme.colors.border }]}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-                          <CheckCircle2 color={theme.colors.success} size={14} />
-                          <Text style={[Typography.label.sm, { color: theme.colors.success, marginLeft: 6 }]}>Faculty Reply</Text>
+              {doubts.length === 0 ? (
+                <View style={{ alignItems: 'center', marginTop: 40, padding: 20 }}>
+                  <HelpCircle color={theme.colors.textTertiary} size={48} strokeWidth={1.5} />
+                  <Text style={[Typography.title.md, { color: theme.colors.textSecondary, marginTop: 16, textAlign: 'center' }]}>
+                    No queries asked
+                  </Text>
+                  <Text style={[Typography.body.sm, { color: theme.colors.textTertiary, marginTop: 8, textAlign: 'center' }]}>
+                    When you ask a question to your faculty, it will appear here along with their reply.
+                  </Text>
+                </View>
+              ) : (
+                doubts.map((doubt, i) => (
+                  <Animated.View key={doubt.id} entering={FadeInDown.duration(400).delay(i * 100)} layout={Layout.springify()}>
+                    <GlassCard intensity={isDark ? 30 : 70} style={[ss.card, { borderColor: theme.colors.border }]}>
+                      
+                      <View style={ss.cardHeader}>
+                        <View style={[ss.subjectPill, { backgroundColor: `${theme.colors.info}15` }]}>
+                          <Text style={[Typography.label.sm, { color: theme.colors.info, fontWeight: '700' }]}>{doubt.subject}</Text>
                         </View>
-                        <Text style={[Typography.body.md, { color: theme.colors.textSecondary, lineHeight: 20 }]}>{doubt.answer}</Text>
+                        <View style={[ss.statusBadge, { backgroundColor: doubt.status === 'Resolved' ? `${theme.colors.success}15` : `${theme.colors.warning}15` }]}>
+                          <Text style={[Typography.label.xs, { color: doubt.status === 'Resolved' ? theme.colors.success : theme.colors.warning, fontWeight: '700' }]}>
+                            {doubt.status}
+                          </Text>
+                        </View>
                       </View>
-                    )}
 
-                    <Text style={[Typography.label.sm, { color: theme.colors.textTertiary, marginTop: 16 }]}>{doubt.askedOn}</Text>
+                      <Text style={[Typography.headline.md, { color: theme.colors.textPrimary, marginTop: 12, lineHeight: 22 }]}>
+                        Q: {doubt.question}
+                      </Text>
 
-                  </GlassCard>
-                </Animated.View>
-              ))}
+                      {doubt.answer && (
+                        <View style={[ss.answerBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', borderColor: theme.colors.border }]}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                            <CheckCircle2 color={theme.colors.success} size={14} />
+                            <Text style={[Typography.label.sm, { color: theme.colors.success, marginLeft: 6 }]}>Faculty Reply</Text>
+                          </View>
+                          <Text style={[Typography.body.md, { color: theme.colors.textSecondary, lineHeight: 20 }]}>{doubt.answer}</Text>
+                        </View>
+                      )}
+
+                      <Text style={[Typography.label.sm, { color: theme.colors.textTertiary, marginTop: 16 }]}>{doubt.askedOn}</Text>
+
+                    </GlassCard>
+                  </Animated.View>
+                ))
+              )}
             </Animated.View>
           ) : (
             <Animated.View entering={FadeInUp.duration(400)}>

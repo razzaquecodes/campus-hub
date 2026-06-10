@@ -153,25 +153,3 @@ CREATE POLICY IF NOT EXISTS "auth_read_attendance"     ON attendance    FOR SELE
 CREATE POLICY IF NOT EXISTS "profiles_read_own"   ON student_profiles FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY IF NOT EXISTS "profiles_update_own" ON student_profiles FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY IF NOT EXISTS "profiles_insert_own" ON student_profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- ─── Seed: insert sample notifications for testing ──────────────────────────
--- These insert only if the notifications table is empty
--- In production, remove this block and use Edge Functions
-DO $$
-DECLARE
-  sample_user_id UUID;
-BEGIN
-  -- Only seed if table is empty
-  IF (SELECT COUNT(*) FROM notifications) = 0 THEN
-    -- Get first user (for dev seeding)
-    SELECT user_id INTO sample_user_id FROM student_profiles LIMIT 1;
-    IF sample_user_id IS NOT NULL THEN
-      INSERT INTO notifications (user_id, title, body, category) VALUES
-        (sample_user_id, '4th Sem Exam Schedule Released', 'End-semester exams start June 10. Download your admit card from the MAKAUT portal.', 'announcement'),
-        (sample_user_id, 'Attendance Alert: DAA Lab', 'Your attendance in DAA Lab has dropped below 75%. Minimum required: 75%.', 'attendance'),
-        (sample_user_id, 'Assignment Due Tomorrow', 'Graph Algorithms Analysis is due tomorrow at 11:59 PM.', 'assignment'),
-        (sample_user_id, 'BBIT TechFest Registration Open', 'Register your team for BBIT Annual TechFest. Last date: May 30.', 'event'),
-        (sample_user_id, 'Placement Drive: TCS NextStep', 'TCS is conducting a campus placement drive on June 15. Eligibility: 7.0 CGPA.', 'placement');
-    END IF;
-  END IF;
-END $$;

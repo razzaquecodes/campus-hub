@@ -1,26 +1,32 @@
-// navigation/TabBar.tsx — Redesigned Premium Floating Icon-Only TabBar
+// navigation/TabBar.tsx — Premium Floating Tab Bar with Labels
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import { type BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import React, { useEffect, useState } from 'react';
-import { Dimensions, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Dimensions, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
+  interpolateColor,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Animation, Radius, Shadows } from '@/constants/theme';
+import { Animation, Radius, Shadows, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { Home, BookOpen, User, Settings } from 'lucide-react-native';
 
 const { width: W } = Dimensions.get('window');
 
-const TAB_ICONS: Record<string, (props: { color: string; size: number; strokeWidth: number }) => React.JSX.Element> = {
-  index:    ({ color, size, strokeWidth }) => <Home color={color} size={size} strokeWidth={strokeWidth} />,
-  courses:  ({ color, size, strokeWidth }) => <BookOpen color={color} size={size} strokeWidth={strokeWidth} />,
-  profile:  ({ color, size, strokeWidth }) => <User color={color} size={size} strokeWidth={strokeWidth} />,
-  settings: ({ color, size, strokeWidth }) => <Settings color={color} size={size} strokeWidth={strokeWidth} />,
+const TAB_CONFIG: Record<string, { 
+  icon: (props: { color: string; size: number; strokeWidth: number }) => React.JSX.Element;
+  label: string;
+}> = {
+  index:    { icon: ({ color, size, strokeWidth }) => <Home color={color} size={size} strokeWidth={strokeWidth} />, label: 'Home' },
+  courses:  { icon: ({ color, size, strokeWidth }) => <BookOpen color={color} size={size} strokeWidth={strokeWidth} />, label: 'Timetable' },
+  profile:  { icon: ({ color, size, strokeWidth }) => <User color={color} size={size} strokeWidth={strokeWidth} />, label: 'Profile' },
+  settings: { icon: ({ color, size, strokeWidth }) => <Settings color={color} size={size} strokeWidth={strokeWidth} />, label: 'Settings' },
 };
 
 interface TabItemProps {
@@ -34,10 +40,15 @@ function TabItem({ route, isFocused, onPress, onLongPress }: TabItemProps) {
   const { theme } = useTheme();
   const scale = useSharedValue(1);
   const translateY = useSharedValue(0);
+  const labelOpacity = useSharedValue(isFocused ? 1 : 0.65);
+
+  useEffect(() => {
+    labelOpacity.value = withTiming(isFocused ? 1 : 0.65, { duration: 200 });
+  }, [isFocused, labelOpacity]);
 
   const handlePressIn = () => {
-    scale.value = withSpring(0.85, Animation.spring.snappy);
-    translateY.value = withSpring(-1, Animation.spring.snappy);
+    scale.value = withSpring(0.84, Animation.spring.snappy);
+    translateY.value = withSpring(-1.5, Animation.spring.snappy);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
   };
 
@@ -50,11 +61,15 @@ function TabItem({ route, isFocused, onPress, onLongPress }: TabItemProps) {
     transform: [{ scale: scale.value }, { translateY: translateY.value }],
   }));
 
-  const Icon = TAB_ICONS[route.name];
-  const color = isFocused ? theme.colors.primaryLight : theme.colors.textSecondary;
+  const labelStyle = useAnimatedStyle(() => ({
+    opacity: labelOpacity.value,
+  }));
+
+  const config = TAB_CONFIG[route.name];
+  const iconColor = isFocused ? theme.colors.primaryLight : theme.colors.textSecondary;
   const strokeWidth = isFocused ? 2.2 : 1.6;
 
-  if (!Icon) return null;
+  if (!config) return null;
 
   return (
     <Pressable
@@ -64,10 +79,21 @@ function TabItem({ route, isFocused, onPress, onLongPress }: TabItemProps) {
       onPressOut={handlePressOut}
       style={ss.tabBtn}
       accessibilityRole="button"
+      accessibilityLabel={config.label}
       accessibilityState={isFocused ? { selected: true } : {}}
     >
       <Animated.View style={[ss.tabIconContainer, animStyle]}>
-        <Icon color={color} size={22} strokeWidth={strokeWidth} />
+        <config.icon color={iconColor} size={21} strokeWidth={strokeWidth} />
+        <Animated.Text
+          style={[
+            ss.tabLabel,
+            { color: iconColor },
+            labelStyle,
+          ]}
+          numberOfLines={1}
+        >
+          {config.label}
+        </Animated.Text>
       </Animated.View>
     </Pressable>
   );
@@ -78,31 +104,28 @@ export function PremiumTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const [containerWidth, setContainerWidth] = useState(0);
 
-  // 1. Filter out hidden Expo Router ghost tabs (e.g. notices, timetables)
-  // We strictly only want tabs that have an icon mapping to be in the navigation bar.
-  const visibleRoutes = state.routes.filter(route => TAB_ICONS[route.name]);
+  // Only show tabs that have a config mapping
+  const visibleRoutes = state.routes.filter(route => TAB_CONFIG[route.name]);
 
-  // Floating tab bar dimensions
-  const horizontalMargin = 28;
+  const horizontalMargin = 24;
   const tabBarPadding = 6;
   
-  // 2. Use visibleRoutes.length as the single source of truth for distribution
-  const innerWidth = containerWidth > 0 ? containerWidth - tabBarPadding * 2 : W - horizontalMargin * 2 - tabBarPadding * 2;
+  const innerWidth = containerWidth > 0 
+    ? containerWidth - tabBarPadding * 2 
+    : W - horizontalMargin * 2 - tabBarPadding * 2;
   const tabWidth = innerWidth / (visibleRoutes.length || 1);
 
-  // Map the current active route key to its visual index in our filtered array
   const currentRouteKey = state.routes[state.index]?.key;
   const visualActiveIndex = visibleRoutes.findIndex(r => r.key === currentRouteKey);
   
-  // Keep track of the indicator position. Default to 0 if the current route is hidden.
   const activeIndex = useSharedValue(visualActiveIndex !== -1 ? visualActiveIndex : 0);
 
   useEffect(() => {
     if (visualActiveIndex !== -1) {
       activeIndex.value = withSpring(visualActiveIndex, {
-        damping: 18,
-        stiffness: 220,
-        mass: 0.6,
+        damping: 20,
+        stiffness: 260,
+        mass: 0.7,
       });
     }
   }, [visualActiveIndex, activeIndex]);
@@ -111,7 +134,7 @@ export function PremiumTabBar({ state, navigation }: BottomTabBarProps) {
     const translateX = tabBarPadding + activeIndex.value * tabWidth;
     return {
       transform: [{ translateX }],
-      opacity: visualActiveIndex !== -1 ? 1 : 0, // Hide capsule if on a completely hidden route
+      opacity: visualActiveIndex !== -1 ? 1 : 0,
     };
   });
 
@@ -121,60 +144,53 @@ export function PremiumTabBar({ state, navigation }: BottomTabBarProps) {
       style={[
         ss.tabBarOuter,
         {
-          bottom: Math.max(insets.bottom, 14),
+          bottom: Math.max(insets.bottom, 12),
           left: horizontalMargin,
           right: horizontalMargin,
-          borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)',
-          shadowOpacity: isDark ? 0.4 : 0.12,
-          shadowColor: isDark ? '#000' : '#1e293b',
+          borderColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)',
+          shadowOpacity: isDark ? 0.5 : 0.14,
+          shadowColor: isDark ? '#000' : '#0f172a',
         }
       ]}
     >
+      {/* Blur background */}
       {Platform.OS === 'ios' ? (
         <BlurView
-          intensity={isDark ? 50 : 75}
+          intensity={isDark ? 55 : 80}
           tint={isDark ? 'dark' : 'light'}
           style={StyleSheet.absoluteFillObject}
         />
       ) : (
         <View style={[StyleSheet.absoluteFillObject, {
-          backgroundColor: isDark ? 'rgba(8,8,8,0.92)' : 'rgba(255,255,255,0.92)',
+          backgroundColor: isDark ? 'rgba(8,8,10,0.94)' : 'rgba(252,252,255,0.94)',
         }]} />
       )}
 
-      {/* Inner backdrop container */}
+      {/* Soft inner backdrop */}
       <View style={[StyleSheet.absoluteFillObject, {
-        backgroundColor: isDark ? 'rgba(15,15,15,0.4)' : 'rgba(255,255,255,0.4)',
+        backgroundColor: isDark ? 'rgba(16,16,20,0.35)' : 'rgba(255,255,255,0.35)',
+        borderRadius: Radius.circle,
       }]} />
 
-      {/* Sliding Active Indicator Capsule */}
+      {/* Active Capsule Indicator */}
       <Animated.View style={[
         ss.activeIndicator,
-        {
-          width: tabWidth,
-          paddingHorizontal: 4,
-        },
-        activeIndicatorStyle
+        { width: tabWidth, paddingHorizontal: 5 },
+        activeIndicatorStyle,
       ]}>
-        <View style={[
-          ss.activeIndicatorInner,
-          {
-            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-            borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
-          }
-        ]}>
-          <View style={[
-            ss.activeGlowDot,
-            {
-              backgroundColor: theme.colors.primaryLight,
-              shadowColor: theme.colors.primaryLight,
-              shadowOpacity: isDark ? 0.8 : 0.4,
-            }
-          ]} />
-        </View>
+        <LinearGradient
+          colors={isDark
+            ? ['rgba(99,102,241,0.18)', 'rgba(99,102,241,0.08)']
+            : ['rgba(79,70,229,0.12)', 'rgba(79,70,229,0.04)']}
+          style={[ss.activeIndicatorInner, {
+            borderColor: isDark ? 'rgba(129,140,248,0.25)' : 'rgba(99,102,241,0.18)',
+          }]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+        />
       </Animated.View>
 
-      {/* 3. Only map over the properly filtered visible routes */}
+      {/* Tab Items */}
       <View style={[ss.tabsContainer, { padding: tabBarPadding }]}>
         {visibleRoutes.map((route) => {
           const isFocused = state.routes[state.index]?.key === route.key;
@@ -185,7 +201,6 @@ export function PremiumTabBar({ state, navigation }: BottomTabBarProps) {
               target: route.key,
               canPreventDefault: true,
             });
-
             if (!isFocused && !event.defaultPrevented) {
               navigation.navigate(route.name);
             }
@@ -216,13 +231,13 @@ export function PremiumTabBar({ state, navigation }: BottomTabBarProps) {
 const ss = StyleSheet.create({
   tabBarOuter: {
     position: 'absolute',
-    height: 60,
+    height: 68,
     borderRadius: Radius.circle,
     overflow: 'hidden',
     borderWidth: 1.5,
     ...Shadows.float,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowRadius: 24,
+    elevation: 10,
   },
   tabsContainer: {
     flex: 1,
@@ -240,6 +255,14 @@ const ss = StyleSheet.create({
   tabIconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 2,
+  },
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 0.2,
+    textAlign: 'center',
+    marginTop: 1,
   },
   activeIndicator: {
     position: 'absolute',
@@ -252,17 +275,5 @@ const ss = StyleSheet.create({
     flex: 1,
     borderRadius: Radius.circle,
     borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingBottom: 4,
-  },
-  activeGlowDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 2,
   },
 });

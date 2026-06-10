@@ -18,14 +18,6 @@ interface CalendarEvent {
   location?: string;
   type: 'Exam' | 'Event' | 'Holiday' | 'Academic';
 }
-
-const MOCK_EVENTS: CalendarEvent[] = [
-  { id: '1', title: 'Mid-Semester Examinations', dateStr: 'June 20 - June 28', type: 'Exam' },
-  { id: '2', title: 'Tech Symposium 2026', dateStr: 'July 5', time: '10:00 AM - 4:00 PM', location: 'Main Auditorium', type: 'Event' },
-  { id: '3', title: 'Summer Vacation Begins', dateStr: 'July 15', type: 'Holiday' },
-  { id: '4', title: 'Last Date for Project Submission', dateStr: 'August 1', type: 'Academic' },
-];
-
 const FILTERS = ['All', 'Exam', 'Event', 'Holiday', 'Academic'];
 
 export default function AcademicCalendarScreen() {
@@ -33,8 +25,9 @@ export default function AcademicCalendarScreen() {
   const insets = useSafeAreaInsets();
   
   const [activeFilter, setActiveFilter] = useState('All');
+  const [events] = useState<CalendarEvent[]>([]);
 
-  const filteredEvents = MOCK_EVENTS.filter(e => activeFilter === 'All' || e.type === activeFilter);
+  const filteredEvents = events.filter(e => activeFilter === 'All' || e.type === activeFilter);
 
   const getEventStyle = (type: string) => {
     switch (type) {
