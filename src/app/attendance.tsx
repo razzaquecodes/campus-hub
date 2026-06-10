@@ -2,16 +2,16 @@ import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { ArrowLeft, Camera, CheckCircle2, ClipboardCheck, Radio, Users } from 'lucide-react-native';
 import React, { useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, RefreshControl } from 'react-native';
 import Animated, {
-  FadeInDown,
-  FadeInUp,
-  Layout,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
+    FadeInDown,
+    FadeInUp,
+    Layout,
+    useAnimatedStyle,
+    useSharedValue,
+    withRepeat,
+    withSequence,
+    withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -146,7 +146,17 @@ export default function StudentAttendanceRoute() {
       }
     : null;
 
-  const { data: sessions = [], refetch, isLoading } = useActiveAttendanceSessions(profileTarget);
+  const { data: sessions = [], refetch, isLoading, isRefetching } = useActiveAttendanceSessions(profileTarget);
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     setSessions(sessions);
@@ -175,7 +185,7 @@ export default function StudentAttendanceRoute() {
         </View>
       </Animated.View>
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing || isRefetching} onRefresh={onRefresh} tintColor={theme.colors.primary} colors={[theme.colors.primary]} /> }>
         {sessions.length > 0 ? (
           sessions.map((session, index) => <SessionCard key={session.id} session={session} index={index} />)
         ) : (
