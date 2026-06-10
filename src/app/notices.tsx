@@ -1,26 +1,24 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { ArrowLeft, BellRing, ExternalLink, FileText, Paperclip, Search } from 'lucide-react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Linking,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Linking,
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View
 } from 'react-native';
 import Animated, { FadeIn, FadeInDown, Layout } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BellRing, FileText, ArrowLeft, Search, Paperclip, ExternalLink } from 'lucide-react-native';
 
 import { SpringButton } from '@/components/ui';
 import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
-import { supabase } from '@/lib/supabase';
 
 // Using the exact schema established in the Admin Notices module
 interface NoticeRecord {
@@ -37,41 +35,23 @@ export default function StudentNoticesScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   
-  const [notices, setNotices] = useState<NoticeRecord[]>([]);
+  const { data: notices = [], refetch, isLoading, isError, isRefetching } = useNotices();
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchNotices = async () => {
-    try {
-      setError(null);
-      const { data, error: fetchError } = await supabase
-        .from('notices')
-        .select('*')
-        .eq('is_active', true)
-        .order('uploaded_at', { ascending: false });
-
-      if (fetchError) throw fetchError;
-      setNotices(data || []);
-    } catch (err: any) {
-      console.error('[notices] Fetch error:', err);
-      setError(err.message || 'Failed to load notices.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
 
   useEffect(() => {
-    fetchNotices();
+    // no-op; useNotices handles data fetching and realtime updates
   }, []);
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    fetchNotices();
-  }, []);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetch]);
 
   const openAttachment = (url: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -130,7 +110,7 @@ export default function StudentNoticesScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={refreshing || isRefetching}
             onRefresh={onRefresh}
             tintColor={theme.colors.primary}
             colors={[theme.colors.primary]}
