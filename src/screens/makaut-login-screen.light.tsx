@@ -30,7 +30,7 @@ import Animated, {
     withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Defs, Path, RadialGradient, Stop, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Defs, RadialGradient, Stop, Text as SvgText } from 'react-native-svg';
 
 import { Radius, Shadows } from '@/constants/theme';
 import { mapStudentToUserProfile, useAuthStore } from '@/store/auth.store';
@@ -112,7 +112,7 @@ function InputField({ label, value, onChangeText, placeholder, secureTextEntry, 
         />
         {showToggle && (
           <TouchableOpacity onPress={() => setPasswordVisible((p) => !p)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'} accessibilityRole="button">
-            {passwordVisible ? <Path /> : <Path />}
+            {passwordVisible ? <EmptyIcon /> : <EmptyIcon />}
           </TouchableOpacity>
         )}
       </View>
