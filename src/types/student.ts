@@ -59,4 +59,6 @@ export interface StudentProfileInsert {
   abc_id: string;
   photo_url?: string | null;
   last_synced_at: string;
+  // Flag set by backend after a welcome email has been successfully sent
+  welcome_email_sent?: boolean | null;
 }

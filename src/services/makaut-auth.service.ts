@@ -19,11 +19,12 @@
 import { Env, isMakautVerifyConfigured } from '@/lib/env';
 import { storageGetItem, storageRemoveItem, storageSetItem } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
+import { sendWelcomeEmail } from '@/services/email.service';
 import type {
-  StudentModel,
-  StudentProfileInsert,
-  VerifyStudentErrorResponse,
-  VerifyStudentResponse,
+    StudentModel,
+    StudentProfileInsert,
+    VerifyStudentErrorResponse,
+    VerifyStudentResponse,
 } from '@/types/student';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -195,6 +196,7 @@ export async function clearSession(): Promise<void> {
  * user_id (which has a FK to auth.users). Instead we upsert only the
  * fields that don't have FK constraints.
  */
+
 export async function upsertStudentProfile(student: StudentModel): Promise<void> {
   if (!supabase) {
     log('upsertStudentProfile: Supabase not configured — skipping');
@@ -247,6 +249,55 @@ export async function upsertStudentProfile(student: StudentModel): Promise<void>
     log('upsertStudentProfile: upsert successful', {
       rollNumber: student.rollNumber,
     });
+
+    // After a successful upsert, ensure a welcome email is sent once.
+    // Query the existing row for welcome_email_sent flag.
+    try {
+      const { data: existing, error: selectErr } = await supabase
+        .from('student_profiles')
+        .select('welcome_email_sent')
+        .eq('roll_number', student.rollNumber)
+        .limit(1)
+        .maybeSingle();
+
+      if (selectErr) {
+        log('upsertStudentProfile: failed to read welcome_email_sent (non-fatal)', { message: selectErr.message });
+      } else {
+        const alreadySent = existing?.welcome_email_sent === true;
+        if (!alreadySent) {
+          // Send welcome email via backend. This is best-effort and MUST NOT
+          // block or fail the login flow. Log and continue on error.
+          sendWelcomeEmail(student)
+            .then(async (ok) => {
+              if (ok) {
+                try {
+                  const { error: updErr } = await supabase
+                    .from('student_profiles')
+                    .update({ welcome_email_sent: true })
+                    .eq('roll_number', student.rollNumber);
+                  if (updErr) {
+                    log('upsertStudentProfile: failed to set welcome_email_sent (non-fatal)', { message: updErr.message });
+                  } else {
+                    log('upsertStudentProfile: welcome_email_sent updated');
+                  }
+                } catch (e) {
+                  log('upsertStudentProfile: unexpected error updating welcome_email_sent', { error: e instanceof Error ? e.message : String(e) });
+                }
+              } else {
+                log('upsertStudentProfile: welcome email request returned false (non-fatal)');
+              }
+            })
+            .catch((e) => {
+              log('upsertStudentProfile: sendWelcomeEmail threw (non-fatal)', { error: e instanceof Error ? e.message : String(e) });
+            });
+        } else {
+          log('upsertStudentProfile: welcome email already sent — skipping');
+        }
+      }
+    } catch (e) {
+      log('upsertStudentProfile: error checking welcome flag (non-fatal)', { error: e instanceof Error ? e.message : String(e) });
+    }
+
   } catch (e) {
     log('upsertStudentProfile: unexpected error (non-fatal)', {
       error: e instanceof Error ? e.message : String(e),

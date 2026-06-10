@@ -10,37 +10,35 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import {
-  AlertCircle,
-  ArrowLeft,
-  ChevronRight,
-  GraduationCap,
-  RefreshCw,
-  TrendingUp,
-  Award,
+    ArrowLeft,
+    Award,
+    ChevronRight,
+    GraduationCap,
+    TrendingUp
 } from 'lucide-react-native';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Dimensions,
-  Platform,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  View,
+    Dimensions,
+    Platform,
+    ScrollView,
+    RefreshControl,
+    StatusBar,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 import Animated, {
-  FadeIn,
-  FadeInDown,
-  FadeInUp,
+    FadeIn,
+    FadeInDown,
+    FadeInUp,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Defs, LinearGradient as SvgGradient, Path, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, Path, Stop, LinearGradient as SvgGradient } from 'react-native-svg';
 
-import { Badge, SpringButton, Skeleton, EmptyState, ErrorState } from '@/components/ui';
+import { Badge, EmptyState, ErrorState, Skeleton, SpringButton } from '@/components/ui';
 import { Radius, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useStudentStore } from '@/store/student.store';
-import { API_CONFIG } from '@/config/api';
 
 const { width: W } = Dimensions.get('window');
 
@@ -145,93 +143,36 @@ export function ResultsScreen() {
   const insets = useSafeAreaInsets();
   const student = useStudentStore((s) => s.student);
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [isError, setIsError] = useState(false);
-  const [semesters, setSemesters] = useState<SemesterSummary[]>([]);
-  const [cgpa, setCgpa] = useState<number | null>(null);
+  const { data: apiResults = [], isLoading, isError, refetch, isFetching } = useResults();
+
+  // Map API results to local SemesterSummary shape
+  const semesters: SemesterSummary[] = (apiResults || []).map((r) => ({
+    semester: r.semester,
+    sgpa: r.sgpa,
+    totalCredits: Array.isArray(r.subjects) ? r.subjects.reduce((s, sub) => s + (Number(sub.credit ?? sub.credits) || 0), 0) : 0,
+    status: r.status,
+    publishedDate: undefined,
+  }));
+
+  // Calculate CGPA
+  const cgpa = (() => {
+    const valid = semesters.filter(s => s.sgpa !== null && s.sgpa > 0).map(s => s.sgpa as number);
+    if (valid.length === 0) return null;
+    return valid.reduce((sum, v) => sum + v, 0) / valid.length;
+  })();
 
   const [retrying, setRetrying] = useState(false);
 
-  const fetchResults = async () => {
-    const baseUrl = API_CONFIG.BASE_URL;
-
-    if (!student?.rollNumber) {
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      setIsLoading(true);
-      setIsError(false);
-      console.log("ROLL =", student.rollNumber);
-      console.log("BASE URL =", baseUrl);
-      const url = `${baseUrl}/student/${student.rollNumber}/results`;
-      console.log("FULL URL =", url);
-      
-      const response = await fetch(url);
-      const text = await response.text();
-
-      if (!response.ok) {
-        throw new Error(`HTTP Error: ${response.status}`);
-      }
-
-      let json;
-      try {
-        json = JSON.parse(text);
-      } catch (e) {
-        throw new Error("Invalid JSON response");
-      }
-
-      if (json && json.success && Array.isArray(json.semesters)) {
-        const parsedSemesters: SemesterSummary[] = json.semesters.map((sem: any) => {
-          const subjects = Array.isArray(sem.subjects) ? sem.subjects : [];
-          const totalCredits = subjects.reduce((sum: number, sub: any) => {
-            const cred = sub.credit !== undefined ? sub.credit : sub.credits;
-            return sum + (Number(cred) || 0);
-          }, 0);
-          
-          let parsedSgpa: number | null = null;
-          if (sem.sgpa !== null && sem.sgpa !== undefined && sem.sgpa !== 'null' && sem.sgpa !== 'N/A') {
-             const num = parseFloat(sem.sgpa);
-             if (!isNaN(num) && num > 0) {
-               parsedSgpa = num;
-             }
-          }
-
-          return {
-            semester: parseInt(sem.semester, 10) || 0,
-            sgpa: parsedSgpa,
-            totalCredits,
-            status: parsedSgpa !== null ? 'Published' : 'Processing',
-          };
-        });
-
-        parsedSemesters.sort((a, b) => b.semester - a.semester);
-
-        const validSgpas = parsedSemesters.filter(s => s.sgpa !== null && s.sgpa > 0).map(s => s.sgpa as number);
-        let calculatedCgpa = null;
-        if (validSgpas.length > 0) {
-          calculatedCgpa = validSgpas.reduce((sum, val) => sum + val, 0) / validSgpas.length;
-        }
-
-        setSemesters(parsedSemesters);
-        setCgpa(calculatedCgpa);
-      } else {
-        setSemesters([]);
-        setCgpa(null);
-      }
-    } catch (error) {
-      console.error("Failed to fetch results:", error);
-      setIsError(true);
-    } finally {
-      setIsLoading(false);
-      setRetrying(false);
-    }
-  };
-
   useEffect(() => {
-    fetchResults();
+    // when student changes, refetch
+    refetch().catch(() => {});
   }, [student?.rollNumber]);
+
+  const handleRetry = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    setRetrying(true);
+    refetch().finally(() => setRetrying(false));
+  };
 
   const screenState = isLoading
     ? 'loading'
@@ -265,7 +206,7 @@ export function ResultsScreen() {
         </View>
       </Animated.View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[s.scroll, { paddingBottom: insets.bottom + 40 }]}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[s.scroll, { paddingBottom: insets.bottom + 40 }]} refreshControl={<RefreshControl refreshing={isFetching} onRefresh={() => refetch()} />}>
         
         {/* ── Data State ── */}
         {screenState === 'data' && (
