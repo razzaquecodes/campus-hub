@@ -1,41 +1,8 @@
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import type {
-  CampusAnnouncement,
-  CreateAnnouncementInput,
+    CampusAnnouncement,
+    CreateAnnouncementInput,
 } from '@/types/announcement';
-
-const mockAnnouncements: CampusAnnouncement[] = [
-  {
-    id: 'ann_cse_final_project',
-    title: 'Final Year Project Review Window',
-    description:
-      'CSE final year project reviews open Monday. Bring your signed synopsis, latest build, and mentor remarks.',
-    category: 'Important Alert',
-    target: { branch: 'CSE', year: 4, allSections: true },
-    authorId: 'EMP-CSE-2041',
-    authorName: 'Dr. Arindam Roy',
-    priority: 'urgent',
-    isPinned: true,
-    status: 'active',
-    createdAt: new Date(Date.now() - 45 * 60_000).toISOString(),
-    analytics: { delivered: 132, viewed: 98 },
-  },
-  {
-    id: 'ann_college_fest',
-    title: 'Campus Innovation Evening',
-    description:
-      'Student teams can register prototypes for the Friday showcase. Selected teams receive lab credits and mentor access.',
-    category: 'Event',
-    target: { entireCollege: true },
-    authorId: 'office-student-affairs',
-    authorName: 'Student Affairs Cell',
-    priority: 'high',
-    isPinned: false,
-    status: 'active',
-    createdAt: new Date(Date.now() - 6 * 60 * 60_000).toISOString(),
-    analytics: { delivered: 1200, viewed: 731 },
-  },
-];
 
 function makeId() {
   return `ann_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -85,7 +52,8 @@ export const announcementRepository = {
       if (error) console.warn('[announcements] list error:', error.message);
     }
 
-    return mockAnnouncements;
+    // No backend configured — return empty list to avoid showing demo content in production
+    return [];
   },
 
   async create(input: CreateAnnouncementInput): Promise<CampusAnnouncement> {
@@ -136,7 +104,7 @@ export const announcementRepository = {
       if (error) console.warn('[announcements] create error:', error.message);
     }
 
-    mockAnnouncements.unshift(announcement);
-    return announcement;
+    // Backend not configured — disallow creating announcements in demo mode
+    throw new Error('Supabase is not configured.');
   },
 };

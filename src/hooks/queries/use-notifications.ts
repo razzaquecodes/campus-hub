@@ -1,101 +1,130 @@
-import { fetchNotifications } from '@/api/notifications.api';
+import { useEffect } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import * as Notifications from 'expo-notifications';
+
+import {
+  fetchNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from '@/api/notifications.api';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
-import { useNotificationsStore } from '@/store/notifications.store';
-import * as Notifications from 'expo-notifications';
-import { useEffect } from 'react';
 
-// Real backend-backed notifications hook with realtime subscription.
+const notificationsQueryKey = ['notifications'];
+
 export function useNotifications() {
-  const setNotifications = useNotificationsStore((s) => s.setNotifications);
-  const upsert = useNotificationsStore((s) => s.upsertNotification);
   const profile = useAuthStore((s) => s.profile);
+  const userId = profile?.id;
+
+  const query = useQuery({
+    queryKey: [...notificationsQueryKey, userId],
+    queryFn: async () => fetchNotifications(userId!),
+    enabled: !!userId,
+    staleTime: 1000 * 60,
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: false,
+  });
 
   useEffect(() => {
     let channel: any = null;
-    let mounted = true;
-    const userId = profile?.id;
-    if (!userId || !supabase) return;
+    if (!userId || !supabase) return undefined;
 
-    // Initial fetch
-    (async () => {
+    const subscribe = async () => {
       try {
-        const items = await fetchNotifications(userId);
-        if (!mounted) return;
-        setNotifications(items as any);
-      } catch (e) {
-        console.warn('[useNotifications] fetch failed', e);
-      }
-    })();
+        channel = supabase
+          .channel(`public:notifications:user:${userId}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'notifications',
+              filter: `user_id=eq.${userId}`,
+            },
+            async (payload) => {
+              const newItem = payload.new as any;
+              query.refetch();
 
-    // Subscribe to new notifications for this user
-    try {
-      channel = supabase.channel(`public:notifications:user:${userId}`)
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` }, (payload) => {
-          const newItem = payload.new as any;
-          upsert(newItem);
-
-          // Only present local notification for certain categories
-          const important = ['result', 'ca_marks', 'announcement', 'academic_update', 'notice'];
-          if (important.includes(newItem.category)) {
-            (async () => {
-              try {
-                const { status } = await Notifications.getPermissionsAsync();
-                if (status !== 'granted') {
-                  await Notifications.requestPermissionsAsync();
+              const important = ['result', 'ca_marks', 'announcement', 'academic_update', 'notice'];
+              if (important.includes(newItem.category)) {
+                try {
+                  const { status } = await Notifications.getPermissionsAsync();
+                  if (status !== 'granted') {
+                    await Notifications.requestPermissionsAsync();
+                  }
+                  await Notifications.scheduleNotificationAsync({
+                    content: {
+                      title: newItem.title,
+                      body: newItem.body,
+                      data: { actionUrl: newItem.action_url },
+                    },
+                    trigger: null,
+                  });
+                } catch (e) {
+                  console.warn('[useNotifications] Failed to schedule local notification', e);
                 }
-                await Notifications.scheduleNotificationAsync({
-                  content: { title: newItem.title, body: newItem.body, data: { action: newItem.action_url } },
-                  trigger: null,
-                });
-              } catch (e) {
-                console.warn('[useNotifications] Failed to show local notification', e);
               }
-            })();
-          }
-        })
-        .subscribe();
-    } catch (err) {
-      console.warn('[useNotifications] subscription failed', err);
-    }
+            },
+          )
+          .subscribe();
+      } catch (err) {
+        console.warn('[useNotifications] subscription failed', err);
+      }
+    };
+
+    subscribe();
 
     return () => {
-      mounted = false;
       try {
         if (channel) supabase.removeChannel(channel);
-      } catch (e) {
+      } catch {
         // ignore
       }
     };
-  }, [profile?.id, setNotifications, upsert]);
+  }, [query, userId]);
 
-  const notifications = useNotificationsStore((s) => s.notifications);
-  return {
-    data: notifications,
-    isLoading: false,
-    isError: false,
-    isRefetching: false,
-    refetch: async () => {
-      const userId = profile?.id;
-      if (!userId) return;
-      const items = await fetchNotifications(userId);
-      setNotifications(items as any);
-    },
-  };
+  return query;
 }
 
 export function useUnreadNotificationCount() {
-  const notifications = useNotificationsStore((s) => s.notifications);
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
+  const { data } = useNotifications();
+  const unreadCount = data?.filter((notification) => !notification.is_read).length ?? 0;
   return { data: unreadCount };
 }
 
 export function useMarkNotificationRead() {
-  const markAsRead = useNotificationsStore((s) => s.markAsRead);
-  return { mutate: (notificationId: string) => markAsRead(notificationId) };
+  const qc = useQueryClient();
+  const profile = useAuthStore((s) => s.profile);
+  const userId = profile?.id;
+
+  return useMutation({
+    mutationFn: (notificationId: string) => markNotificationRead(notificationId),
+    onSuccess: () => {
+      if (userId) {
+        qc.invalidateQueries({ queryKey: [...notificationsQueryKey, userId] });
+      } else {
+        qc.invalidateQueries({ queryKey: notificationsQueryKey });
+      }
+    },
+  });
 }
 
 export function useMarkAllNotificationsRead() {
-  const markAllAsRead = useNotificationsStore((s) => s.markAllAsRead);
-  return { mutate: () => markAllAsRead() };
+  const qc = useQueryClient();
+  const profile = useAuthStore((s) => s.profile);
+  const userId = profile?.id;
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!userId) return;
+      await markAllNotificationsRead(userId);
+    },
+    onSuccess: () => {
+      if (userId) {
+        qc.invalidateQueries({ queryKey: [...notificationsQueryKey, userId] });
+      } else {
+        qc.invalidateQueries({ queryKey: notificationsQueryKey });
+      }
+    },
+  });
 }

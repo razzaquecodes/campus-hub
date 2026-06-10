@@ -1,28 +1,22 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown, Layout, FadeIn } from 'react-native-reanimated';
-import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { ArrowLeft, BookOpen, Clock, CheckCircle2, AlertCircle, FileText } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { AlertCircle, ArrowLeft, BookOpen, CheckCircle2, Clock, FileText } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeIn, FadeInDown, Layout } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTheme } from '@/context/ThemeContext';
-import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { GlassCard, SpringButton } from '@/components/ui';
+import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 import { useAssignments } from '@/hooks/use-assignments';
-import { FacultyAssignment } from '@/store/faculty.store';
 
 export default function StudentAssignmentCenter() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   
-  const { assignments } = useAssignments();
+  const { pending, completed } = useAssignments();
   const [tab, setTab] = useState<'pending' | 'completed'>('pending');
-
-  // Mock splitting logic: if due date is in the past, consider it completed (or overdue). For demo, just hardcode based on priority or something, or assume all are pending unless they click a mock "submit" button. Let's just use mock state for now.
-  // We'll say anything with 'low' priority is completed, others are pending.
-  const pending = assignments.filter(a => a.priority !== 'low');
-  const completed = assignments.filter(a => a.priority === 'low');
 
   const getDaysLeft = (dueDate: string) => {
     const diffMs = new Date(dueDate).getTime() - Date.now();

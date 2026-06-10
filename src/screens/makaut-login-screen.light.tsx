@@ -256,7 +256,7 @@ export default function MakautLoginScreen() {
 
 // Small icon placeholders to avoid extra imports inlined to keep bundle tiny
 function ArrowRightIcon() { return (<View style={{width:18,height:18,borderRadius:4,backgroundColor:'#ffffff20'}}/>); }
-function Path() { return (<View/>); }
+function EmptyIcon() { return (<View/>); }
 
 const s = StyleSheet.create({
   root: { flex:1, backgroundColor:'#FFFFFF' },

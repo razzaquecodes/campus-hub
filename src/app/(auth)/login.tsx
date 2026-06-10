@@ -1,3 +1,3 @@
-import MakautLoginScreen from '@/screens/makaut-login-screen.light';
+import { MakautLoginScreen } from '@/screens/makaut-login-screen';
 
 export default MakautLoginScreen;

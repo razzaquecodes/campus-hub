@@ -14,13 +14,13 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { SplashScreen } from '@/components/animations/splash/SplashScreen';
+import { UpdateModal } from '@/components/modals/UpdateModal';
 import { ThemeProvider as AppThemeProvider, useTheme } from '@/context/ThemeContext';
 import { AppProviders } from '@/providers/app-providers';
 import { registerBackgroundSync } from '@/services/background-sync.service';
-import { updaterService, UpdateInfo } from '@/services/updater.service';
+import { UpdateInfo, updaterService } from '@/services/updater.service';
 import { useAdminStore } from '@/store/admin.store';
 import { useAuthStore } from '@/store/auth.store';
-import { UpdateModal } from '@/components/modals/UpdateModal';
 
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
@@ -58,6 +58,7 @@ function useAuthGuard() {
 
     const inAuthGroup = segments[0] === '(auth)';
     const isRoot = segments[0] == null;
+    const isOauthCallback = segments[0] === 'oauth-callback';
 
     console.info('[router-decision] Auth guard running', {
       isHydrated,
@@ -66,13 +67,14 @@ function useAuthGuard() {
       isAdmin,
       inAuthGroup,
       isRoot,
+      isOauthCallback,
       segments,
     });
 
     const inFacultyGroup = segments[0] === 'faculty';
 
     if (!isAuthenticated) {
-      if (!inAuthGroup) {
+      if (!inAuthGroup && !isOauthCallback) {
         console.info('[router-decision] Navigating to login');
         router.replace('/(auth)/login');
       }
@@ -94,12 +96,10 @@ function useAuthGuard() {
 }
 
 function NotificationBootstrap() {
-  if (Platform.OS === 'web') return null;
-
   const response = Notifications.useLastNotificationResponse();
 
   useEffect(() => {
-    if (response?.notification?.request?.content?.data?.url) {
+    if (Platform.OS !== 'web' && response?.notification?.request?.content?.data?.url) {
       router.push(response.notification.request.content.data.url as any);
     }
   }, [response]);

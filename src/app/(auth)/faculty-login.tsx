@@ -1,22 +1,22 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
+import { ArrowLeft, ArrowRight, ShieldAlert } from 'lucide-react-native';
 import React, { useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Alert,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { ShieldAlert, ArrowRight, ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { SpringButton } from '@/components/ui';
 import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
-import { signInWithGoogle } from '@/services/auth.service';
 import { supabase } from '@/lib/supabase';
+import { signInWithGoogle } from '@/services/auth.service';
 import { useAdminStore } from '@/store/admin.store';
 
 export default function FacultyLoginScreen() {
@@ -54,10 +54,22 @@ export default function FacultyLoginScreen() {
       console.info(`USER ID => ${userData.user.id}`);
       console.info('=============================================');
 
-      console.info(`[faculty-login] 3. Bypassing DB check for Faculty Demo Preview...`);
-      
-      // Showcase Mode: Allow any authenticated Google user to view the Faculty Demo
-      console.info('[faculty-login] ✓ Faculty demo authorized. Setting store and navigating to /faculty.');
+      // Verify faculty email exists in the faculty table
+      if (!supabase) throw new Error('Supabase is not configured.');
+
+      const { data: facultyRow, error: facultyError } = await supabase
+        .from('faculty')
+        .select('email')
+        .eq('email', normalizedEmail)
+        .limit(1)
+        .single();
+
+      if (facultyError || !facultyRow) {
+        console.warn('[faculty-login] Unauthorized faculty login attempt for', normalizedEmail, facultyError?.message ?? 'no row');
+        throw new Error('You are not authorized to access the faculty portal.');
+      }
+
+      // Authorized faculty — set admin store and navigate
       useAdminStore.getState().setAdmin(normalizedEmail);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       router.replace('/faculty');
