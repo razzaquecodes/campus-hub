@@ -13,7 +13,7 @@ import { supabase } from '@/lib/supabase';
 // See: oauth-callback.tsx line 1.
 
 // ─── Environment detection ────────────────────────────────────────────────────
-const OAUTH_CALLBACK_PATH = 'oauth-callback';
+const OAUTH_CALLBACK_PATH = 'app/oauth-callback';
 const APP_SCHEME =
   String(Constants.expoConfig?.extra?.oauthScheme ?? Constants.expoConfig?.scheme ?? 'campushub');
 
@@ -37,13 +37,13 @@ function authLog(message: string, details?: Record<string, unknown>) {
 // ENVIRONMENTS:
 //
 //   Expo Go (storeClient)
-//     makeRedirectUri falls through to Expo Linking.createURL() with scheme override
-//     → produces: exp://<IP>:<PORT>/--/oauth-callback
-//     Supabase must allow: exp://*/--/oauth-callback  (wildcard)
+//     makeRedirectUri falls through to Expo Linking.createURL()
+//     → produces: exp://<IP>:<PORT>/--/app/oauth-callback
+//     Supabase must allow: exp://*/--/app/oauth-callback  (wildcard)
 //
 //   Development build / Standalone (bare / standalone executionEnvironment)
-//     The `native` parameter is used: campushub://oauth-callback
-//     Supabase must allow: campushub://oauth-callback
+//     The `native` parameter is used: campushub://app/oauth-callback
+//     Supabase must allow: campushub://app/oauth-callback
 //     iOS Info.plist must register: campushub (already done in app.config.ts)
 //
 //   Web
@@ -289,4 +289,3 @@ export async function signOut(): Promise<void> {
     authLog('Signed out successfully');
   }
 }
-

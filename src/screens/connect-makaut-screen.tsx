@@ -17,8 +17,8 @@ import {
 import Animated, { FadeIn, FadeInDown, FadeInUp, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAuthStore } from '@/store/auth.store';
 import { linkMakautAccount } from '@/services/makaut.service';
+import { useAuthStore } from '@/store/auth.store';
 
 const { height: H } = Dimensions.get('window');
 

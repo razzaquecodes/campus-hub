@@ -36,9 +36,9 @@ In Supabase Dashboard -> Authentication -> URL Configuration -> Redirect URLs, a
 
 ```text
 exp://*/**
-exp://**
-campushub://oauth-callback
-http://localhost:8081/oauth-callback
+exp://*/--/app/oauth-callback
+campushub://app/oauth-callback
+http://localhost:8081/app/oauth-callback
 ```
 
 Expo Go uses an `exp://.../--/oauth-callback` URL generated at runtime, which can change with LAN address and port. The app logs the exact redirect URI as `[auth] Starting Google OAuth`; add that exact Expo Go URL to Supabase while testing in Expo Go. Development and production builds use the stable registered `campushub` scheme.

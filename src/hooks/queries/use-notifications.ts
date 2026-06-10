@@ -1,11 +1,11 @@
-import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Notifications from 'expo-notifications';
+import { useEffect } from 'react';
 
 import {
-  fetchNotifications,
-  markAllNotificationsRead,
-  markNotificationRead,
+    fetchNotifications,
+    markAllNotificationsRead,
+    markNotificationRead,
 } from '@/api/notifications.api';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';

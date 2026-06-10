@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { ArrowLeft, Camera, CheckCircle2, ClipboardCheck, Radio, Users } from 'lucide-react-native';
 import React, { useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, View, RefreshControl } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
     FadeInDown,
     FadeInUp,

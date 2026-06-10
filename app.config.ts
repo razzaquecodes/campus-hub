@@ -123,6 +123,7 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
       'expo-secure-store',
     ],
     experiments: {
+      baseUrl: '/app',
       typedRoutes: true,
       reactCompiler: true,
     },

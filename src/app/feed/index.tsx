@@ -1,8 +1,8 @@
 import * as Haptics from 'expo-haptics';
-import { Linking, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { ArrowLeft, BookOpen, CheckCircle2, Layers, Megaphone, Pin } from 'lucide-react-native';
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
+import { Linking, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,9 +10,9 @@ import { GlassCard, SpringButton } from '@/components/ui';
 import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useCampusAnnouncementFeed } from '@/hooks/queries/use-announcement-system';
+import { useNotifications } from '@/hooks/queries/use-notifications';
 import { useMasterProfile } from '@/hooks/use-master-profile';
 import { useRealtimeAnnouncements } from '@/hooks/use-realtime';
-import { useNotifications } from '@/hooks/queries/use-notifications';
 import type { CampusAnnouncement } from '@/types/announcement';
 
 type FeedItem =

@@ -1,5 +1,5 @@
-import { create } from 'zustand';
 import type { Notification } from '@/api/notifications.api';
+import { create } from 'zustand';
 
 // Extended category types for the showcase UI
 export type ShowcaseCategory = 'result' | 'ca_marks' | 'backlog' | 'announcement' | 'academic_update';
