@@ -1578,12 +1578,9 @@ document.getElementById('nav-install-btn')?.addEventListener('click', function(e
 document.getElementById('cta-install-btn')?.addEventListener('click', routeInstall);
 
 document.getElementById('hero-open-btn')?.addEventListener('click', function(e){
-  /* If running as installed PWA, this is already the app */
-  /* Otherwise scroll to install section */
-  if(!window.matchMedia('(display-mode: standalone)').matches && !navigator.standalone){
-    e.preventDefault();
-    document.getElementById('install')?.scrollIntoView({behavior:'smooth'});
-  }
+  /* Navigate to the Expo app at /app/ */
+  e.preventDefault();
+  window.location.href = '/app/';
 });
 
 /* ── PWA INSTALL BANNER ── */

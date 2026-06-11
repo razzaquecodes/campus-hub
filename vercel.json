@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx expo export --platform web",
+  "buildCommand": "bash scripts/build-vercel.sh",
   "outputDirectory": "dist",
   "cleanUrls": true,
   "rewrites": [
@@ -13,7 +13,7 @@
     },
     {
       "source": "/app/(.*)",
-      "destination": "/"
+      "destination": "/app/index.html"
     }
   ],
   "headers": [
