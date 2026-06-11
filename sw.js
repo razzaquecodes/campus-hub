@@ -1,69 +1,116 @@
-const CACHE_NAME = 'campus-hub-cache-v1';
-const urlsToCache = [
+/**
+ * Campus Hub Service Worker
+ * 
+ * Handles caching for offline support and PWA installation.
+ * Uses a stale-while-revalidate strategy for optimal performance.
+ */
+
+const STATIC_CACHE = 'campus-hub-static-v1';
+const DYNAMIC_CACHE = 'campus-hub-dynamic-v1';
+
+// Assets to cache immediately on install
+const PRECACHE_ASSETS = [
   '/',
-  '/index.html',
-  '/manifest.webmanifest'
+  '/manifest.webmanifest',
 ];
 
-self.addEventListener('install', event => {
+// Install event - precache essential assets
+self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        return cache.addAll(urlsToCache);
-      })
+    caches.open(STATIC_CACHE).then((cache) => {
+      return cache.addAll(PRECACHE_ASSETS);
+    })
   );
+  // Take control immediately
   self.skipWaiting();
 });
 
-self.addEventListener('activate', event => {
+// Activate event - clean up old caches
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    caches.keys().then((cacheNames) =>
+      Promise.all(
+        cacheNames
+          .filter((name) => name !== STATIC_CACHE && name !== DYNAMIC_CACHE)
+          .map((name) => caches.delete(name))
+      )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Return cached response if found
-        if (response) {
+/**
+ * Handle fetch events with appropriate caching strategies
+ */
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Only handle GET requests
+  if (request.method !== 'GET') return;
+
+  // Skip cross-origin requests
+  if (url.origin !== self.location.origin) return;
+
+  // Determine if this is a navigation request (HTML page)
+  const isNavigation = request.mode === 'navigate' || 
+    request.headers.get('accept')?.includes('text/html');
+
+  if (isNavigation) {
+    // For navigation requests, use network-first with cache fallback
+    // This ensures fresh content for pages while supporting offline
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          // Cache the response for future offline use
+          const responseClone = response.clone();
+          caches.open(DYNAMIC_CACHE).then((cache) => {
+            cache.put(request, responseClone);
+          });
           return response;
-        }
-        
-        // Clone the request because it's a one-time use stream
-        const fetchRequest = event.request.clone();
-        
-        return fetch(fetchRequest).then(response => {
-          // Check if we received a valid response
-          if(!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
-          
-          // Clone the response because it's a one-time use stream
-          const responseToCache = response.clone();
-          
-          caches.open(CACHE_NAME)
-            .then(cache => {
-              // Cache new requests conditionally (e.g., if you only want to cache certain assets)
-              // cache.put(event.request, responseToCache);
-            });
+        })
+        .catch(() => {
+          // Network failed, try cache
+          return caches.match(request).then((cached) => {
+            // If we have a cached version, return it
+            if (cached) return cached;
             
-          return response;
-        }).catch(() => {
-          // Fallback to offline index for navigation requests
-          if (event.request.mode === 'navigate') {
-            return caches.match('/');
+            // Otherwise return the root page from cache or network
+            return caches.match('/').then((rootCache) => {
+              if (rootCache) return rootCache;
+              
+              // Last resort: try to return the HTML page without extension
+              return fetch('/').then((htmlResponse) => htmlResponse);
+            });
+          });
+        })
+    );
+    return;
+  }
+
+  // For static assets (JS, CSS, images), use cache-first
+  const isStaticAsset = ['script', 'style', 'image', 'font', 'media'].includes(
+    request.destination
+  );
+
+  if (isStaticAsset) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+
+        return fetch(request).then((response) => {
+          if (response.ok) {
+            const responseClone = response.clone();
+            caches.open(DYNAMIC_CACHE).then((cache) => {
+              cache.put(request, responseClone);
+            });
           }
+          return response;
         });
       })
-  );
+    );
+    return;
+  }
+
+  // For API requests, use network-only (always get fresh data)
+  // Let them pass through without caching
 });

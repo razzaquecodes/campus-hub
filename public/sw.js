@@ -1,85 +1,116 @@
+/**
+ * Campus Hub Service Worker (Public folder version)
+ * 
+ * Handles caching for offline support and PWA installation.
+ * Uses a stale-while-revalidate strategy for optimal performance.
+ */
+
 const STATIC_CACHE = 'campus-hub-static-v1';
 const DYNAMIC_CACHE = 'campus-hub-dynamic-v1';
-const STATIC_ASSETS = [
+
+// Assets to cache immediately on install
+const PRECACHE_ASSETS = [
   '/',
-  '/index.html',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png',
-  '/maskable-icon-512.png',
-  '/screenshot-mobile.png',
-  '/screenshot-desktop.png',
+  '/manifest.webmanifest',
 ];
 
+// Install event - precache essential assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => cache.addAll(STATIC_ASSETS)),
+    caches.open(STATIC_CACHE).then((cache) => {
+      return cache.addAll(PRECACHE_ASSETS);
+    })
   );
+  // Take control immediately
   self.skipWaiting();
 });
 
+// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) =>
       Promise.all(
         cacheNames
-          .filter((cacheName) => cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE)
-          .map((cacheName) => caches.delete(cacheName)),
-      ),
-    ),
+          .filter((name) => name !== STATIC_CACHE && name !== DYNAMIC_CACHE)
+          .map((name) => caches.delete(name))
+      )
+    ).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-function cacheFirst(request) {
-  return caches.match(request).then((cached) => {
-    if (cached) return cached;
-    return fetch(request)
-      .then((response) => {
-        if (response && response.status === 200 && response.type === 'basic') {
-          const responseClone = response.clone();
-          caches.open(DYNAMIC_CACHE).then((cache) => cache.put(request, responseClone));
-        }
-        return response;
-      })
-      .catch(() => cached)
-      .then((response) => response || new Response('Offline', { status: 503, statusText: 'Offline' }));
-  });
-}
-
-function networkFirst(request) {
-  return fetch(request)
-    .then((response) => {
-      if (response && response.status === 200) {
-        const responseClone = response.clone();
-        caches.open(DYNAMIC_CACHE).then((cache) => cache.put(request, responseClone));
-      }
-      return response;
-    })
-    .catch(() => caches.match(request))
-    .then((response) => response || new Response('Offline', { status: 503, statusText: 'Offline' }));
-}
-
+/**
+ * Handle fetch events with appropriate caching strategies
+ */
 self.addEventListener('fetch', (event) => {
-  const request = event.request;
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Only handle GET requests
   if (request.method !== 'GET') return;
 
-  const url = new URL(request.url);
-  const isSameOrigin = url.origin === self.location.origin;
-  const acceptsHtml = request.headers.get('accept')?.includes('text/html');
+  // Skip cross-origin requests
+  if (url.origin !== self.location.origin) return;
 
-  if (isSameOrigin && acceptsHtml) {
-    event.respondWith(networkFirst(request));
+  // Determine if this is a navigation request (HTML page)
+  const isNavigation = request.mode === 'navigate' || 
+    request.headers.get('accept')?.includes('text/html');
+
+  if (isNavigation) {
+    // For navigation requests, use network-first with cache fallback
+    // This ensures fresh content for pages while supporting offline
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          // Cache the response for future offline use
+          const responseClone = response.clone();
+          caches.open(DYNAMIC_CACHE).then((cache) => {
+            cache.put(request, responseClone);
+          });
+          return response;
+        })
+        .catch(() => {
+          // Network failed, try cache
+          return caches.match(request).then((cached) => {
+            // If we have a cached version, return it
+            if (cached) return cached;
+            
+            // Otherwise return the root page from cache or network
+            return caches.match('/').then((rootCache) => {
+              if (rootCache) return rootCache;
+              
+              // Last resort: try to return the HTML page without extension
+              return fetch('/').then((htmlResponse) => htmlResponse);
+            });
+          });
+        })
+    );
     return;
   }
 
-  if (isSameOrigin && ['script', 'style', 'image', 'font'].includes(request.destination)) {
-    event.respondWith(cacheFirst(request));
+  // For static assets (JS, CSS, images), use cache-first
+  const isStaticAsset = ['script', 'style', 'image', 'font', 'media'].includes(
+    request.destination
+  );
+
+  if (isStaticAsset) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+
+        return fetch(request).then((response) => {
+          if (response.ok) {
+            const responseClone = response.clone();
+            caches.open(DYNAMIC_CACHE).then((cache) => {
+              cache.put(request, responseClone);
+            });
+          }
+          return response;
+        });
+      })
+    );
     return;
   }
 
-  if (request.headers.get('accept')?.includes('application/json')) {
-    event.respondWith(networkFirst(request));
-    return;
-  }
+  // For API requests, use network-only (always get fresh data)
+  // Let them pass through without caching
 });
