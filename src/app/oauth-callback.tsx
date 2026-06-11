@@ -4,6 +4,10 @@
  * This route receives the redirect from Supabase Google OAuth.
  * CRITICAL: We must call WebBrowser.maybeCompleteAuthSession() here so that
  * the in-app browser closes and passes the URL back to auth.service.ts.
+ * 
+ * After handling the callback, we navigate to the appropriate screen based on
+ * the "returnTo" query parameter. If no returnTo is specified, default to
+ * the student login screen.
  */
 import * as WebBrowser from 'expo-web-browser';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -17,7 +21,7 @@ import { ActivityIndicator, View, Platform } from 'react-native';
 WebBrowser.maybeCompleteAuthSession();
 
 export default function OAuthCallbackScreen() {
-  const params = useLocalSearchParams();
+  const params = useLocalSearchParams<{ returnTo?: string; error?: string; error_description?: string }>();
 
   useEffect(() => {
     console.info('[oauth-callback] Reached callback route.', params);
@@ -32,9 +36,24 @@ export default function OAuthCallbackScreen() {
       }
       
       console.info('[oauth-callback] Fallback redirect triggered.');
-      // Safely fallback to the login screen just so we don't get stuck on a blank screen.
-      // The auth service is already processing the tokens in the background!
-      router.replace('/(auth)/login');
+      
+      // Check for OAuth errors
+      if (params.error) {
+        const errorMsg = params.error_description || params.error;
+        console.error('[oauth-callback] OAuth error:', errorMsg);
+        // Navigate back with error - the calling screen will handle the error display
+        const returnTo = params.returnTo || '/(auth)/faculty-login';
+        router.replace({
+          pathname: returnTo as string,
+          params: { authError: errorMsg },
+        });
+        return;
+      }
+      
+      // Determine where to navigate based on returnTo parameter
+      // This allows faculty-login to specify the callback should return there
+      const returnTo = params.returnTo || '/(auth)/faculty-login';
+      router.replace(returnTo as string);
     }, 1500);
 
     return () => clearTimeout(timer);

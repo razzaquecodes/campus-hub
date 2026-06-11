@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, ArrowRight, ShieldAlert } from 'lucide-react-native';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -23,6 +23,14 @@ export default function FacultyLoginScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
+  const params = useLocalSearchParams<{ authError?: string }>();
+
+  // Display OAuth errors passed from the callback
+  useEffect(() => {
+    if (params.authError) {
+      Alert.alert('Authentication Failed', params.authError);
+    }
+  }, [params.authError]);
 
   const handleGoogleLogin = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
@@ -31,10 +39,11 @@ export default function FacultyLoginScreen() {
     try {
       if (!supabase) throw new Error('Supabase is not configured.');
 
-      console.info('[admin-login] 1. Triggering Google Sign-In...');
-      // 1. Trigger the existing Google Sign-In flow
-      await signInWithGoogle();
-      console.info('[admin-login] ✓ Google Sign-In flow completed. Session should be active.');
+      console.info('[faculty-login] 1. Triggering Google Sign-In...');
+      // 1. Trigger the existing Google Sign-In flow with returnTo parameter
+      // so the callback knows to return here after auth completes
+      await signInWithGoogle({ returnTo: '/(auth)/faculty-login' });
+      console.info('[faculty-login] ✓ Google Sign-In flow completed. Session should be active.');
 
       console.info('[admin-login] 2. Fetching authenticated user profile...');
       // 2. Fetch the authenticated user data
