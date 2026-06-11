@@ -53,4 +53,4 @@ cp maskable-*.png dist/app/ 2>/dev/null || true
 
 echo "=== Build complete ==="
 echo "Landing page: / (served from dist/index.html)"
-echo "Expo app: /app/ (served from dist/app/)"
+echo "Expo app: /app/ (served from dist/app/)"# Trigger rebuild
