@@ -13,7 +13,11 @@ import { supabase } from '@/lib/supabase';
 // See: oauth-callback.tsx line 1.
 
 // ─── Environment detection ────────────────────────────────────────────────────
-const OAUTH_CALLBACK_PATH = 'app/oauth-callback';
+// The OAuth callback path must match the route file location.
+// With expo-router root set to './src/app', the file at src/app/oauth-callback.tsx
+// maps to the path /oauth-callback, NOT /app/oauth-callback.
+// Using the correct path ensures deep links like campushub://oauth-callback work.
+const OAUTH_CALLBACK_PATH = 'oauth-callback';
 const APP_SCHEME =
   String(Constants.expoConfig?.extra?.oauthScheme ?? Constants.expoConfig?.scheme ?? 'campushub');
 
@@ -34,16 +38,19 @@ function authLog(message: string, details?: Record<string, unknown>) {
 // The redirect URI registered in Supabase and the one passed to signInWithOAuth
 // must match EXACTLY (after Supabase processes it).
 //
+// IMPORTANT: Do NOT add query parameters to the redirect URI that Supabase
+// doesn't expect, as this will cause authentication failures.
+//
 // ENVIRONMENTS:
 //
 //   Expo Go (storeClient)
 //     makeRedirectUri falls through to Expo Linking.createURL()
-//     → produces: exp://<IP>:<PORT>/--/app/oauth-callback
-//     Supabase must allow: exp://*/--/app/oauth-callback  (wildcard)
+//     → produces: exp://<IP>:<PORT>/--/oauth-callback
+//     Supabase must allow: exp://*/--/oauth-callback  (wildcard)
 //
 //   Development build / Standalone (bare / standalone executionEnvironment)
-//     The `native` parameter is used: campushub://app/oauth-callback
-//     Supabase must allow: campushub://app/oauth-callback
+//     The `native` parameter is used: campushub://oauth-callback
+//     Supabase must allow: campushub://oauth-callback
 //     iOS Info.plist must register: campushub (already done in app.config.ts)
 //
 //   Web
@@ -56,12 +63,15 @@ function authLog(message: string, details?: Record<string, unknown>) {
 //
 const NATIVE_REDIRECT_URI = `${APP_SCHEME}://${OAUTH_CALLBACK_PATH}`;
 
+// Build the redirect URI for OAuth callback.
+// For standalone/bare builds (development builds, production), use native directly.
+// For Expo Go, makeRedirectUri will use scheme + path to generate the proper URL.
 export const REDIRECT_URI: string = makeRedirectUri({
   // native: returned directly in standalone/bare builds (most important)
   native: NATIVE_REDIRECT_URI,
   // scheme: used by makeRedirectUri in Expo Go (storeClient) via Linking.createURL
   scheme: APP_SCHEME,
-  path: OAUTH_CALLBACK_PATH,
+  // No path parameter - we construct the full URL in native
 });
 
 authLog('Redirect URI computed', {
@@ -116,6 +126,9 @@ function parseUrlParams(url: string): Record<string, string> {
 // This architecture ensures a single source of truth for profile state
 // and eliminates the race condition where both this function and
 // AuthHydrator were calling getPersistedSession() concurrently.
+//
+// IMPORTANT: The redirect URI passed to Supabase must be EXACTLY what is
+// registered in Supabase. Do NOT add query parameters to redirectTo.
 //
 export async function signInWithGoogle(): Promise<void> {
   if (!supabase) throw new Error('Supabase not configured');

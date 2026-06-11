@@ -51,21 +51,46 @@ function AuthHydrator({ children }: { children: React.ReactNode }) {
 
   // ── Step 1: Trigger student session restore on mount ───────────────────────
   useEffect(() => {
-    if (initStarted.current) return;
+    if (initStarted.current) {
+      hydratorLog('AuthHydrator: init already started — skipping');
+      return;
+    }
     initStarted.current = true;
 
     hydratorLog('AuthHydrator: starting MAKAUT session restore');
-    restoreSession().catch((e) => {
-      hydratorLog('AuthHydrator: restoreSession threw (non-fatal)', {
-        error: e instanceof Error ? e.message : String(e),
+
+    // Wrap in timeout to ensure we don't hang forever
+    const timeoutId = setTimeout(() => {
+      hydratorLog('AuthHydrator: timeout reached — forcing hydration');
+      setIsHydrated(true);
+    }, 5000); // 5 second fallback
+
+    restoreSession()
+      .then(() => {
+        hydratorLog('AuthHydrator: restoreSession completed');
+      })
+      .catch((e) => {
+        hydratorLog('AuthHydrator: restoreSession threw (non-fatal)', {
+          error: e instanceof Error ? e.message : String(e),
+        });
+      })
+      .finally(() => {
+        clearTimeout(timeoutId);
       });
-    });
-  }, [restoreSession]);
+  }, [restoreSession, setIsHydrated]);
 
   // ── Step 2: Once student store is hydrated, sync to auth store ─────────────
   // This runs whenever studentIsHydrated or student changes.
   useEffect(() => {
-    if (!studentIsHydrated) return;
+    hydratorLog('AuthHydrator: sync effect running', {
+      studentIsHydrated,
+      hasStudent: Boolean(student),
+    });
+
+    if (!studentIsHydrated) {
+      hydratorLog('AuthHydrator: student store not hydrated yet — waiting');
+      return;
+    }
 
     if (student) {
       hydratorLog('AuthHydrator: student session found — mapping to UserProfile', {

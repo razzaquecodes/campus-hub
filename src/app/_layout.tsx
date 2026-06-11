@@ -113,6 +113,8 @@ function AppShell() {
   const isHydrated = useAuthStore((s) => s.isHydrated);
   useAuthGuard();
 
+  console.info('[AppShell] Rendering', { animationDone, isHydrated });
+
   // Updater State
   const [updateModalVisible, setUpdateModalVisible] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
@@ -120,10 +122,14 @@ function AppShell() {
   useEffect(() => {
     // Check for updates on startup
     const checkUpdates = async () => {
-      const info = await updaterService.checkForUpdates();
-      if (info.isAvailable) {
-        setUpdateInfo(info);
-        setUpdateModalVisible(true);
+      try {
+        const info = await updaterService.checkForUpdates();
+        if (info.isAvailable) {
+          setUpdateInfo(info);
+          setUpdateModalVisible(true);
+        }
+      } catch (e) {
+        console.warn('[AppShell] checkForUpdates failed (non-fatal)', e);
       }
     };
     // Optional delay so it doesn't block UI right away
@@ -133,6 +139,7 @@ function AppShell() {
   
   useEffect(() => {
     if (isHydrated) {
+      console.info('[AppShell] Hydrated — registering background sync');
       registerBackgroundSync();
     }
   }, [isHydrated]);
@@ -147,7 +154,20 @@ function AppShell() {
     }
   }, []);
 
+  // Safety fallback: force animation complete after 3 seconds
+  // This prevents infinite loading if the animation callback fails
+  useEffect(() => {
+    console.info('[AppShell] Setting animation safety fallback');
+    const timeout = setTimeout(() => {
+      console.info('[AppShell] Animation timeout — forcing complete');
+      setAnimationDone(true);
+    }, 3000);
+    return () => clearTimeout(timeout);
+  }, []);
+
   const ready = animationDone && isHydrated;
+  
+  console.info('[AppShell] ready state:', { ready, animationDone, isHydrated });
 
   const navTheme = isDark
     ? {
