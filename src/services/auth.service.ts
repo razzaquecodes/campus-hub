@@ -296,3 +296,31 @@ export async function signOut(): Promise<void> {
     authLog('Signed out successfully');
   }
 }
+
+// ─── Required Supabase Configuration ─────────────────────────────────────────
+//
+// For Faculty Google OAuth to work, the following must be configured in
+// your Supabase project (Dashboard → Authentication → URL Configuration):
+//
+// REDIRECT URLs (must include ALL of these):
+//   - https://campushubq.vercel.app/api/auth/callback  (for web production)
+//   - campushub://oauth-callback                       (for iOS/Android native)
+//   - exp://*/*oauth-callback                          (for Expo Go development)
+//   - http://localhost:*/*                             (for local development)
+//
+// To add a redirect URL:
+//   1. Go to https://supabase.com/dashboard
+//   2. Select your project (czfylavvvwwohqkrhbdb)
+//   3. Navigate to Authentication → URL Configuration
+//   4. Add the redirect URLs in the "Redirect URLs" field
+//   5. Click "Save"
+//
+// GOOGLE OAuth Provider settings (Authentication → Providers → Google):
+//   - Client ID: Your Google Cloud OAuth 2.0 Client ID
+//   - Client Secret: Your Google Cloud OAuth 2.0 Client Secret
+//   - Authorized redirect URI: https://czfylavvvwwohqkrhbdb.supabase.co/auth/v1/callback
+//
+// For local development with Expo Go:
+//   - The redirect URI will be: exp://<YOUR_IP>:<PORT>/--/oauth-callback
+//   - Make sure to add exp://*/--/oauth-callback to Supabase redirect URLs
+//

@@ -149,14 +149,17 @@ const Blob = ({ color, initialX, initialY, animType }: any) => {
     }
   }, [animType, opacity, scale, tX, tY]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-    transform: [
-      { translateX: tX.value },
-      { translateY: tY.value },
-      { scale: scale.value }
-    ]
-  }));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: opacity.value,
+      transform: [
+        { translateX: tX.value },
+        { translateY: tY.value },
+        { scale: scale.value }
+      ]
+    } as any;
+  });
 
   return (
     <Animated.View
@@ -186,13 +189,16 @@ const PremiumParticle = ({ delay, left, size, dur }: any) => {
     }, delay * 1000);
   }, [delay, dur, p]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(p.value, [0, 0.1, 0.9, 1], [0, 0.4, 0.4, 0]),
-    transform: [
-      { translateY: interpolate(p.value, [0, 1], [H + 20, -20]) },
-      { translateX: interpolate(p.value, [0, 0.5, 1], [0, 20, -20]) }
-    ]
-  }));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: interpolate(p.value, [0, 0.1, 0.9, 1], [0, 0.4, 0.4, 0]),
+      transform: [
+        { translateY: interpolate(p.value, [0, 1], [H + 20, -20]) },
+        { translateX: interpolate(p.value, [0, 0.5, 1], [0, 20, -20]) }
+      ]
+    } as any;
+  });
 
   return (
     <Animated.View
