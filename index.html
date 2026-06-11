@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Campus Hub — Your Complete College Companion</title>
 
-<!-- PWA Meta Tags -->
-<link rel="manifest" href="/manifest.webmanifest">
+<!-- PWA Meta Tags - With baseUrl: '/app', all paths are prefixed -->
+<link rel="manifest" href="/app/manifest.webmanifest">
 <meta name="theme-color" content="#0A0A0B">
 <meta name="background_color" content="#0A0A0B">
 <!-- iOS PWA -->
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="apple-touch-icon" href="/app/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Campus Hub">
@@ -1636,10 +1636,10 @@ document.addEventListener('keydown', (e)=>{
   if(e.key==='Escape') closeIOSModalDirect();
 });
 
-/* Service Worker Registration */
+/* Service Worker Registration - With baseUrl: '/app', use /app/sw.js */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then((registration) => {
+    navigator.serviceWorker.register('/app/sw.js').then((registration) => {
       console.log('ServiceWorker registration successful with scope: ', registration.scope);
     }, (err) => {
       console.log('ServiceWorker registration failed: ', err);

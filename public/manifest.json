@@ -3,8 +3,8 @@
   "short_name": "Campus Hub",
   "name": "Campus Hub — BBIT Student Portal",
   "description": "Campus Hub is the official BBIT student and faculty portal for attendance, announcements, results, and academic tools.",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "/app/",
+  "scope": "/app/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait",
@@ -13,19 +13,19 @@
   "categories": ["education", "productivity"],
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/app/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/app/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/maskable-icon-512.png",
+      "src": "/app/maskable-icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -33,14 +33,14 @@
   ],
   "screenshots": [
     {
-      "src": "/screenshot-mobile.png",
+      "src": "/app/screenshot-mobile.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Campus Hub mobile dashboard"
     },
     {
-      "src": "/screenshot-desktop.png",
+      "src": "/app/screenshot-desktop.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",

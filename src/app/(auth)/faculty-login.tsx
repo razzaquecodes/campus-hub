@@ -40,17 +40,17 @@ export default function FacultyLoginScreen() {
       if (!supabase) throw new Error('Supabase is not configured.');
 
       console.info('[faculty-login] 1. Triggering Google Sign-In...');
-      // 1. Trigger the existing Google Sign-In flow with returnTo parameter
-      // so the callback knows to return here after auth completes
-      await signInWithGoogle({ returnTo: '/(auth)/faculty-login' });
+      // 1. Trigger the existing Google Sign-In flow
+      // The auth service handles the OAuth callback and session exchange
+      await signInWithGoogle();
       console.info('[faculty-login] ✓ Google Sign-In flow completed. Session should be active.');
 
-      console.info('[admin-login] 2. Fetching authenticated user profile...');
+      console.info('[faculty-login] 2. Fetching authenticated user profile...');
       // 2. Fetch the authenticated user data
       const { data: userData, error: userError } = await supabase.auth.getUser();
       
       if (userError || !userData?.user?.email) {
-        console.error('[admin-login] ✗ Failed to retrieve user profile:', userError?.message);
+        console.error('[faculty-login] ✗ Failed to retrieve user profile:', userError?.message);
         throw new Error('Failed to retrieve user profile from Google.');
       }
 

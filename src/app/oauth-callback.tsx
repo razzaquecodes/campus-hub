@@ -5,9 +5,9 @@
  * CRITICAL: We must call WebBrowser.maybeCompleteAuthSession() here so that
  * the in-app browser closes and passes the URL back to auth.service.ts.
  * 
- * After handling the callback, we navigate to the appropriate screen based on
- * the "returnTo" query parameter. If no returnTo is specified, default to
- * the student login screen.
+ * After the auth service completes the token exchange, this page serves as
+ * a visual confirmation that the callback was received. It then navigates
+ * back to the faculty login screen to complete the flow.
  */
 import * as WebBrowser from 'expo-web-browser';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -21,7 +21,7 @@ import { ActivityIndicator, View, Platform } from 'react-native';
 WebBrowser.maybeCompleteAuthSession();
 
 export default function OAuthCallbackScreen() {
-  const params = useLocalSearchParams<{ returnTo?: string; error?: string; error_description?: string }>();
+  const params = useLocalSearchParams();
 
   useEffect(() => {
     console.info('[oauth-callback] Reached callback route.', params);
@@ -36,24 +36,9 @@ export default function OAuthCallbackScreen() {
       }
       
       console.info('[oauth-callback] Fallback redirect triggered.');
-      
-      // Check for OAuth errors
-      if (params.error) {
-        const errorMsg = params.error_description || params.error;
-        console.error('[oauth-callback] OAuth error:', errorMsg);
-        // Navigate back with error - the calling screen will handle the error display
-        const returnTo = params.returnTo || '/(auth)/faculty-login';
-        router.replace({
-          pathname: returnTo as string,
-          params: { authError: errorMsg },
-        });
-        return;
-      }
-      
-      // Determine where to navigate based on returnTo parameter
-      // This allows faculty-login to specify the callback should return there
-      const returnTo = params.returnTo || '/(auth)/faculty-login';
-      router.replace(returnTo as string);
+      // Navigate back to faculty login - the auth service has already processed
+      // the session. This is just the visual redirect after the deep link was handled.
+      router.replace('/(auth)/faculty-login');
     }, 1500);
 
     return () => clearTimeout(timer);

@@ -38,6 +38,9 @@ function authLog(message: string, details?: Record<string, unknown>) {
 // The redirect URI registered in Supabase and the one passed to signInWithOAuth
 // must match EXACTLY (after Supabase processes it).
 //
+// IMPORTANT: Do NOT add query parameters to the redirect URI that Supabase
+// doesn't expect, as this will cause authentication failures.
+//
 // ENVIRONMENTS:
 //
 //   Expo Go (storeClient)
@@ -124,25 +127,19 @@ function parseUrlParams(url: string): Record<string, string> {
 // and eliminates the race condition where both this function and
 // AuthHydrator were calling getPersistedSession() concurrently.
 //
-// Options:
-//   returnTo - Path to navigate back to after OAuth callback (default: '/(auth)/faculty-login')
+// IMPORTANT: The redirect URI passed to Supabase must be EXACTLY what is
+// registered in Supabase. Do NOT add query parameters to redirectTo.
 //
-export async function signInWithGoogle(options: { returnTo?: string } = {}): Promise<void> {
+export async function signInWithGoogle(): Promise<void> {
   if (!supabase) throw new Error('Supabase not configured');
-
-  const returnTo = options.returnTo || '/(auth)/faculty-login';
-  
-  // Build the redirect URI with returnTo parameter for the callback
-  const redirectUriWithReturn = `${REDIRECT_URI}${REDIRECT_URI.includes('?') ? '&' : '?'}returnTo=${encodeURIComponent(returnTo)}`;
 
   authLog('▶ Starting Google OAuth', {
     executionEnvironment: Constants.executionEnvironment,
     appOwnership: Constants.appOwnership,
     platform: Platform.OS,
-    redirectUri: redirectUriWithReturn,
+    redirectUri: REDIRECT_URI,
     nativeUri: NATIVE_REDIRECT_URI,
     scheme: APP_SCHEME,
-    returnTo,
   });
 
   // Step 1: Get the Google OAuth URL from Supabase.
@@ -152,7 +149,7 @@ export async function signInWithGoogle(options: { returnTo?: string } = {}): Pro
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: redirectUriWithReturn,
+      redirectTo: REDIRECT_URI,
       skipBrowserRedirect: true,
       queryParams: {
         access_type: 'offline',
