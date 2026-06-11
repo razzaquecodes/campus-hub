@@ -1,5 +1,7 @@
 {
-  "buildCommand": "bash scripts/build-vercel.sh",
+  "framework": null,
+  "buildCommand": "",
+  "installCommand": null,
   "outputDirectory": "dist",
   "cleanUrls": true,
   "rewrites": [
