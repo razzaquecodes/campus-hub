@@ -39,12 +39,21 @@ exp://*/**
 exp://*/--/oauth-callback
 campushub://oauth-callback
 http://localhost:8081/oauth-callback
+https://campushubq.vercel.app/oauth-callback
 ```
 
 **IMPORTANT**: The OAuth callback path is `oauth-callback` (NOT `app/oauth-callback`).
-With expo-router root set to `./src/app`, the file at `src/app/oauth-callback.tsx`
-maps to the path `/oauth-callback`. Using the wrong path will cause deep links
-like `campushub://oauth-callback` to fail.
+With expo-router root set to `./src/app` and baseUrl `/app`, the file at 
+`src/app/oauth-callback.tsx` maps to the path `/app/oauth-callback`. However,
+the native deep link scheme `campushub://oauth-callback` does NOT include `/app/`.
+
+For WEB OAuth (when opening the app at /app/ in a browser):
+- Redirect URI: `https://campushubq.vercel.app/oauth-callback`
+- This is handled by the Vercel rewrite to `/app/oauth-callback`
+
+For NATIVE OAuth (iOS/Android with custom scheme):
+- Deep link: `campushub://oauth-callback`
+- The app opens and handles the callback internally
 
 Expo Go uses an `exp://.../--/oauth-callback` URL generated at runtime, which can 
 change with LAN address and port. The app logs the exact redirect URI as 
