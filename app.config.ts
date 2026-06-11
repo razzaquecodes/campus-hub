@@ -123,7 +123,7 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
       'expo-secure-store',
     ],
     experiments: {
-      baseUrl: '/app',
+      // baseUrl removed - site is deployed at root, not under /app/
       typedRoutes: true,
       reactCompiler: true,
     },

@@ -2,19 +2,16 @@
  * Campus Hub Service Worker
  * 
  * Handles caching for offline support and PWA installation.
- * With baseUrl: '/app' in Expo Router, all paths are prefixed with /app/.
+ * Site is deployed at root, not under /app/.
  */
 
 const STATIC_CACHE = 'campus-hub-static-v1';
 const DYNAMIC_CACHE = 'campus-hub-dynamic-v1';
 
-// Base path for Expo Router app
-const APP_BASE = '/app';
-
 // Assets to cache immediately on install
 const PRECACHE_ASSETS = [
-  '/app/',
-  '/app/manifest.webmanifest',
+  '/',
+  '/manifest.webmanifest',
 ];
 
 // Install event - precache essential assets
@@ -77,12 +74,12 @@ self.addEventListener('fetch', (event) => {
             // If we have a cached version, return it
             if (cached) return cached;
             
-            // Otherwise return the app root page from cache or network
-            return caches.match('/app/').then((rootCache) => {
+            // Otherwise return the root page from cache or network
+            return caches.match('/').then((rootCache) => {
               if (rootCache) return rootCache;
               
-              // Last resort: try to fetch the app root
-              return fetch('/app/').then((htmlResponse) => htmlResponse);
+              // Last resort: try to return the HTML page
+              return fetch('/').then((htmlResponse) => htmlResponse);
             });
           });
         })
