@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Dimensions,
     StyleSheet,
     Text,
     View,
@@ -18,6 +19,9 @@ import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase';
 import { signInWithGoogle } from '@/services/auth.service';
 import { useAdminStore } from '@/store/admin.store';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const isSmallScreen = SCREEN_WIDTH < 375;
 
 export default function FacultyLoginScreen() {
   const { theme, isDark } = useTheme();
@@ -40,13 +44,10 @@ export default function FacultyLoginScreen() {
       if (!supabase) throw new Error('Supabase is not configured.');
 
       console.info('[faculty-login] 1. Triggering Google Sign-In...');
-      // 1. Trigger the existing Google Sign-In flow
-      // The auth service handles the OAuth callback and session exchange
       await signInWithGoogle();
-      console.info('[faculty-login] ✓ Google Sign-In flow completed. Session should be active.');
+      console.info('[faculty-login] ✓ Google Sign-In flow completed.');
 
       console.info('[faculty-login] 2. Fetching authenticated user profile...');
-      // 2. Fetch the authenticated user data
       const { data: userData, error: userError } = await supabase.auth.getUser();
       
       if (userError || !userData?.user?.email) {
@@ -57,13 +58,8 @@ export default function FacultyLoginScreen() {
       const authenticatedEmail = userData.user.email;
       const normalizedEmail = authenticatedEmail.trim().toLowerCase();
       
-      console.info('=============================================');
-      console.info(`GOOGLE EMAIL => "${authenticatedEmail}"`);
-      console.info(`NORMALIZED EMAIL => "${normalizedEmail}"`);
-      console.info(`USER ID => ${userData.user.id}`);
-      console.info('=============================================');
+      console.info('GOOGLE EMAIL =>', authenticatedEmail);
 
-      // Verify faculty email exists in the faculty table
       if (!supabase) throw new Error('Supabase is not configured.');
 
       const { data: facultyRow, error: facultyError } = await supabase
@@ -74,11 +70,10 @@ export default function FacultyLoginScreen() {
         .single();
 
       if (facultyError || !facultyRow) {
-        console.warn('[faculty-login] Unauthorized faculty login attempt for', normalizedEmail, facultyError?.message ?? 'no row');
+        console.warn('[faculty-login] Unauthorized faculty login attempt for', normalizedEmail);
         throw new Error('You are not authorized to access the faculty portal.');
       }
 
-      // Authorized faculty — set admin store and navigate
       useAdminStore.getState().setAdmin(normalizedEmail);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       router.replace('/faculty');
@@ -93,11 +88,14 @@ export default function FacultyLoginScreen() {
     }
   };
 
+  const iconSize = isSmallScreen ? 40 : 48;
+  const shieldSize = isSmallScreen ? 72 : 80;
+
   return (
     <View style={[ss.root, { backgroundColor: theme.colors.void }]}>
       <Animated.View
         entering={FadeInDown.duration(400)}
-        style={[ss.header, { paddingTop: insets.top + 16 }]}
+        style={[ss.header, { paddingTop: insets.top + 12 }]}
       >
         <SpringButton onPress={() => router.back()} scaleDown={0.88}>
           <View
@@ -116,17 +114,28 @@ export default function FacultyLoginScreen() {
 
       <View style={ss.content}>
         <Animated.View entering={FadeInDown.duration(500).delay(100)} style={ss.iconWrap}>
-          <View style={[ss.shieldRing, { backgroundColor: `${theme.colors.primary}15` }]}>
-            <ShieldAlert color={theme.colors.primaryLight} size={48} strokeWidth={1.5} />
+          <View style={[ss.shieldRing, { 
+            backgroundColor: `${theme.colors.primary}15`,
+            width: shieldSize,
+            height: shieldSize,
+            borderRadius: shieldSize / 2,
+          }]}>
+            <ShieldAlert color={theme.colors.primaryLight} size={iconSize} strokeWidth={1.5} />
           </View>
         </Animated.View>
 
         <Animated.View entering={FadeInDown.duration(500).delay(200)} style={ss.textWrap}>
-          <Text style={[Typography.display.small, { color: theme.colors.textPrimary, textAlign: 'center' }]}>
-            Campus Hub Faculty Portal
+          <Text style={[
+            Typography.display.xs,
+            { color: theme.colors.textPrimary, textAlign: 'center', fontSize: isSmallScreen ? 22 : 26 }
+          ]}>
+            Faculty Portal
           </Text>
-          <Text style={[Typography.body.md, { color: theme.colors.textSecondary, textAlign: 'center', marginTop: 8 }]}>
-            Secure access restricted to authorized faculty members only.
+          <Text style={[
+            Typography.body.sm,
+            { color: theme.colors.textSecondary, textAlign: 'center', marginTop: 8, paddingHorizontal: 8 }
+          ]}>
+            Secure access for authorized faculty members.
           </Text>
         </Animated.View>
 
@@ -137,10 +146,10 @@ export default function FacultyLoginScreen() {
                 <ActivityIndicator color={theme.colors.primaryLight} />
               ) : (
                 <>
-                  <Text style={[Typography.label.lg, { color: theme.colors.textPrimary, marginRight: 12 }]}>
+                  <Text style={[Typography.label.md, { color: theme.colors.textPrimary, marginRight: 10 }]}>
                     Continue with Google
                   </Text>
-                  <ArrowRight color={theme.colors.textPrimary} size={20} strokeWidth={2.5} />
+                  <ArrowRight color={theme.colors.textPrimary} size={18} strokeWidth={2.5} />
                 </>
               )}
             </View>
@@ -160,9 +169,9 @@ const ss = StyleSheet.create({
     paddingBottom: Spacing.md,
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -171,35 +180,37 @@ const ss = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.page.horizontal,
-    paddingBottom: '20%',
+    paddingHorizontal: Spacing.lg,
   },
   iconWrap: {
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   shieldRing: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
   textWrap: {
     alignItems: 'center',
-    marginBottom: Spacing.xxl,
+    marginBottom: Spacing.xl,
+    paddingHorizontal: Spacing.md,
   },
   actionWrap: {
     width: '100%',
-    maxWidth: 320,
+    maxWidth: 340,
+    paddingHorizontal: Spacing.md,
   },
   loginBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: Radius.xl,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: Radius.lg,
     borderWidth: 1,
-    height: 56,
+    minHeight: 52,
     ...Shadows.cardLight,
   },
 });

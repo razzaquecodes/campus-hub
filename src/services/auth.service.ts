@@ -172,25 +172,20 @@ export async function signInWithGoogle(): Promise<void> {
   });
 
   // Step 2: Open Google sign-in in ASWebAuthenticationSession (iOS) /
-  //   Chrome Custom Tab (Android). The session monitors for any redirect
-  //   to a URL whose scheme matches REDIRECT_URI and closes automatically.
+  //   Chrome Custom Tab (Android) / Browser tab (web).
   //
-  //   CRITICAL: openAuthSessionAsync's second argument is the "redirect URL prefix"
-  //   that the in-app browser watches for to auto-close. It MUST match the scheme
-  //   of the redirect URI we sent to Supabase. We pass REDIRECT_URI here so that:
-  //   - In Expo Go: the exp:// prefix is used
-  //   - In standalone/bare: the campushub:// prefix is used
+  //   For web: use openAuthSessionAsync with the OAuth URL
+  //   The redirect URL must match what we registered in Supabase
   //
   authLog('Step 2: Opening browser for Google consent...');
   const result = await WebBrowser.openAuthSessionAsync(
     data.url,
-    REDIRECT_URI,
+    REDIRECT_URI, // Second param is the return URL to detect
   );
 
   authLog('Step 2 complete — browser result', {
     type: result.type,
     hasUrl: result.type === 'success' ? Boolean(result.url) : false,
-    callbackScheme: result.type === 'success' ? safeScheme(result.url) : null,
   });
 
   if (result.type === 'cancel' || result.type === 'dismiss') {
@@ -211,7 +206,6 @@ export async function signInWithGoogle(): Promise<void> {
     hasRefreshToken: Boolean(params.refresh_token),
     hasError: Boolean(params.error),
     url: __DEV__ ? result.url.slice(0, 120) + '...' : '(redacted)',
-    rawUrl: __DEV__ ? result.url : '(redacted)',
   });
 
   if (params.error) {
