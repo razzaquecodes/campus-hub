@@ -1,7 +1,7 @@
 {
-  "framework": null,
+  "framework": "static",
   "buildCommand": "",
-  "installCommand": null,
+  "installCommand": "",
   "outputDirectory": "dist",
   "cleanUrls": true,
   "rewrites": [
