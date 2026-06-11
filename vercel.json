@@ -1,16 +1,24 @@
 {
-  "buildCommand": "npx expo export",
+  "buildCommand": "npx expo export --platform web",
   "outputDirectory": "dist",
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/((?!_expo).*)",
+      "source": "/app",
+      "destination": "/app/"
+    },
+    {
+      "source": "/app/_expo/static/(.*)",
+      "destination": "/app/_expo/static/$1"
+    },
+    {
+      "source": "/app/(.*)",
       "destination": "/"
     }
   ],
   "headers": [
     {
-      "source": "/manifest.webmanifest",
+      "source": "/app/manifest.webmanifest",
       "headers": [
         {
           "key": "Content-Type",
@@ -23,7 +31,7 @@
       ]
     },
     {
-      "source": "/sw.js",
+      "source": "/app/sw.js",
       "headers": [
         {
           "key": "Cache-Control",
@@ -32,7 +40,7 @@
       ]
     },
     {
-      "source": "/_expo/static/(.*)",
+      "source": "/app/_expo/static/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
