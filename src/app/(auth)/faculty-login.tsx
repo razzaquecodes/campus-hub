@@ -79,9 +79,21 @@ export default function FacultyLoginScreen() {
       router.replace('/faculty');
       
     } catch (error: any) {
-      console.error('[admin-login] Authentication failed:', error);
+      console.error('[faculty-login] Authentication failed:', error);
       if (error.message !== 'Sign-in was cancelled') {
-        Alert.alert('Authentication Failed', error.message || 'An unexpected error occurred.');
+        // Provide more helpful error messages based on error type
+        let errorMessage = error.message || 'An unexpected error occurred.';
+        
+        if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        } else if (errorMessage.includes('redirect') || errorMessage.includes('URI')) {
+          errorMessage = 'Authentication configuration error. Please contact support.';
+        } else if (errorMessage.includes('not authorized') || errorMessage.includes('faculty')) {
+          // This is expected for non-faculty users
+          errorMessage = 'You are not authorized to access the faculty portal. Please use your student credentials.';
+        }
+        
+        Alert.alert('Authentication Failed', errorMessage);
       }
     } finally {
       setLoading(false);

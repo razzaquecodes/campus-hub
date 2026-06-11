@@ -565,7 +565,7 @@ const ss = StyleSheet.create({
     paddingHorizontal: Spacing.page.horizontal,
     paddingTop: Spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
-    backdropFilter: 'blur(20px)',
+    backgroundColor: 'rgba(0,0,0,0.5)', // Fallback for native (use backdropFilter on web)
   },
   ctaGradient: {
     flexDirection: 'row',
