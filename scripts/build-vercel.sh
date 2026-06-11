@@ -5,6 +5,9 @@
 set -e
 
 echo "=== Campus Hub Vercel Build ==="
+echo "Current directory: $(pwd)"
+echo "Files in directory:"
+ls -la
 
 # Step 1: Export Expo app to /app directory
 echo "Step 1: Exporting Expo app to /app..."
@@ -51,6 +54,14 @@ echo "Step 7: Copying PWA icons..."
 cp icon-*.png dist/app/ 2>/dev/null || true
 cp maskable-*.png dist/app/ 2>/dev/null || true
 
+# Verify build output
+echo "=== Build Verification ==="
+echo "Landing page at dist/index.html:"
+head -5 dist/index.html
+echo ""
+echo "Expo app at dist/app/index.html:"
+head -5 dist/app/index.html
+
 echo "=== Build complete ==="
 echo "Landing page: / (served from dist/index.html)"
-echo "Expo app: /app/ (served from dist/app/)"# Trigger rebuild
+echo "Expo app: /app/ (served from dist/app/)"
