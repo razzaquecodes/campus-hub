@@ -4,28 +4,20 @@
  * MAKAUT Student Verification Login Screen.
  * Replaces the Google OAuth login flow entirely.
  *
- * Fields:    Roll Number · Password
- * Button:    Verify Student
- * States:    Idle · Loading · Success · Error
- * Design:    Inherits the premium AMOLED dark glassmorphic aesthetic
- *            from the original login screen (BBIT SVG logo, gradient bg,
- *            grid overlay, neon glows, animated entrance).
+ * Upgraded to the new Campus Hub Navy/Gold/Glass aesthetic.
  */
 
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import {
-  ArrowRight,
+  CreditCard,
   Eye,
   EyeOff,
-  GraduationCap,
   Lock,
-  ShieldCheck,
   Shield,
-  User,
-  Fingerprint,
-  Zap,
+  ShieldCheck,
 } from 'lucide-react-native';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -45,7 +37,6 @@ import {
 import Animated, {
   FadeIn,
   FadeInDown,
-  FadeInUp,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -53,104 +44,79 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, {
-  Circle,
-  Defs,
-  Ellipse,
-  Line,
-  Path,
-  RadialGradient,
-  Rect,
-  Stop,
-  Text as SvgText,
-  TextPath,
-} from 'react-native-svg';
-import { router } from 'expo-router';
+import Svg, { Line, Polyline } from 'react-native-svg';
 
-import { Radius, Shadows } from '@/constants/theme';
-import { useAuthStore , mapStudentToUserProfile } from '@/store/auth.store';
+import { mapStudentToUserProfile, useAuthStore } from '@/store/auth.store';
 import { useStudentStore } from '@/store/student.store';
 
-const { height: H } = Dimensions.get('window');
+const { width: W } = Dimensions.get('window');
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function polarXY(cx: number, cy: number, r: number, angleDeg: number) {
-  const rad = ((angleDeg - 90) * Math.PI) / 180;
-  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+// ─── Colors ─────────────────────────────────────────────────────────────────
+const C = {
+  navyDeep: '#05152e',
+  navy: '#0B3A75',
+  gold: '#F4B63E',
+  goldDim: '#C8901A',
+  goldGlow: 'rgba(244,182,62,0.28)',
+  green: 'rgba(94,139,90,0.18)',
+  greenBrd: 'rgba(94,139,90,0.30)',
+  greenText: '#7EC87A',
+  ivory: '#FAF8F3',
+  ivory38: 'rgba(250,248,243,0.38)',
+  ivory16: 'rgba(250,248,243,0.16)',
+  glass: 'rgba(5,12,28,0.72)',
+  glassBrd: 'rgba(250,248,243,0.10)',
+  danger: '#FF6B6B',
+  inputBg: 'rgba(250,248,243,0.04)',
+  inputBrd: 'rgba(250,248,243,0.09)',
+};
+
+// ─── Components ─────────────────────────────────────────────────────────────
+
+function PulsingDot() {
+  const op = useSharedValue(1);
+  const scale = useSharedValue(1);
+  useEffect(() => {
+    op.value = withRepeat(
+      withSequence(withTiming(0.45, { duration: 1100 }), withTiming(1, { duration: 1100 })),
+      -1,
+      true
+    );
+    scale.value = withRepeat(
+      withSequence(withTiming(0.75, { duration: 1100 }), withTiming(1, { duration: 1100 })),
+      -1,
+      true
+    );
+  }, [op, scale]);
+  const style = useAnimatedStyle(() => ({
+    opacity: op.value,
+    transform: [{ scale: scale.value }],
+  }));
+  return <Animated.View style={[s.eyebrowDot, style]} />;
 }
 
-function arcPath(cx: number, cy: number, r: number, a1: number, a2: number) {
-  const s = polarXY(cx, cy, r, a2);
-  const e = polarXY(cx, cy, r, a1);
-  const large = a2 - a1 <= 180 ? '0' : '1';
-  return `M ${s.x} ${s.y} A ${r} ${r} 0 ${large} 0 ${e.x} ${e.y}`;
-}
+const ArrowIcon = () => (
+  <Svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={C.gold} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+    <Line x1="5" y1="12" x2="19" y2="12" />
+    <Polyline points="12 5 19 12 12 19" />
+  </Svg>
+);
 
-// ─── BBIT Logo SVG ────────────────────────────────────────────────────────────
-function BBITLogoSVG({ size }: { size: number }) {
-  const cx = size / 2, cy = size / 2, R = size / 2;
-  const globeR = R * 0.42;
-  const gx = cx, gy = cy - R * 0.04;
-  return (
-    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <Defs>
-        <RadialGradient id="bgG2" cx="50%" cy="40%" r="60%">
-          <Stop offset="0%" stopColor="#1A3050" />
-          <Stop offset="100%" stopColor="#060D1A" />
-        </RadialGradient>
-        <RadialGradient id="gbG2" cx="36%" cy="33%" r="65%">
-          <Stop offset="0%" stopColor="#1D4ED8" />
-          <Stop offset="100%" stopColor="#0B1A35" />
-        </RadialGradient>
-        <Path id="aTop2" d={arcPath(cx, cy, R * 0.8, -150, -30)} fill="none" />
-        <Path id="aBot2" d={arcPath(cx, cy, R * 0.8, 30, 150)} fill="none" />
-      </Defs>
-      <Circle cx={cx} cy={cy} r={R * 0.96} fill="#1D4ED8" />
-      <Circle cx={cx} cy={cy} r={R * 0.90} fill="#1E3A6E" />
-      <Circle cx={cx} cy={cy} r={R * 0.86} fill="url(#bgG2)" />
-      <SvgText fontSize={R * 0.11} fontWeight="700" fill="#94A3B8" letterSpacing="1.1" fontFamily="System">
-        <TextPath href="#aTop2">BUDGE BUDGE INSTITUTE OF TECHNOLOGY</TextPath>
-      </SvgText>
-      <SvgText fontSize={R * 0.115} fontWeight="700" fill="#94A3B8" letterSpacing="1.5" fontFamily="System">
-        <TextPath href="#aBot2">EMPOWERING KNOWLEDGE</TextPath>
-      </SvgText>
-      {[[-150, R * 0.8], [-30, R * 0.8], [30, R * 0.8], [150, R * 0.8]].map(([a, r], i) => {
-        const p = polarXY(cx, cy, r as number, a as number);
-        return <Circle key={i} cx={p.x} cy={p.y} r={R * 0.017} fill="#60A5FA" />;
-      })}
-      <Circle cx={gx} cy={gy} r={globeR} fill="url(#gbG2)" />
-      <Circle cx={gx} cy={gy} r={globeR} fill="none" stroke="#60A5FA" strokeWidth={size * 0.011} />
-      {[-0.52, -0.24, 0, 0.24, 0.52].map((t, i) => {
-        const ly = gy + t * globeR;
-        const hw = Math.sqrt(Math.max(0, globeR * globeR - (t * globeR) ** 2));
-        return <Ellipse key={i} cx={gx} cy={ly} rx={hw} ry={hw * 0.17} fill="none" stroke="#60A5FA" strokeWidth={size * 0.007} opacity={i === 2 ? 1 : 0.55} />;
-      })}
-      <Line x1={gx} y1={gy - globeR} x2={gx} y2={gy + globeR} stroke="#60A5FA" strokeWidth={size * 0.008} opacity="0.65" />
-      <Ellipse cx={gx} cy={gy} rx={globeR * 0.42} ry={globeR} fill="none" stroke="#60A5FA" strokeWidth={size * 0.007} opacity="0.5" />
-      <Ellipse cx={gx} cy={gy} rx={globeR * 1.4} ry={globeR * 0.4} fill="none" stroke="#3B82F6" strokeWidth={size * 0.018} />
-      <Rect x={cx - R * 0.27} y={gy - R * 0.17} width={R * 0.54} height={R * 0.34} rx={R * 0.04} fill="rgba(0,0,0,0.72)" stroke="rgba(96,165,250,0.5)" strokeWidth="1" />
-      <SvgText x={cx} y={gy + R * 0.085} fontSize={R * 0.23} fontWeight="900" fill="#F8FAFC" textAnchor="middle" fontFamily="System" letterSpacing="2">BBIT</SvgText>
-    </Svg>
-  );
-}
-
-// ─── Animated Input Field ─────────────────────────────────────────────────────
 interface InputFieldProps {
   label: string;
   value: string;
   onChangeText: (text: string) => void;
-  placeholder?: string;
+  placeholder: string;
   secureTextEntry?: boolean;
-  /** When true, renders an eye-icon button to toggle password visibility */
   showToggle?: boolean;
-  keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad';
-  icon: React.ComponentType<{ color: string; size: number; strokeWidth: number }>;
-  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
-  returnKeyType?: 'next' | 'done' | 'go' | 'search';
+  icon: any;
+  error?: boolean;
+  errorText?: string;
   onSubmitEditing?: () => void;
-  blurOnSubmit?: boolean;
-  innerRef?: React.RefObject<TextInput | null>;
+  returnKeyType?: 'next' | 'go' | 'done';
+  innerRef?: React.RefObject<TextInput>;
   editable?: boolean;
+  keyboardType?: any;
 }
 
 function InputField({
@@ -159,140 +125,130 @@ function InputField({
   onChangeText,
   placeholder,
   secureTextEntry,
-  showToggle = false,
-  keyboardType = 'default',
+  showToggle,
   icon: Icon,
-  autoCapitalize = 'none',
-  returnKeyType,
+  error,
+  errorText,
   onSubmitEditing,
-  blurOnSubmit = false,
+  returnKeyType,
   innerRef,
   editable = true,
+  keyboardType,
 }: InputFieldProps) {
   const [focused, setFocused] = useState(false);
-  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const isSecure = showToggle ? !visible : secureTextEntry;
 
-  // When showToggle is true the actual secureTextEntry is driven by local state;
-  // otherwise it falls back to the prop value (e.g. never-toggled fields).
-  const isSecure = showToggle ? !passwordVisible : (secureTextEntry ?? false);
+  const handleFocus = () => setFocused(true);
+  const handleBlur = () => setFocused(false);
 
   return (
-    <View style={s.fieldWrapper}>
-      <Text style={s.inputLabel}>{label}</Text>
-      <View style={[
-        s.inputRow,
-        focused && s.inputRowFocused,
-        !editable && s.inputRowDisabled,
-      ]}>
-        <Icon
-          color={focused ? '#60A5FA' : '#475569'}
-          size={17}
-          strokeWidth={1.9}
+    <View style={s.field}>
+      <Text style={[s.fieldLabel, focused && s.fieldLabelFocused, error && s.fieldLabelError]}>
+        {label}
+      </Text>
+      <View style={s.inputWrap}>
+        {/* Glow */}
+        <Animated.View
+          style={[s.inputGlow, focused && s.inputGlowActive, error && s.inputGlowError]}
+          pointerEvents="none"
         />
+
+        <View style={s.inputIcon}>
+          <Icon color={focused ? 'rgba(244,182,62,0.65)' : C.ivory16} size={15} strokeWidth={2.1} />
+        </View>
+
         <TextInput
-          ref={innerRef}
+          ref={innerRef as any}
+          style={[
+            s.input,
+            showToggle && s.inputHasEye,
+            focused && s.inputFocused,
+            error && s.inputError,
+          ]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#334155"
+          placeholderTextColor="rgba(250,248,243,0.18)"
           secureTextEntry={isSecure}
-          keyboardType={keyboardType}
-          autoCapitalize={autoCapitalize}
-          returnKeyType={returnKeyType}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           onSubmitEditing={onSubmitEditing}
-          blurOnSubmit={blurOnSubmit}
+          returnKeyType={returnKeyType}
           editable={editable}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          style={s.input}
-          testID={`input-${label.replace(/\s+/g, '-').toLowerCase()}`}
+          keyboardType={keyboardType}
+          autoCapitalize="none"
+          autoCorrect={false}
+          autoComplete="off"
         />
+
         {showToggle && (
           <TouchableOpacity
-            onPress={() => setPasswordVisible((prev) => !prev)}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}
-            accessibilityRole="button"
-            testID="btn-toggle-password-visibility"
+            style={s.eyeBtn}
+            onPress={() => setVisible(!visible)}
+            activeOpacity={0.7}
           >
-            {passwordVisible ? (
-              <EyeOff color="#475569" size={18} strokeWidth={1.8} />
+            {visible ? (
+              <EyeOff color="rgba(250,248,243,0.22)" size={16} strokeWidth={2} />
             ) : (
-              <Eye color="#475569" size={18} strokeWidth={1.8} />
+              <Eye color="rgba(250,248,243,0.22)" size={16} strokeWidth={2} />
             )}
           </TouchableOpacity>
         )}
       </View>
+      {error && errorText ? (
+        <Animated.Text entering={FadeIn.duration(200)} style={s.fieldErr}>
+          {errorText}
+        </Animated.Text>
+      ) : null}
     </View>
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+// ─── Main Screen ────────────────────────────────────────────────────────────
+
 export function MakautLoginScreen() {
   const insets = useSafeAreaInsets();
 
   const [rollNumber, setRollNumber] = useState('');
   const [password, setPassword] = useState('');
-  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const [rollErr, setRollErr] = useState('');
+  const [passErr, setPassErr] = useState('');
 
   const login = useStudentStore((s) => s.login);
   const isLoading = useStudentStore((s) => s.isLoading);
   const storeError = useStudentStore((s) => s.error);
   const clearError = useStudentStore((s) => s.clearError);
   const student = useStudentStore((s) => s.student);
-
   const setProfile = useAuthStore((s) => s.setProfile);
 
-  // Sync student → auth store profile so the auth guard sees it
+  const passwordRef = useRef<TextInput>(null);
+
   useEffect(() => {
-    if (student) {
-      setProfile(mapStudentToUserProfile(student));
-    }
+    if (student) setProfile(mapStudentToUserProfile(student));
   }, [student, setProfile]);
-
-  const passwordRef = useRef<TextInput | null>(null);
-
-  // Floating logo animation
-  const logoY = useSharedValue(0);
-  useEffect(() => {
-    logoY.value = withRepeat(
-      withSequence(
-        withTiming(-8, { duration: 2200 }),
-        withTiming(0, { duration: 2200 }),
-      ),
-      -1,
-      true,
-    );
-  }, [logoY]);
-  const logoAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: logoY.value }],
-  }));
-
-  const displayError = validationError ?? storeError ?? null;
 
   const handleVerify = useCallback(async () => {
     Keyboard.dismiss();
     clearError();
-    setValidationError(null);
+    setRollErr('');
+    setPassErr('');
 
-    // Client-side validation
+    let valid = true;
     const trimRoll = rollNumber.trim();
     const trimPass = password.trim();
 
     if (!trimRoll) {
-      setValidationError('Roll number is required.');
-      return;
-    }
-    if (trimRoll.length < 5) {
-      setValidationError('Please enter a valid roll number.');
-      return;
+      setRollErr('Please enter your roll number');
+      valid = false;
     }
     if (!trimPass) {
-      setValidationError('Password is required.');
-      return;
+      setPassErr('Please enter your password');
+      valid = false;
     }
-    if (trimPass.length < 4) {
-      setValidationError('Password must be at least 4 characters.');
+    if (!valid) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       return;
     }
 
@@ -300,34 +256,26 @@ export function MakautLoginScreen() {
 
     try {
       await login(trimRoll, trimPass);
-      // Navigation is handled reactively by useAuthGuard in _layout.tsx
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     } catch {
-      // Error is already set in the store; displayed via displayError
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
     }
   }, [rollNumber, password, login, clearError]);
 
   return (
     <View style={s.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <StatusBar barStyle="light-content" backgroundColor={C.navyDeep} />
 
-      {/* Deep premium AMOLED background */}
+      {/* Abstract Background Vignette & Gradient */}
       <LinearGradient
-        colors={['#000000', '#030814', '#050f24']}
-        locations={[0, 0.45, 1]}
+        colors={['#0C1928', '#070F1C', '#05152e']}
         style={StyleSheet.absoluteFillObject}
       />
+      <View style={s.vignette} pointerEvents="none" />
 
-      {/* Neon aura glows */}
-      <View style={s.glowTop} />
-      <View style={s.glowTopInner} />
-
-      {/* Subtle grid overlay */}
-      <View style={s.gridOverlay} pointerEvents="none">
-        {[...Array(7)].map((_, i) => (
-          <View key={i} style={[s.gridLine, { top: (H / 7) * i }]} />
-        ))}
+      {/* TOD Label */}
+      <View style={[s.todLabel, { top: Math.max(insets.top + 14, 14) }]}>
+        <Text style={s.todText}>PORTAL</Text>
       </View>
 
       <KeyboardAvoidingView
@@ -337,180 +285,156 @@ export function MakautLoginScreen() {
         <ScrollView
           contentContainerStyle={[
             s.scroll,
-            { paddingTop: insets.top + 28, paddingBottom: insets.bottom + 32 },
+            { paddingTop: insets.top + 52, paddingBottom: insets.bottom + 52 },
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ── Hero Section ── */}
-          <View style={s.hero}>
-            <Animated.View style={[s.logoContainer, logoAnimStyle]}>
-              <View style={s.logoShadow}>
-                <BBITLogoSVG size={108} />
-              </View>
-            </Animated.View>
+          {/* Eyebrow */}
+          <Animated.View entering={FadeInDown.duration(550).delay(100)} style={s.eyebrow}>
+            <PulsingDot />
+            <Text style={s.eyebrowText}>CAMPUS HUB</Text>
+          </Animated.View>
 
-            {/* MAKAUT Verified Badge */}
-            <Animated.View entering={FadeIn.duration(400).delay(200)} style={s.badgeRow}>
-              <View style={s.verifiedBadge}>
-                <ShieldCheck color="#60A5FA" size={12} strokeWidth={2} />
-                <Text style={s.badgeText}>MAKAUT STUDENT VERIFICATION</Text>
-              </View>
-            </Animated.View>
+          {/* Headline */}
+          <Animated.View entering={FadeInDown.duration(600).delay(200)} style={s.headline}>
+            <Text style={s.h1}>
+              Your academic world,{'\n'}
+              <Text style={s.h1Gold}>elevated.</Text>
+            </Text>
+            <Text style={s.tagline}>Sign in with your MAKAUT credentials</Text>
+          </Animated.View>
 
-            <Animated.View entering={FadeInUp.duration(500).delay(300)} style={s.titleBlock}>
-              <Text style={s.appName}>Campus Hub</Text>
-              <Text style={s.institutionName}>
-                Budge Budge Institute of Technology
-              </Text>
-            </Animated.View>
-
-            {/* Animated feature highlight pills */}
-            <Animated.View entering={FadeIn.duration(500).delay(420)} style={s.featurePills}>
-              <View style={[s.featurePill, { backgroundColor: 'rgba(16,185,129,0.12)', borderColor: 'rgba(16,185,129,0.25)' }]}>
-                <Shield color="#34D399" size={11} strokeWidth={2.5} />
-                <Text style={[s.featurePillText, { color: '#34D399' }]}>Privacy First</Text>
-              </View>
-              <View style={[s.featurePill, { backgroundColor: 'rgba(96,165,250,0.12)', borderColor: 'rgba(96,165,250,0.25)' }]}>
-                <Fingerprint color="#60A5FA" size={11} strokeWidth={2.5} />
-                <Text style={[s.featurePillText, { color: '#60A5FA' }]}>Secure Auth</Text>
-              </View>
-              <View style={[s.featurePill, { backgroundColor: 'rgba(167,139,250,0.12)', borderColor: 'rgba(167,139,250,0.25)' }]}>
-                <Zap color="#A78BFA" size={11} strokeWidth={2.5} />
-                <Text style={[s.featurePillText, { color: '#A78BFA' }]}>Official Portal</Text>
-              </View>
-            </Animated.View>
-          </View>
-
-          {/* ── Glassmorphic Login Card ── */}
-          <Animated.View entering={FadeInDown.duration(650).delay(280)} style={s.panelContainer}>
-            <BlurView intensity={22} tint="dark" style={s.glassCard}>
-              <View style={s.cardInner}>
-                {/* Card header */}
-                <View style={s.cardHeader}>
-                  <View style={s.cardIconRow}>
-                    <View style={s.cardIconBg}>
-                      <GraduationCap color="#60A5FA" size={20} strokeWidth={1.8} />
-                    </View>
+          {/* Login Card */}
+          <Animated.View entering={FadeInDown.duration(650).delay(280)} style={s.cardContainer}>
+            <BlurView intensity={32} tint="dark" style={s.card}>
+              <LinearGradient
+                colors={['transparent', C.goldDim, C.gold, C.goldDim, 'transparent']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={s.cardLine}
+              />
+              <View style={s.cardBody}>
+                <View style={s.cardHead}>
+                  <Text style={s.cardTitle}>Sign in</Text>
+                  <View style={s.makautBadge}>
+                    <Text style={s.makautBadgeText}>MAKAUT Portal</Text>
                   </View>
-                  <Text style={s.cardTitle}>Student Login</Text>
-                  <Text style={s.cardSub}>
-                    Sign in with your MAKAUT student portal credentials
-                  </Text>
                 </View>
 
-                {/* Error banner */}
-                {displayError && (
-                  <Animated.View entering={FadeIn.duration(200)} style={s.errorBox}>
-                    <Text style={s.errorText}>{displayError}</Text>
+                {storeError ? (
+                  <Animated.View entering={FadeIn.duration(200)} style={s.errorBanner}>
+                    <Text style={s.errorBannerText}>{storeError}</Text>
                   </Animated.View>
-                )}
+                ) : null}
 
-                {/* Roll Number field */}
-                <InputField
-                  label="Roll Number"
-                  value={rollNumber}
-                  onChangeText={(t) => {
-                    setRollNumber(t);
-                    setValidationError(null);
-                  }}
-                  placeholder="e.g. 27600124001"
-                  keyboardType="numeric"
-                  icon={User}
-                  returnKeyType="next"
-                  onSubmitEditing={() => passwordRef.current?.focus()}
-                  blurOnSubmit={false}
-                  editable={!isLoading}
-                />
+                <View style={s.fields}>
+                  <InputField
+                    label="Roll Number"
+                    value={rollNumber}
+                    onChangeText={(t) => {
+                      setRollNumber(t);
+                      setRollErr('');
+                    }}
+                    placeholder="e.g. 21100518027"
+                    icon={CreditCard}
+                    error={!!rollErr}
+                    errorText={rollErr}
+                    returnKeyType="next"
+                    onSubmitEditing={() => passwordRef.current?.focus()}
+                    editable={!isLoading}
+                    keyboardType="numeric"
+                  />
+                  <InputField
+                    label="MAKAUT Portal Password"
+                    value={password}
+                    onChangeText={(t) => {
+                      setPassword(t);
+                      setPassErr('');
+                    }}
+                    placeholder="Your MAKAUT password"
+                    icon={Lock}
+                    secureTextEntry
+                    showToggle
+                    error={!!passErr}
+                    errorText={passErr}
+                    returnKeyType="go"
+                    onSubmitEditing={handleVerify}
+                    innerRef={passwordRef}
+                    editable={!isLoading}
+                  />
+                </View>
 
-                {/* Password field */}
-                <InputField
-                  label="MAKAUT Portal Password"
-                  value={password}
-                  onChangeText={(t) => {
-                    setPassword(t);
-                    setValidationError(null);
-                  }}
-                  placeholder="••••••••"
-                  secureTextEntry
-                  showToggle
-                  icon={Lock}
-                  returnKeyType="go"
-                  onSubmitEditing={handleVerify}
-                  blurOnSubmit
-                  innerRef={passwordRef}
-                  editable={!isLoading}
-                />
-
-                {/* Verify Button */}
                 <TouchableOpacity
+                  style={s.btn}
+                  activeOpacity={0.8}
                   onPress={handleVerify}
                   disabled={isLoading}
-                  activeOpacity={0.85}
-                  testID="btn-verify-student"
-                  style={[s.verifyBtn, isLoading && s.verifyBtnDisabled]}
                 >
                   <LinearGradient
-                    colors={isLoading ? ['#1e3a6e', '#1a2d56'] : ['#2563EB', '#1D4ED8', '#1e40af']}
+                    colors={['#1255cc', '#0B3A75', '#071e3d']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    style={s.verifyGradient}
+                    style={s.btnGradient}
                   >
+                    <View style={s.btnSheen} pointerEvents="none" />
                     {isLoading ? (
-                      <>
-                        <ActivityIndicator color="#60A5FA" size="small" />
-                        <Text style={s.verifyText}>Verifying Student…</Text>
-                      </>
+                      <ActivityIndicator color={C.ivory} size="small" />
                     ) : (
                       <>
-                        <Text style={s.verifyText}>Verify Student</Text>
-                        <ArrowRight color="#93C5FD" size={18} strokeWidth={2.5} />
+                        <Text style={s.btnLabel}>Verify Student</Text>
+                        <ArrowIcon />
                       </>
                     )}
                   </LinearGradient>
                 </TouchableOpacity>
-
-                {/* Admin Login Option */}
-                <TouchableOpacity
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-                    router.push('/(auth)/faculty-login');
-                  }}
-                  disabled={isLoading}
-                  activeOpacity={0.85}
-                  style={s.adminBtn}
-                >
-                  <Shield color="#94A3B8" size={16} strokeWidth={2} />
-                  <Text style={s.adminText}>Faculty Login</Text>
-                </TouchableOpacity>
-
-                {/* ── Security Trust Banner ── */}
-                <View style={s.securityBanner}>
-                  <View style={s.securityBannerTitleRow}>
-                    <View style={s.securityIconWrap}>
-                      <ShieldCheck color="#34D399" size={14} strokeWidth={2.5} />
-                    </View>
-                    <Text style={s.securityBannerTitle}>Secure Authentication</Text>
-                  </View>
-                  <Text style={s.securityBannerText}>
-                    Campus Hub{' '}
-                    <Text style={s.securityHighlight}>never stores</Text>
-                    {' '}your MAKAUT password.
-                  </Text>
-                  <Text style={s.securityBannerTextLast}>
-                    Credentials are used only for authentication with the official MAKAUT portal and are never saved in our database or servers.
-                  </Text>
-                </View>
               </View>
             </BlurView>
           </Animated.View>
 
-          {/* ── Footer ── */}
-          <Animated.View entering={FadeIn.duration(400).delay(600)} style={s.footer}>
-            <Text style={s.footerText}>
-              Protected by Budge Budge Institute of Technology IT Services.{'\n'}
-              By accessing this portal you consent to the BBIT System Policies.
+          {/* Trust Panel */}
+          <Animated.View entering={FadeInDown.duration(600).delay(550)} style={s.trust}>
+            <View style={s.trustHead}>
+              <View style={s.shieldWrap}>
+                <ShieldCheck color={C.greenText} size={20} strokeWidth={1.75} />
+              </View>
+              <View>
+                <Text style={s.trustTitle}>Secure Authentication</Text>
+                <Text style={s.trustSub}>Your privacy is protected</Text>
+              </View>
+            </View>
+            <View style={s.trustDivider} />
+            <Text style={s.trustBody}>
+              Campus Hub does <Text style={s.trustBodyStrong}>not permanently store</Text> your
+              MAKAUT password. Credentials are used only to authenticate with official services and
+              are <Text style={s.trustBodyStrong}>never retained after sign-in.</Text>
             </Text>
+            <View style={s.pills}>
+              <View style={s.pill}>
+                <View style={s.pillDot} />
+                <Text style={s.pillText}>End-to-end encrypted</Text>
+              </View>
+              <View style={s.pill}>
+                <View style={s.pillDot} />
+                <Text style={s.pillText}>Zero data retention</Text>
+              </View>
+              <View style={s.pill}>
+                <View style={s.pillDot} />
+                <Text style={s.pillText}>MAKAUT official</Text>
+              </View>
+            </View>
+          </Animated.View>
+
+          {/* Admin / Faculty Link */}
+          <Animated.View entering={FadeIn.duration(600).delay(700)}>
+            <TouchableOpacity
+              style={s.adminLink}
+              onPress={() => router.push('/(auth)/faculty-login')}
+              activeOpacity={0.7}
+            >
+              <Shield color="rgba(250,248,243,0.38)" size={14} strokeWidth={2} />
+              <Text style={s.adminLinkText}>Faculty Login</Text>
+            </TouchableOpacity>
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -518,291 +442,372 @@ export function MakautLoginScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// ─── Styles ─────────────────────────────────────────────────────────────────
+
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000000' },
-  scroll: { paddingHorizontal: 24 },
-
-  glowTop: {
-    position: 'absolute',
-    top: -100,
-    alignSelf: 'center',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: 'rgba(29,78,216,0.14)',
+  root: { flex: 1, backgroundColor: C.navyDeep },
+  vignette: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(2,7,20,0.4)',
   },
-  glowTopInner: {
-    position: 'absolute',
-    top: -50,
-    alignSelf: 'center',
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: 'rgba(96,165,250,0.07)',
-  },
-  gridOverlay: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
-  gridLine: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: 'rgba(96,165,250,0.03)',
-  },
-
-  // Hero
-  hero: { alignItems: 'center', marginBottom: 20, marginTop: 4 },
-  featurePills: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 16,
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-  },
-  featurePill: {
-    flexDirection: 'row',
+  scroll: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    gap: 5,
+  },
+
+  todLabel: {
+    position: 'absolute',
+    right: 14,
+    zIndex: 20,
+    backgroundColor: 'rgba(0,0,0,0.28)',
     borderWidth: 1,
+    borderColor: 'rgba(250,248,243,0.07)',
+    borderRadius: 20,
+    paddingVertical: 4,
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 100,
   },
-  featurePillText: {
-    fontSize: 10.5,
-    fontWeight: '600',
-    letterSpacing: 0.2,
-  },
-  logoContainer: { marginBottom: 16 },
-  logoShadow: {
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 28,
-  },
-  badgeRow: { marginBottom: 14 },
-  verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: Radius.circle,
-    backgroundColor: 'rgba(29,78,216,0.18)',
-    borderColor: 'rgba(96,165,250,0.28)',
-  },
-  badgeText: {
+  todText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#60A5FA',
-    letterSpacing: 0.9,
+    letterSpacing: 1.4,
+    color: 'rgba(250,248,243,0.28)',
   },
-  titleBlock: { alignItems: 'center' },
-  appName: {
-    fontSize: 34,
+
+  // Eyebrow
+  eyebrow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(244,182,62,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(244,182,62,0.24)',
+    borderRadius: 100,
+    paddingVertical: 5,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+    gap: 7,
+  },
+  eyebrowDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: C.gold,
+    shadowColor: C.gold,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  eyebrowText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    letterSpacing: 2.2,
+    color: C.gold,
+  },
+
+  // Headline
+  headline: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  h1: {
+    fontSize: 32,
     fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -0.8,
-    marginBottom: 4,
-  },
-  institutionName: {
-    fontSize: 12.5,
-    fontWeight: '400',
-    color: '#94A3B8',
+    lineHeight: 37,
+    letterSpacing: -0.9,
+    color: C.ivory,
     textAlign: 'center',
+    marginBottom: 8,
+  },
+  h1Gold: {
+    color: C.gold,
+  },
+  tagline: {
+    fontSize: 13.5,
+    color: C.ivory38,
+    letterSpacing: -0.1,
   },
 
   // Card
-  panelContainer: { marginBottom: 20 },
-  glassCard: {
-    borderRadius: Radius.xl,
+  cardContainer: {
+    width: '100%',
+    maxWidth: 420,
+    marginBottom: 14,
+    borderRadius: 26,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.5,
+    shadowRadius: 50,
+    elevation: 10,
+  },
+  card: {
+    width: '100%',
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: C.glassBrd,
+    backgroundColor: C.glass,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    ...Shadows.float,
-    shadowRadius: 24,
   },
-  cardInner: {
-    padding: 24,
-    backgroundColor: 'rgba(6,10,22,0.76)',
+  cardLine: {
+    height: 2,
+    width: '100%',
+    opacity: 0.8,
   },
-  cardHeader: { alignItems: 'center', marginBottom: 24 },
-  cardIconRow: { marginBottom: 12 },
-  cardIconBg: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: 'rgba(29,78,216,0.20)',
-    borderWidth: 1,
-    borderColor: 'rgba(96,165,250,0.25)',
+  cardBody: {
+    paddingTop: 22,
+    paddingHorizontal: 22,
+    paddingBottom: 24,
+  },
+  cardHead: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
   },
   cardTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    letterSpacing: -0.4,
-    marginBottom: 5,
+    fontSize: 19,
+    fontWeight: '800',
+    color: C.ivory,
+    letterSpacing: -0.5,
   },
-  cardSub: {
-    fontSize: 12.5,
-    color: '#475569',
-    textAlign: 'center',
-    lineHeight: 17,
-  },
-
-  // Error
-  errorBox: {
-    backgroundColor: 'rgba(248,113,113,0.07)',
+  makautBadge: {
+    backgroundColor: C.green,
     borderWidth: 1,
-    borderColor: 'rgba(248,113,113,0.20)',
-    borderRadius: Radius.md,
-    padding: 12,
-    marginBottom: 18,
+    borderColor: C.greenBrd,
+    borderRadius: 100,
+    paddingVertical: 4,
+    paddingHorizontal: 11,
   },
-  errorText: { fontSize: 12.5, color: '#F87171', textAlign: 'center', lineHeight: 17 },
-
-  // Input
-  fieldWrapper: { marginBottom: 18 },
-  inputLabel: {
-    fontSize: 12,
+  makautBadgeText: {
+    fontSize: 10.5,
     fontWeight: '600',
-    color: '#94A3B8',
-    marginBottom: 8,
+    color: C.greenText,
     letterSpacing: 0.3,
   },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    height: 52,
-    borderRadius: Radius.md,
+
+  errorBanner: {
+    backgroundColor: 'rgba(255,107,107,0.1)',
     borderWidth: 1,
-    paddingHorizontal: 14,
-    gap: 10,
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    borderColor: 'rgba(96,165,250,0.12)',
+    borderColor: 'rgba(255,107,107,0.3)',
+    borderRadius: 14,
+    padding: 10,
+    marginBottom: 16,
   },
-  inputRowFocused: {
-    borderColor: 'rgba(96,165,250,0.48)',
-    backgroundColor: 'rgba(29,78,216,0.07)',
-  },
-  inputRowDisabled: {
-    opacity: 0.5,
-  },
-  input: {
-    flex: 1,
-    fontSize: 15,
-    color: '#F1F5F9',
-    fontWeight: '400',
+  errorBannerText: {
+    color: C.danger,
+    fontSize: 12,
+    textAlign: 'center',
+    fontWeight: '500',
   },
 
-  // Verify button
-  verifyBtn: {
-    borderRadius: Radius.lg,
-    overflow: 'hidden',
-    marginTop: 6,
-    marginBottom: 16,
-    ...Shadows.float,
-    shadowColor: '#1D4ED8',
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
+  fields: {
+    gap: 13,
+    marginBottom: 22,
   },
-  verifyBtnDisabled: { opacity: 0.75 },
-  verifyGradient: {
-    height: 54,
+  field: {
+    width: '100%',
+  },
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.35,
+    color: C.ivory38,
+    textTransform: 'uppercase',
+    paddingLeft: 2,
+    marginBottom: 6,
+  },
+  fieldLabelFocused: { color: 'rgba(244,182,62,0.75)' },
+  fieldLabelError: { color: C.danger },
+
+  inputWrap: {
+    width: '100%',
+    justifyContent: 'center',
+  },
+  inputGlow: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    right: -4,
+    bottom: -4,
+    borderRadius: 18,
+    backgroundColor: C.goldGlow,
+    opacity: 0,
+  },
+  inputGlowActive: { opacity: 1 },
+  inputGlowError: { backgroundColor: 'rgba(255,107,107,0.22)', opacity: 1 },
+
+  inputIcon: {
+    position: 'absolute',
+    left: 13,
+    zIndex: 2,
+  },
+  input: {
+    width: '100%',
+    height: 50,
+    borderRadius: 14,
+    backgroundColor: C.inputBg,
+    borderWidth: 1.5,
+    borderColor: C.inputBrd,
+    color: C.ivory,
+    fontSize: 14.5,
+    fontWeight: '400',
+    letterSpacing: -0.1,
+    paddingLeft: 40,
+    paddingRight: 14,
+  },
+  inputHasEye: { paddingRight: 44 },
+  inputFocused: {
+    borderColor: 'rgba(244,182,62,0.55)',
+    backgroundColor: 'rgba(244,182,62,0.055)',
+  },
+  inputError: {
+    borderColor: 'rgba(255,107,107,0.55)',
+    backgroundColor: 'rgba(255,107,107,0.05)',
+  },
+  eyeBtn: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 3,
+  },
+
+  fieldErr: {
+    fontSize: 11.5,
+    fontWeight: '500',
+    color: C.danger,
+    paddingLeft: 3,
+    marginTop: 4,
+  },
+
+  btn: {
+    width: '100%',
+    height: 52,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#0B3A75',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    elevation: 5,
+  },
+  btnGradient: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    gap: 9,
   },
-  verifyText: {
-    fontSize: 16,
+  btnSheen: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  btnLabel: {
+    fontSize: 15.5,
     fontWeight: '700',
-    color: '#FFFFFF',
+    letterSpacing: -0.1,
+    color: C.ivory,
+  },
+
+  trust: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: 'rgba(94,139,90,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(94,139,90,0.24)',
+    borderRadius: 22,
+    paddingTop: 18,
+    paddingHorizontal: 20,
+    paddingBottom: 18,
+    marginBottom: 16,
+  },
+  trustHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+    marginBottom: 13,
+  },
+  shieldWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 13,
+    backgroundColor: 'rgba(94,139,90,0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(94,139,90,0.28)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trustTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.ivory,
+    letterSpacing: -0.3,
+    marginBottom: 1,
+  },
+  trustSub: {
+    fontSize: 11.5,
+    fontWeight: '500',
+    color: C.greenText,
+  },
+  trustDivider: {
+    height: 1,
+    backgroundColor: 'rgba(94,139,90,0.18)',
+    marginBottom: 12,
+  },
+  trustBody: {
+    fontSize: 12.5,
+    color: 'rgba(250,248,243,0.55)',
+    lineHeight: 21,
+    letterSpacing: -0.05,
+    marginBottom: 14,
+  },
+  trustBodyStrong: {
+    fontWeight: '700',
+    color: C.ivory,
+  },
+  pills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+  },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 100,
+    backgroundColor: 'rgba(94,139,90,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(94,139,90,0.24)',
+  },
+  pillDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: C.greenText,
+  },
+  pillText: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: C.greenText,
     letterSpacing: 0.1,
   },
 
-  // Admin button
-  adminBtn: {
+  adminLink: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    height: 44,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    marginBottom: 16,
+    gap: 6,
+    paddingVertical: 8,
   },
-  adminText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#94A3B8',
-  },
-
-  // Note
-  noteText: {
-    fontSize: 11,
-    color: '#334155',
-    textAlign: 'center',
-    lineHeight: 16,
-  },
-
-  // Security Trust Banner
-  securityBanner: {
-    backgroundColor: 'rgba(16, 185, 129, 0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(52, 211, 153, 0.15)',
-    borderRadius: Radius.lg,
-    padding: 16,
-    marginBottom: 8,
-    marginTop: 6,
-  },
-  securityBannerTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 10,
-  },
-  securityIconWrap: {
-    width: 24,
-    height: 24,
-    borderRadius: 8,
-    backgroundColor: 'rgba(52,211,153,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  securityBannerTitle: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: '#34D399',
-    letterSpacing: 0.2,
-  },
-  securityHighlight: {
-    fontWeight: '700',
-    color: '#F1F5F9',
-  },
-  securityBannerText: {
+  adminLinkText: {
     fontSize: 12,
-    color: '#64748B',
-    lineHeight: 19,
-    marginBottom: 6,
-  },
-  securityBannerTextLast: {
-    fontSize: 11.5,
-    color: '#475569',
-    lineHeight: 18,
-  },
-
-  // Footer
-  footer: { alignItems: 'center', paddingHorizontal: 12 },
-  footerText: {
-    fontSize: 10.5,
-    color: '#334155',
-    textAlign: 'center',
-    lineHeight: 15.5,
+    fontWeight: '600',
+    color: 'rgba(250,248,243,0.38)',
   },
 });
