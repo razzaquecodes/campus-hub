@@ -68,5 +68,7 @@
         }
       ]
     }
-  ]
-}# Triggering fresh deployment
+  ],
+  "buildCommand": "npm run build:vercel",
+  "installCommand": "npm install"
+}
