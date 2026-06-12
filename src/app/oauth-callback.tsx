@@ -26,22 +26,10 @@ export default function OAuthCallbackScreen() {
   useEffect(() => {
     console.info('[oauth-callback] Reached callback route.', params);
     
-    // In bare workflow on Android, maybeCompleteAuthSession() might not automatically
-    // close the window if it opened a separate activity. We give it a tiny
-    // buffer to process, then fallback to replacing the route.
-    const timer = setTimeout(() => {
-      if (Platform.OS === 'web') {
-        // On web, maybeCompleteAuthSession handles everything via postMessage.
-        return;
-      }
-      
-      console.info('[oauth-callback] Fallback redirect triggered.');
-      // Navigate back to faculty login - the auth service has already processed
-      // the session. This is just the visual redirect after the deep link was handled.
-      router.replace('/(auth)/faculty-login');
-    }, 1500);
-
-    return () => clearTimeout(timer);
+    // On web, maybeCompleteAuthSession handles everything via postMessage.
+    // On native, WebBrowser.openAuthSessionAsync will detect the closure
+    // and return the URL to auth.service.ts, which will then exchange the code
+    // and navigate to the dashboard. We should simply wait here and show the loader.
   }, [params]);
 
   return (

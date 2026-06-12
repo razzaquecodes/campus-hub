@@ -59,50 +59,15 @@ function arcPath(cx: number, cy: number, r: number, a1: number, a2: number) {
 }
 
 // ─── Premium BBIT Logo SVG ───────────────────────────────────────────────────
+import { Image } from 'react-native';
+
 function BBITLogoSVG({ size }: { size: number }) {
-  const cx = size / 2, cy = size / 2, R = size / 2;
-  const globeR = R * 0.42;
-  const gx = cx, gy = cy - R * 0.04;
   return (
-    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <Defs>
-        <RadialGradient id="bgG" cx="50%" cy="40%" r="60%">
-          <Stop offset="0%" stopColor="#1A3050" />
-          <Stop offset="100%" stopColor="#060D1A" />
-        </RadialGradient>
-        <RadialGradient id="gbG" cx="36%" cy="33%" r="65%">
-          <Stop offset="0%" stopColor="#1D4ED8" />
-          <Stop offset="100%" stopColor="#0B1A35" />
-        </RadialGradient>
-        <Path id="aTop" d={arcPath(cx, cy, R * 0.8, -150, -30)} fill="none" />
-        <Path id="aBot" d={arcPath(cx, cy, R * 0.8, 30, 150)} fill="none" />
-      </Defs>
-      <Circle cx={cx} cy={cy} r={R * 0.96} fill="#1D4ED8" />
-      <Circle cx={cx} cy={cy} r={R * 0.90} fill="#1E3A6E" />
-      <Circle cx={cx} cy={cy} r={R * 0.86} fill="url(#bgG)" />
-      <SvgText fontSize={R * 0.11} fontWeight="700" fill="#94A3B8" letterSpacing="1.1" fontFamily="System">
-        <TextPath href="#aTop">BUDGE BUDGE INSTITUTE OF TECHNOLOGY</TextPath>
-      </SvgText>
-      <SvgText fontSize={R * 0.115} fontWeight="700" fill="#94A3B8" letterSpacing="1.5" fontFamily="System">
-        <TextPath href="#aBot">EMPOWERING KNOWLEDGE</TextPath>
-      </SvgText>
-      {[[-150, R * 0.8], [-30, R * 0.8], [30, R * 0.8], [150, R * 0.8]].map(([a, r], i) => {
-        const p = polarXY(cx, cy, r as number, a as number);
-        return <Circle key={i} cx={p.x} cy={p.y} r={R * 0.017} fill="#60A5FA" />;
-      })}
-      <Circle cx={gx} cy={gy} r={globeR} fill="url(#gbG)" />
-      <Circle cx={gx} cy={gy} r={globeR} fill="none" stroke="#60A5FA" strokeWidth={size * 0.011} />
-      {[-0.52, -0.24, 0, 0.24, 0.52].map((t, i) => {
-        const ly = gy + t * globeR;
-        const hw = Math.sqrt(Math.max(0, globeR * globeR - (t * globeR) ** 2));
-        return <Ellipse key={i} cx={gx} cy={ly} rx={hw} ry={hw * 0.17} fill="none" stroke="#60A5FA" strokeWidth={size * 0.007} opacity={i === 2 ? 1 : 0.55} />;
-      })}
-      <Line x1={gx} y1={gy - globeR} x2={gx} y2={gy + globeR} stroke="#60A5FA" strokeWidth={size * 0.008} opacity="0.65" />
-      <Ellipse cx={gx} cy={gy} rx={globeR * 0.42} ry={globeR} fill="none" stroke="#60A5FA" strokeWidth={size * 0.007} opacity="0.5" />
-      <Ellipse cx={gx} cy={gy} rx={globeR * 1.4} ry={globeR * 0.4} fill="none" stroke="#3B82F6" strokeWidth={size * 0.018} />
-      <Rect x={cx - R * 0.27} y={gy - R * 0.17} width={R * 0.54} height={R * 0.34} rx={R * 0.04} fill="rgba(0,0,0,0.72)" stroke="rgba(96,165,250,0.5)" strokeWidth="1" />
-      <SvgText x={cx} y={gy + R * 0.085} fontSize={R * 0.23} fontWeight="900" fill="#F8FAFC" textAnchor="middle" fontFamily="System" letterSpacing="2">BBIT</SvgText>
-    </Svg>
+    <Image 
+      source={require('@/assets/images/icon.png')} 
+      style={{ width: size, height: size, borderRadius: size * 0.22 }} 
+      resizeMode="contain" 
+    />
   );
 }
 

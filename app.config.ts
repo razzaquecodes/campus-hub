@@ -15,7 +15,7 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
       policy: 'appVersion',
     },
     orientation: 'portrait',
-    icon: './assets/images/icon.png',
+    icon: '.docs/assets/images/icon.png',
     scheme: SCHEME,
     userInterfaceStyle: 'dark',
     platforms: ['ios', 'android', 'web'],
@@ -24,7 +24,7 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
       bundleIdentifier: BUNDLE_IDENTIFIER,
       buildNumber: '3',
       supportsTablet: false,
-      icon: './assets/images/icon.png',
+      icon: '.docs/assets/images/icon.png',
       infoPlist: {
         ...config.ios?.infoPlist,
         CFBundleDisplayName: 'Campus Hub',
@@ -98,7 +98,7 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
       [
         'expo-notifications',
         {
-          icon: './assets/images/icon.png',
+          icon: '.docs/assets/images/icon.png',
           color: '#6366F1',
         },
       ],

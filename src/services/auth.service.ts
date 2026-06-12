@@ -71,7 +71,8 @@ export const REDIRECT_URI: string = makeRedirectUri({
   native: NATIVE_REDIRECT_URI,
   // scheme: used by makeRedirectUri in Expo Go (storeClient) via Linking.createURL
   scheme: APP_SCHEME,
-  // No path parameter - we construct the full URL in native
+  // Ensure the path is appended for web and Expo Go
+  path: OAUTH_CALLBACK_PATH,
 });
 
 authLog('Redirect URI computed', {
