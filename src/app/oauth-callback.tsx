@@ -11,25 +11,78 @@
  */
 import * as WebBrowser from 'expo-web-browser';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useEffect } from 'react';
-import { ActivityIndicator, View, Platform } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, View, Platform, Alert } from 'react-native';
 
-// ─── CRITICAL ──────────────────────────────────────────────────────────────────
-// This must be called at module scope. When the deep link opens this file,
-// this function tells the WebBrowser (which is hovering over the app) to
-// close itself and return the URL to the caller (auth.service.ts).
+import { supabase } from '@/lib/supabase';
+import { useAdminStore } from '@/store/admin.store';
+
 WebBrowser.maybeCompleteAuthSession();
 
 export default function OAuthCallbackScreen() {
   const params = useLocalSearchParams();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     console.info('[oauth-callback] Reached callback route.', params);
     
-    // On web, maybeCompleteAuthSession handles everything via postMessage.
-    // On native, WebBrowser.openAuthSessionAsync will detect the closure
-    // and return the URL to auth.service.ts, which will then exchange the code
-    // and navigate to the dashboard. We should simply wait here and show the loader.
+    // On web, maybeCompleteAuthSession handles everything via postMessage if it was a popup.
+    // If it was a full-page redirect (like a PWA), window.opener is null, and maybeCompleteAuthSession does nothing.
+    if (Platform.OS === 'web') {
+      const handleFullPageRedirect = async () => {
+        try {
+          const hash = window.location.hash;
+          const search = window.location.search;
+          
+          if (!hash.includes('access_token=') && !search.includes('code=')) {
+            // No tokens in URL, likely a cancelled login or missing params
+            router.replace('/(auth)/faculty-login');
+            return;
+          }
+
+          // Supabase JS auto-handles the URL tokens on web. We just need to wait for the session.
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError) throw sessionError;
+          if (!session) {
+            // Session hasn't been set yet. Wait for the auth state change.
+            return; // onAuthStateChange (below) will catch it
+          }
+
+          // Session exists! Check if faculty
+          const email = session.user.email?.trim().toLowerCase();
+          if (!email) throw new Error('No email found in session');
+
+          const { data: facultyRow, error: facultyError } = await supabase
+            .from('faculty')
+            .select('email')
+            .eq('email', email)
+            .limit(1)
+            .single();
+
+          if (facultyError || !facultyRow) {
+            throw new Error('You are not authorized to access the faculty portal.');
+          }
+
+          useAdminStore.getState().setAdmin(email);
+          router.replace('/faculty');
+        } catch (err: any) {
+          console.error('[oauth-callback] PWA login fallback failed:', err);
+          router.replace({ pathname: '/(auth)/faculty-login', params: { authError: err.message } });
+        }
+      };
+
+      handleFullPageRedirect();
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          // Try to handle it again now that session is set
+          handleFullPageRedirect();
+        }
+      });
+
+      return () => subscription.unsubscribe();
+    }
   }, [params]);
 
   return (

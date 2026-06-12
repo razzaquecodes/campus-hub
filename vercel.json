@@ -22,6 +22,11 @@
   ],
   "redirects": [
     {
+      "source": "/oauth-callback",
+      "destination": "/app/oauth-callback",
+      "permanent": false
+    },
+    {
       "source": "/index.html",
       "destination": "/",
       "permanent": true

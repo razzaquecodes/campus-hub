@@ -5,6 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Campus Hub — Your Complete College Companion</title>
 
+<!-- OAuth Callback Handler for Root Fallbacks -->
+<script>
+  (function() {
+    var isOAuth = window.location.pathname.indexOf('oauth-callback') !== -1;
+    var hasTokens = window.location.hash.indexOf('access_token') !== -1 || window.location.search.indexOf('code') !== -1;
+    if (isOAuth || hasTokens) {
+      if (typeof window !== 'undefined' && window.opener && window.opener !== window) {
+        window.opener.postMessage({ type: 'browserAuth', url: window.location.href }, '*');
+      } else if (isOAuth) {
+        window.location.replace('/app/oauth-callback' + window.location.search + window.location.hash);
+      }
+    }
+  })();
+</script>
+
 <!-- Landing page - does NOT include Expo app manifest or PWA tags
      The Expo app at /app/ has its own manifest.webmanifest -->
 <meta name="description" content="Campus Hub is the official BBIT student and faculty portal">
