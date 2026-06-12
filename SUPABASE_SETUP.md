@@ -63,10 +63,36 @@ testing in Expo Go. Development and production builds use the stable registered
 
 ## Database
 
-Run migrations in Supabase SQL Editor:
+Run migrations in Supabase SQL Editor (Dashboard -> SQL Editor):
 
 1. `supabase/migrations/001_initial_schema.sql`
 2. `supabase/migrations/002_exams_notifications_rls.sql`
+3. `supabase/migrations/003_missing_tables.sql`
+4. `supabase/migrations/004_create_faculty_table.sql`
+5. `supabase/migrations/005_insert_test_faculty.sql`
+
+### Adding Faculty Members
+
+After running the migrations, you need to add faculty members to the database.
+Run this SQL in Supabase SQL Editor to add a faculty member:
+
+```sql
+-- Replace with actual faculty details
+INSERT INTO faculty (full_name, designation, department, email)
+VALUES ('Faculty Name', 'Professor', 'Computer Science', 'faculty@example.com');
+```
+
+**Important**: Faculty must be explicitly added to the `faculty` table. Students 
+will not be able to access the faculty portal even if they have valid Google 
+accounts.
+
+### Faculty Authorization Flow
+
+1. User signs in with Google OAuth
+2. App retrieves the user's email from Google
+3. App queries the `faculty` table to check if the email exists
+4. If found, user is granted access to faculty portal
+5. If not found, user sees "Access Denied" error
 
 The first Google sign-in creates a row in `student_profiles` if one does not already exist.
 

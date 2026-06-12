@@ -6,6 +6,7 @@ import {
     ActivityIndicator,
     Alert,
     Dimensions,
+    TouchableOpacity,
     StyleSheet,
     Text,
     View,
@@ -13,7 +14,6 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SpringButton } from '@/components/ui';
 import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase';
@@ -43,35 +43,40 @@ export default function FacultyLoginScreen() {
     try {
       if (!supabase) throw new Error('Supabase is not configured.');
 
-      console.info('[faculty-login] 1. Triggering Google Sign-In...');
       await signInWithGoogle();
-      console.info('[faculty-login] ✓ Google Sign-In flow completed.');
 
-      console.info('[faculty-login] 2. Fetching authenticated user profile...');
       const { data: userData, error: userError } = await supabase.auth.getUser();
       
       if (userError || !userData?.user?.email) {
-        console.error('[faculty-login] ✗ Failed to retrieve user profile:', userError?.message);
         throw new Error('Failed to retrieve user profile from Google.');
       }
 
       const authenticatedEmail = userData.user.email;
       const normalizedEmail = authenticatedEmail.trim().toLowerCase();
       
-      console.info('GOOGLE EMAIL =>', authenticatedEmail);
-
-      if (!supabase) throw new Error('Supabase is not configured.');
-
-      const { data: facultyRow, error: facultyError } = await supabase
-        .from('faculty')
-        .select('email')
+      // Query the admins table to verify authorization
+      const { data: adminRow, error: adminError } = await supabase
+        .from('admins')
+        .select('email, full_name')
         .eq('email', normalizedEmail)
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (facultyError || !facultyRow) {
-        console.warn('[faculty-login] Unauthorized faculty login attempt for', normalizedEmail);
-        throw new Error('You are not authorized to access the faculty portal.');
+      if (adminError) {
+        Alert.alert(
+          'Database Error',
+          'Failed to verify admin status. Please try again later.'
+        );
+        throw new Error('Failed to verify admin status.');
+      }
+
+      if (!adminRow) {
+        Alert.alert(
+          'Access Denied',
+          `Your email (${normalizedEmail}) was not found in the admin list.\n\n` +
+          `If you believe this is an error, please contact the administrator.`
+        );
+        throw new Error('You are not authorized to access the admin portal.');
       }
 
       useAdminStore.getState().setAdmin(normalizedEmail);
@@ -79,22 +84,30 @@ export default function FacultyLoginScreen() {
       router.replace('/faculty');
       
     } catch (error: any) {
-      console.error('[faculty-login] Authentication failed:', error);
-      if (error.message !== 'Sign-in was cancelled') {
-        // Provide more helpful error messages based on error type
-        let errorMessage = error.message || 'An unexpected error occurred.';
-        
-        if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-          errorMessage = 'Network error. Please check your internet connection and try again.';
-        } else if (errorMessage.includes('redirect') || errorMessage.includes('URI')) {
-          errorMessage = 'Authentication configuration error. Please contact support.';
-        } else if (errorMessage.includes('not authorized') || errorMessage.includes('faculty')) {
-          // This is expected for non-faculty users
-          errorMessage = 'You are not authorized to access the faculty portal. Please use your student credentials.';
-        }
-        
-        Alert.alert('Authentication Failed', errorMessage);
+      // Don't show error alert for cancelled sign-in
+      if (error.message === 'Sign-in was cancelled') {
+        return;
       }
+      
+      const errorMessage = error.message || 'An unexpected error occurred. Please try again.';
+      
+      // Handle specific error cases with user-friendly messages
+      if (errorMessage.includes('not authorized') || errorMessage.includes('admin') || errorMessage.includes('not initialized')) {
+        // These are expected cases - the error was already shown via Alert.alert above
+        return;
+      }
+      
+      let errorTitle = 'Authentication Failed';
+      
+      if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('ECONNREFUSED')) {
+        errorTitle = 'Network Error';
+      } else if (errorMessage.includes('redirect') || errorMessage.includes('URI') || errorMessage.includes('OAuth')) {
+        errorTitle = 'Authentication Error';
+      } else if (errorMessage.includes('session') || errorMessage.includes('token')) {
+        errorTitle = 'Session Error';
+      }
+      
+      Alert.alert(errorTitle, errorMessage);
     } finally {
       setLoading(false);
     }
@@ -152,7 +165,15 @@ export default function FacultyLoginScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.duration(500).delay(300)} style={ss.actionWrap}>
-          <SpringButton onPress={handleGoogleLogin} disabled={loading} scaleDown={0.96}>
+          <TouchableOpacity 
+            testID="google-login-btn"
+            onPress={handleGoogleLogin} 
+            disabled={loading}
+            activeOpacity={0.8}
+            style={[
+              ss.loginBtnContainer,
+              { opacity: loading ? 0.6 : 1 }
+            ]}>
             <View style={[ss.loginBtn, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
               {loading ? (
                 <ActivityIndicator color={theme.colors.primaryLight} />
@@ -165,7 +186,7 @@ export default function FacultyLoginScreen() {
                 </>
               )}
             </View>
-          </SpringButton>
+          </TouchableOpacity>
         </Animated.View>
       </View>
     </View>
@@ -213,6 +234,9 @@ const ss = StyleSheet.create({
     width: '100%',
     maxWidth: 340,
     paddingHorizontal: Spacing.md,
+  },
+  loginBtnContainer: {
+    width: '100%',
   },
   loginBtn: {
     flexDirection: 'row',
