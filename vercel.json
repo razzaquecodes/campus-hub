@@ -5,7 +5,9 @@
   "rewrites": [
     { "source": "/app", "destination": "/app/" },
     { "source": "/app/_expo/static/(.*)", "destination": "/app/_expo/static/$1" },
-    { "source": "/app/(.*)", "destination": "/app/index.html" }
+    { "source": "/app/(.*)", "destination": "/app/index.html" },
+    { "source": "/api/auth/callback", "destination": "/api/callback.html" },
+    { "source": "/api/auth/callback/(.*)", "destination": "/api/callback.html" }
   ],
   "redirects": [
     { "source": "/index.html", "destination": "/", "permanent": true }

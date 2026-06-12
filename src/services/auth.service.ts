@@ -187,19 +187,28 @@ export async function signInWithGoogle(): Promise<void> {
     throw new Error('Sign-in was cancelled');
   }
 
-  if (result.type !== 'success' || !result.url) {
+  if (result.type !== 'success') {
     authLog('✗ Authentication failed — unexpected result type', { type: result.type });
     throw new Error('Authentication failed');
   }
 
-  // Step 3: Extract credentials from the callback URL.
-  const params = parseUrlParams(result.url);
-  authLog('Step 3: Parsed callback URL', {
+  // Step 3: For web with server-side callback handling
+  // The callback page (/api/auth/callback) exchanges the code for a session
+  // and stores it in cookies/localStorage. The callback page then redirects
+  // to the app. In this case, openAuthSessionAsync might return without a URL.
+  //
+  // For native, the deep link contains the code which we parse here.
+  //
+  // We first try to parse the URL for a code. If none is found on web,
+  // we check if a session already exists (set by the callback page).
+  const params = result.url ? parseUrlParams(result.url) : {};
+  
+  authLog('Step 3: Parsed callback info', {
     hasCode: Boolean(params.code),
     hasAccessToken: Boolean(params.access_token),
     hasRefreshToken: Boolean(params.refresh_token),
     hasError: Boolean(params.error),
-    url: __DEV__ ? result.url.slice(0, 120) + '...' : '(redacted)',
+    url: result.url ? (__DEV__ ? result.url.slice(0, 120) + '...' : '(redacted)') : '(no URL returned - server-side redirect handled)',
   });
 
   if (params.error) {
@@ -224,7 +233,33 @@ export async function signInWithGoogle(): Promise<void> {
       email: exchangeData.session?.user.email ?? null,
     });
   }
-  // Step 4b: Implicit fallback — tokens arrived in hash fragment.
+  // Step 4b: For web, the callback page handles the code exchange
+  // If no code was returned, check if a session already exists
+  else if (isWeb) {
+    authLog('Step 4 (web): Checking for existing session from callback page...');
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      authLog('✗ Failed to retrieve session after callback', { message: sessionError.message });
+      throw new Error('Failed to retrieve session after authentication.');
+    }
+    if (!sessionData?.session) {
+      authLog('✗ No session found after callback — callback page may have failed');
+      throw new Error('Authentication completed but no session was created. Please try again.');
+    }
+    authLog('Step 4 ✓ Web callback session verified', {
+      hasSession: Boolean(sessionData.session),
+      userId: sessionData.session.user.id ?? null,
+      email: sessionData.session.user.email ?? null,
+    });
+    // Session is already set, skip to verification
+    authLog('Step 5: Session already verified (set by callback page)');
+    authLog('✓ Google OAuth flow complete', {
+      userId: sessionData.session.user.id,
+      email: sessionData.session.user.email,
+    });
+    return;
+  }
+  // Step 4c: Implicit fallback — tokens arrived in hash fragment.
   else if (params.access_token && params.refresh_token) {
     authLog('Step 4: Setting session from implicit tokens...');
     const { data: sessionSetData, error: sessionError } = await supabase.auth.setSession({
@@ -237,15 +272,17 @@ export async function signInWithGoogle(): Promise<void> {
     }
     authLog('Step 4 ✓ Implicit session set succeeded — session received', {
       hasSession: Boolean(sessionSetData.session),
-      userId: sessionSetData.session?.user.id ?? null,
-      email: sessionSetData.session?.user.email ?? null,
+      userId: sessionSetData.session?.user?.id ?? null,
+      email: sessionSetData.session?.user?.email ?? null,
     });
   } else {
     authLog('✗ No tokens or code in callback URL');
     throw new Error(
-      `OAuth callback received but contained no tokens or code.\nURL: ${result.url}`,
+      `OAuth callback received but contained no tokens or code.
+URL: ${result.url || 'none'}`,
     );
   }
+
 
   // Step 5: Verify session was actually set
   authLog('Step 5: Verifying session...');

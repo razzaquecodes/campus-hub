@@ -67,6 +67,13 @@ echo "Step 7: Copying PWA icons..."
 cp icon-*.png dist/app/ 2>/dev/null || true
 cp maskable-*.png dist/app/ 2>/dev/null || true
 
+# Step 8: Copy OAuth callback handler for web
+echo "Step 8: Setting up OAuth callback handler..."
+mkdir -p dist/api
+if [ -d "static/api" ]; then
+  cp static/api/*.html dist/api/
+fi
+
 # Verify build output
 echo "=== Build Verification ==="
 echo "Landing page at dist/index.html:"

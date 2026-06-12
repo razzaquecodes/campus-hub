@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signing In...</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0f;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      text-align: center;
+      padding: 40px;
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid rgba(96, 165, 250, 0.2);
+      border-top-color: #60a5fa;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 24px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    h1 {
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: #f0f0f0;
+    }
+    p {
+      font-size: 14px;
+      color: #9ca3af;
+    }
+    .error {
+      color: #f87171;
+      margin-top: 16px;
+      padding: 12px 20px;
+      background: rgba(248, 113, 113, 0.1);
+      border-radius: 8px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="spinner"></div>
+    <h1>Signing you in...</h1>
+    <p>Please wait while we complete the authentication.</p>
+    <div id="error" class="error"></div>
+  </div>
+
+  <!-- Supabase JS SDK for client-side session exchange -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <script>
+    // Supabase configuration
+    const SUPABASE_URL = 'https://czfylavvvwwohqkrhbdb.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6ZnlsYXZ2dnd3b2hxa3JoYmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyOTA2NTgsImV4cCI6MjA5NDg2NjY1OH0.dPEb_6_3L4KPzVAaQWYK-FNTYeJZhSx0CiFkwvsuvgA';
+
+    // Create Supabase client
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function handleCallback() {
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get('code');
+      const error = url.searchParams.get('error');
+      const errorDescription = url.searchParams.get('error_description');
+
+      console.log('[OAuth Callback] Processing callback', {
+        hasCode: !!code,
+        hasError: !!error,
+      });
+
+      if (error) {
+        console.error('[OAuth Callback] Error:', error, errorDescription);
+        showError('Authentication failed: ' + (errorDescription || error));
+        
+        // Try to notify parent window (Expo) about the error
+        notifyParent({ type: 'error', error: errorDescription || error });
+        
+        setTimeout(() => {
+          window.location.href = '/app/faculty-login?authError=' + encodeURIComponent(errorDescription || error);
+        }, 2000);
+        return;
+      }
+
+      if (code) {
+        console.log('[OAuth Callback] Exchanging code for session...');
+        try {
+          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          
+          if (exchangeError) {
+            console.error('[OAuth Callback] Code exchange failed:', exchangeError);
+            showError('Failed to complete sign-in: ' + exchangeError.message);
+            
+            // Try to notify parent window about the error
+            notifyParent({ type: 'error', error: exchangeError.message });
+            
+            setTimeout(() => {
+              window.location.href = '/app/faculty-login?authError=' + encodeURIComponent(exchangeError.message);
+            }, 2000);
+            return;
+          }
+
+          console.log('[OAuth Callback] Session created successfully', {
+            userId: data.session?.user?.id,
+            email: data.session?.user?.email
+          });
+
+          // Session is now stored in cookies/localStorage by Supabase SDK
+          // Notify parent window (Expo) about success
+          notifyParent({ type: 'success', url: window.location.href });
+          
+          // Redirect to the app with success flag
+          window.location.href = '/app/faculty-login?oauth_success=1';
+        } catch (err) {
+          console.error('[OAuth Callback] Unexpected error:', err);
+          showError('An unexpected error occurred');
+          
+          // Try to notify parent window about the error
+          notifyParent({ type: 'error', error: 'Unexpected error during authentication' });
+          
+          setTimeout(() => {
+            window.location.href = '/app/faculty-login?authError=Unexpected error during authentication';
+          }, 2000);
+        }
+      } else {
+        console.warn('[OAuth Callback] No code in callback URL');
+        showError('No authorization code received');
+        setTimeout(() => {
+          window.location.href = '/app/faculty-login?authError=No authorization code received';
+        }, 2000);
+      }
+    }
+
+    // Notify the Expo app via postMessage (for closing the auth session)
+    function notifyParent(message) {
+      try {
+        // Expo WebBrowser uses postMessage to communicate with the parent window
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage(message, '*');
+        }
+        // Also try sending to opener for popup windows
+        if (window.opener) {
+          window.opener.postMessage(message, '*');
+        }
+      } catch (e) {
+        console.log('[OAuth Callback] Could not notify parent window:', e);
+      }
+    }
+
+    function showError(message) {
+      const errorEl = document.getElementById('error');
+      errorEl.textContent = message;
+      errorEl.style.display = 'block';
+    }
+
+    // Start processing
+    handleCallback();
+  </script>
+</body>
+</html>
