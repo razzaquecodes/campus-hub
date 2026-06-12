@@ -64,6 +64,11 @@ if [ -d "assets/images" ]; then
   mkdir -p dist/app/assets/images
   cp assets/images/*.png dist/app/assets/images/ 2>/dev/null || true
 fi
+# Also copy from app/assets/images if it exists (git-tracked)
+if [ -d "app/assets/images" ]; then
+  mkdir -p dist/app/assets/images
+  cp app/assets/images/*.png dist/app/assets/images/ 2>/dev/null || true
+fi
 
 # Step 7: Also copy icons to /app/ for PWA
 echo "Step 7: Copying PWA icons..."
