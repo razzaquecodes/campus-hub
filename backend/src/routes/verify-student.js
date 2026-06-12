@@ -291,6 +291,7 @@ function parseStudentDetails(html, rollNumber) {
     courseName: '',
     abcId: '',
     profilePhotoUrl: '',
+    currentSemester: '', // NEW: extracted from MAKAUT portal
   };
 
   // Strategy 1: Parse <tr> rows where first <td> is label, second <td> is value
@@ -328,6 +329,19 @@ function parseStudentDetails(html, rollNumber) {
     }
     if (label.includes('abc') || label.includes('apaar')) {
       fields.abcId = value;
+    }
+    
+    // NEW: Extract current semester - look for "semester" in label
+    if ((label.includes('semester') || label.includes('current sem') || label.includes('sem')) && !fields.currentSemester) {
+      // Try to extract a number from the value
+      const semMatch = value.match(/(\d+)/);
+      if (semMatch && semMatch[1]) {
+        const semNum = parseInt(semMatch[1], 10);
+        if (semNum >= 1 && semNum <= 8) {
+          fields.currentSemester = String(semNum);
+          log('STEP-5', 'Current semester extracted from row', { semester: fields.currentSemester });
+        }
+      }
     }
   });
 
@@ -388,16 +402,42 @@ function parseStudentDetails(html, rollNumber) {
     fields.profilePhotoUrl = photoUrl;
   }
 
+  // Strategy 5: FALLBACK - If semester not found in tables, try to extract from page text
+  if (!fields.currentSemester) {
+    // Look for patterns like "Current Semester: 4" or "Semester - 4" in the page text
+    const bodyText = $('body').text();
+    const semesterPatterns = [
+      /current\s*semester[:\s]*(\d+)/i,
+      /semester[:\s]*(\d+)/i,
+      /sem\s*[-:]\s*(\d+)/i,
+      /year\s*sem[:\s]*(\d+)/i,
+      /sem\/year[:\s]*(\d+)/i,
+    ];
+    
+    for (const pattern of semesterPatterns) {
+      const match = bodyText.match(pattern);
+      if (match && match[1]) {
+        const semNum = parseInt(match[1], 10);
+        if (semNum >= 1 && semNum <= 8) {
+          fields.currentSemester = String(semNum);
+          log('STEP-5', 'Current semester extracted from page text', { semester: fields.currentSemester, pattern: pattern.source });
+          break;
+        }
+      }
+    }
+  }
+
   log('STEP-5', 'Parsed student fields', {
     fullName: fields.fullName,
     rollNumber: fields.rollNumber,
     registrationNumber: fields.registrationNumber,
-    email: fields.email,
+    email: fields.email ? '***' : '',
     mobile: fields.mobile ? '***' : '',
     instituteName: fields.instituteName,
     courseName: fields.courseName,
     abcId: fields.abcId,
-    profilePhotoUrl: fields.profilePhotoUrl,
+    profilePhotoUrl: fields.profilePhotoUrl ? 'present' : 'none',
+    currentSemester: fields.currentSemester || 'not found',
   });
 
   return fields;
@@ -588,13 +628,21 @@ router.post('/verify-student', async (req, res) => {
     log('RESULT', 'Verification successful', {
       rollNumber: student.rollNumber,
       instituteName: student.instituteName,
+      currentSemester: student.currentSemester || 'unknown',
       elapsedMs,
     });
 
-    return res.status(200).json({
+    // Include currentSemester in the response
+    const response = {
       verified: true,
-      student,
-    });
+      student: {
+        ...student,
+        // Ensure currentSemester is included (defaults to '1' if not found)
+        currentSemester: student.currentSemester || '1',
+      },
+    };
+    
+    return res.status(200).json(response);
   } catch (unexpectedErr) {
     // Catch-all — should never reach here but guard anyway
     log('ERROR', 'Unexpected error in /verify-student', {

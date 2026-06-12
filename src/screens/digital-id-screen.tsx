@@ -53,14 +53,25 @@ import { useTheme } from '@/context/ThemeContext';
 import { useAuthStore } from '@/store/auth.store';
 import { useStudentStore } from '@/store/student.store';
 import { useResults, type SemesterResult } from '@/hooks/queries/use-results';
+import type { StudentModel } from '@/types/student';
 import { useMasterProfile } from '@/hooks/use-master-profile';
 
 const { width: W } = Dimensions.get('window');
 
-function getCurrentSemesterFromResults(
+function getCurrentSemester(
+  student: StudentModel | null | undefined,
   results: SemesterResult[] | undefined,
-  fallbackSemester: string | number | null | undefined,
+  masterProfileSemester: string | number | null | undefined,
 ): number {
+  // Priority 1: Official current semester from MAKAUT backend (most authoritative)
+  if (student?.currentSemester) {
+    const officialSem = parseInt(String(student.currentSemester), 10);
+    if (Number.isFinite(officialSem) && officialSem >= 1 && officialSem <= 8) {
+      return officialSem;
+    }
+  }
+
+  // Priority 2: Derive from published results (fallback)
   const publishedSemesters = (results ?? [])
     .filter((result) => result.status === 'Published')
     .map((result) => result.semester)
@@ -70,7 +81,8 @@ function getCurrentSemesterFromResults(
     return Math.min(Math.max(Math.max(...publishedSemesters) + 1, 1), 8);
   }
 
-  const fallback = Number.parseInt(String(fallbackSemester ?? ''), 10);
+  // Priority 3: Use cached semester from profile store (last resort)
+  const fallback = Number.parseInt(String(masterProfileSemester ?? ''), 10);
   return Number.isFinite(fallback) && fallback > 0 ? Math.min(fallback, 8) : 1;
 }
 
@@ -145,7 +157,8 @@ export function DigitalIdScreen() {
   
   const latestResult = results && results.length > 0 ? results[0] : null;
 
-  const currentSemester = getCurrentSemesterFromResults(
+  const currentSemester = getCurrentSemester(
+    student,
     results,
     masterProfile?.semester ?? profile?.semester,
   );
