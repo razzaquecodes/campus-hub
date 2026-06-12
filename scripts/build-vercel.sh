@@ -48,8 +48,14 @@ echo "Step 6: Copying static assets..."
 if [ -f "apple-touch-icon.png" ]; then
   cp apple-touch-icon.png dist/
 fi
+if [ -f "public/apple-touch-icon.png" ]; then
+  cp public/apple-touch-icon.png dist/
+fi
 if [ -f "screenshot-mobile.png" ]; then
   cp screenshot-mobile.png dist/
+fi
+if [ -f "assets/images/favicon.png" ]; then
+  cp assets/images/favicon.png dist/
 fi
 if [ -d "assets/images" ]; then
   mkdir -p dist/assets/images
