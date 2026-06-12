@@ -6,6 +6,7 @@ import {
     ActivityIndicator,
     Alert,
     Dimensions,
+    Platform,
     StyleSheet,
     Text,
     View,
@@ -27,7 +28,7 @@ export default function FacultyLoginScreen() {
   const { theme, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
-  const params = useLocalSearchParams<{ authError?: string }>();
+  const params = useLocalSearchParams<{ authError?: string; oauth_success?: string }>();
 
   // Display OAuth errors passed from the callback
   useEffect(() => {
@@ -35,6 +36,66 @@ export default function FacultyLoginScreen() {
       Alert.alert('Authentication Failed', params.authError);
     }
   }, [params.authError]);
+
+  // Handle successful OAuth callback on web
+  useEffect(() => {
+    if (params.oauth_success === '1' && Platform.OS === 'web') {
+      handleWebOAuthSuccess();
+    }
+  }, [params.oauth_success]);
+
+  const handleWebOAuthSuccess = async () => {
+    // On web, after OAuth callback, Supabase has stored the session in cookies
+    // We need to fetch the session and verify the faculty status
+    setLoading(true);
+    
+    try {
+      if (!supabase) throw new Error('Supabase is not configured.');
+
+      console.info('[faculty-login] Web OAuth success - checking session...');
+      
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData.session) {
+        console.error('[faculty-login] Failed to get session:', sessionError?.message);
+        throw new Error('Failed to retrieve session after authentication.');
+      }
+
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !userData?.user?.email) {
+        console.error('[faculty-login] Failed to retrieve user profile:', userError?.message);
+        throw new Error('Failed to retrieve user profile from Google.');
+      }
+
+      const authenticatedEmail = userData.user.email;
+      const normalizedEmail = authenticatedEmail.trim().toLowerCase();
+      
+      console.info('[faculty-login] Google email:', authenticatedEmail);
+
+      const { data: facultyRow, error: facultyError } = await supabase
+        .from('faculty')
+        .select('email')
+        .eq('email', normalizedEmail)
+        .limit(1)
+        .single();
+
+      if (facultyError || !facultyRow) {
+        console.warn('[faculty-login] Unauthorized faculty login attempt for', normalizedEmail);
+        throw new Error('You are not authorized to access the faculty portal.');
+      }
+
+      useAdminStore.getState().setAdmin(normalizedEmail);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      router.replace('/faculty');
+      
+    } catch (error: any) {
+      console.error('[faculty-login] Web OAuth verification failed:', error);
+      Alert.alert('Authentication Failed', error.message || 'An unexpected error occurred.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleGoogleLogin = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
