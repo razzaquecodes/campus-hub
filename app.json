@@ -4,7 +4,58 @@
     "slug": "campus-hub",
     "scheme": "campushub",
     "android": {
-      "versionCode": 4
+      "versionCode": 4,
+      "package": "in.edu.bbit.campushub",
+      "adaptiveIcon": {
+        "backgroundColor": "#020617",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "campushub",
+              "host": "*"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/784cbc6f-57a3-4b12-b890-f4f7556f5cf5"
+    },
+    "ios": {
+      "bundleIdentifier": "in.edu.bbit.campushub",
+      "buildNumber": "3",
+      "supportsTablet": false,
+      "icon": "./assets/images/icon.png",
+      "infoPlist": {
+        "CFBundleDisplayName": "Campus Hub",
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "campushub"
+            ]
+          }
+        ]
+      }
     }
   }
 }
