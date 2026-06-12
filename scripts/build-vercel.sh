@@ -48,6 +48,13 @@ echo "Step 6: Copying static assets..."
 if [ -f "apple-touch-icon.png" ]; then
   cp apple-touch-icon.png dist/
 fi
+if [ -f "screenshot-mobile.png" ]; then
+  cp screenshot-mobile.png dist/
+fi
+if [ -d "assets/images" ]; then
+  mkdir -p dist/assets/images
+  cp assets/images/*.png dist/assets/images/
+fi
 
 # Step 7: Also copy icons to /app/ for PWA
 echo "Step 7: Copying PWA icons..."

@@ -77,7 +77,8 @@ nav{
 }
 @keyframes navSlide{from{transform:translateY(-100%);opacity:0}to{transform:none;opacity:1}}
 .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.nav-logo-mark{width:30px;height:30px;background:var(--navy);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.nav-logo-mark{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 2px 8px rgba(13,27,62,0.15)}
+.nav-logo-mark img{width:100%;height:100%;object-fit:cover;border-radius:9px}
 .nav-logo-text{font-family:var(--f-body);font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-0.3px}
 .nav-links{display:flex;gap:32px;list-style:none}
 .nav-links a{font-size:13px;font-weight:500;color:var(--text-secondary);text-decoration:none;letter-spacing:0.1px;transition:color 0.15s}
@@ -206,9 +207,64 @@ nav{
   0%,100%{transform:translateY(0) rotate(-1.5deg)}
   50%{transform:translateY(-14px) rotate(1deg)}
 }
-.phone-svg-frame{
+.phone-frame{
+  width:260px;
+  height:520px;
+  background:linear-gradient(145deg,#1e2f5e 0%,#0d1b3e 100%);
+  border-radius:40px;
+  padding:10px;
+  position:relative;
+  box-shadow:
+    0 0 0 2px #2a3f6e,
+    inset 0 0 20px rgba(255,255,255,0.05);
+}
+.phone-screen{
+  width:240px;
+  height:500px;
+  border-radius:33px;
+  overflow:hidden;
+  background:#000;
+  position:relative;
+}
+.phone-screen img{
   width:100%;
-  height:auto;
+  height:100%;
+  object-fit:cover;
+  object-position:top;
+  display:block;
+}
+.phone-notch{
+  position:absolute;
+  top:10px;
+  left:50%;
+  transform:translateX(-50%);
+  width:70px;
+  height:22px;
+  background:#0a0a0f;
+  border-radius:0 0 12px 12px;
+  z-index:10;
+}
+.phone-notch::before{
+  content:'';
+  position:absolute;
+  top:8px;
+  left:50%;
+  transform:translateX(-50%);
+  width:8px;
+  height:8px;
+  background:radial-gradient(circle,#1a1a2e 40%,transparent 60%);
+  border-radius:50%;
+}
+.phone-home-indicator{
+  position:absolute;
+  bottom:8px;
+  left:50%;
+  transform:translateX(-50%);
+  width:54px;
+  height:4px;
+  background:rgba(255,255,255,0.25);
+  border-radius:2px;
+  z-index:10;
 }
 /* Glow orbs behind phone */
 .hero-glow-1{
@@ -746,7 +802,7 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
 <nav>
   <a class="nav-logo" href="#">
     <div class="nav-logo-mark">
-      <img src="icon.png" alt="Campus Hub" style="width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;">
+      <img src="assets/images/icon.png" alt="Campus Hub">
     </div>
     <span class="nav-logo-text">Campus Hub</span>
   </a>
@@ -769,14 +825,14 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
 
   <div class="hero-content">
     <div class="hero-eyebrow">
-      <img src="icon.png" alt="Campus Hub icon" style="width:28px;height:28px;border-radius:7px;object-fit:cover;flex-shrink:0;">
+      <img src="assets/images/icon.png" alt="Campus Hub icon" style="width:28px;height:28px;border-radius:7px;object-fit:cover;flex-shrink:0;">
       <span class="eyebrow-text">Built for BBIT Students</span>
     </div>
     <div class="hero-h1">Your Complete</div>
     <div class="hero-h1-sub">College Companion</div>
     <p class="hero-sub">Student identity, academic data, exam results, and digital credentials — unified in one beautifully crafted app. No App Store required.</p>
     <div class="hero-actions">
-      <a class="btn-primary" href="#" id="hero-open-btn">
+      <a class="btn-primary" href="/app/" id="hero-open-btn">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Open App
       </a>
@@ -793,71 +849,13 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
     <div class="hero-glow-2"></div>
     <div class="phone-wrap">
       <div class="phone-float">
-        <svg class="phone-svg-frame" viewBox="0 0 260 520" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <!-- Phone frame -->
-          <rect x="1" y="1" width="258" height="518" rx="40" fill="#0d1b3e" stroke="#1e2f5e" stroke-width="2"/>
-          <!-- Screen area -->
-          <rect x="10" y="10" width="240" height="500" rx="33" fill="#0f2053"/>
-          <!-- Dynamic island -->
-          <rect x="95" y="22" width="70" height="22" rx="11" fill="#0a0a0f"/>
-          <!-- Status bar dots -->
-          <circle cx="196" cy="33" r="3" fill="rgba(255,255,255,0.35)"/>
-          <circle cx="208" cy="33" r="3" fill="rgba(255,255,255,0.35)"/>
-          <!-- Top gradient header bar -->
-          <rect x="10" y="10" width="240" height="80" rx="33" fill="url(#headerGrad)"/>
-          <defs>
-            <linearGradient id="headerGrad" x1="10" y1="10" x2="250" y2="90" gradientUnits="userSpaceOnUse">
-              <stop stop-color="#162248"/>
-              <stop offset="1" stop-color="#1e2f5e" stop-opacity="0"/>
-            </linearGradient>
-          </defs>
-          <!-- App icon in header -->
-          <rect x="22" y="58" width="36" height="36" rx="10" fill="#2563eb"/>
-          <text x="40" y="80" font-family="system-ui,sans-serif" font-size="16" font-weight="700" fill="white" text-anchor="middle">CH</text>
-          <!-- Header text -->
-          <rect x="66" y="63" width="80" height="8" rx="4" fill="rgba(255,255,255,0.65)"/>
-          <rect x="66" y="77" width="50" height="6" rx="3" fill="rgba(255,255,255,0.3)"/>
-          <!-- Card 1: Attendance -->
-          <rect x="22" y="106" width="106" height="88" rx="14" fill="rgba(37,99,235,0.15)" stroke="rgba(37,99,235,0.25)" stroke-width="1"/>
-          <rect x="32" y="117" width="24" height="24" rx="7" fill="rgba(37,99,235,0.3)"/>
-          <rect x="32" y="148" width="56" height="7" rx="3.5" fill="rgba(255,255,255,0.55)"/>
-          <rect x="32" y="160" width="76" height="24" rx="6" fill="rgba(255,255,255,0.08)"/>
-          <rect x="36" y="168" width="30" height="8" rx="4" fill="rgba(96,165,250,0.7)"/>
-          <!-- Card 2: Results -->
-          <rect x="136" y="106" width="106" height="88" rx="14" fill="rgba(5,150,105,0.12)" stroke="rgba(5,150,105,0.2)" stroke-width="1"/>
-          <rect x="146" y="117" width="24" height="24" rx="7" fill="rgba(5,150,105,0.25)"/>
-          <rect x="146" y="148" width="48" height="7" rx="3.5" fill="rgba(255,255,255,0.55)"/>
-          <rect x="146" y="160" width="76" height="24" rx="6" fill="rgba(255,255,255,0.08)"/>
-          <rect x="150" y="168" width="40" height="8" rx="4" fill="rgba(52,211,153,0.6)"/>
-          <!-- Card 3: Timetable -->
-          <rect x="22" y="202" width="106" height="88" rx="14" fill="rgba(245,158,11,0.1)" stroke="rgba(245,158,11,0.2)" stroke-width="1"/>
-          <rect x="32" y="213" width="24" height="24" rx="7" fill="rgba(245,158,11,0.22)"/>
-          <rect x="32" y="244" width="60" height="7" rx="3.5" fill="rgba(255,255,255,0.55)"/>
-          <rect x="32" y="256" width="76" height="24" rx="6" fill="rgba(255,255,255,0.08)"/>
-          <!-- Card 4: ID -->
-          <rect x="136" y="202" width="106" height="88" rx="14" fill="rgba(124,58,237,0.1)" stroke="rgba(124,58,237,0.2)" stroke-width="1"/>
-          <rect x="146" y="213" width="24" height="24" rx="7" fill="rgba(124,58,237,0.22)"/>
-          <rect x="146" y="244" width="52" height="7" rx="3.5" fill="rgba(255,255,255,0.55)"/>
-          <rect x="146" y="256" width="76" height="24" rx="6" fill="rgba(255,255,255,0.08)"/>
-          <!-- Bottom list items -->
-          <rect x="22" y="302" width="218" height="50" rx="12" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
-          <rect x="32" y="316" width="24" height="24" rx="7" fill="rgba(255,255,255,0.07)"/>
-          <rect x="64" y="318" width="80" height="7" rx="3.5" fill="rgba(255,255,255,0.4)"/>
-          <rect x="64" y="330" width="50" height="5" rx="2.5" fill="rgba(255,255,255,0.18)"/>
-          <rect x="216" y="322" width="14" height="14" rx="3" fill="rgba(37,99,235,0.4)"/>
-          <rect x="22" y="358" width="218" height="50" rx="12" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
-          <rect x="32" y="372" width="24" height="24" rx="7" fill="rgba(255,255,255,0.07)"/>
-          <rect x="64" y="374" width="70" height="7" rx="3.5" fill="rgba(255,255,255,0.4)"/>
-          <rect x="64" y="386" width="40" height="5" rx="2.5" fill="rgba(255,255,255,0.18)"/>
-          <rect x="216" y="378" width="14" height="14" rx="3" fill="rgba(5,150,105,0.4)"/>
-          <rect x="22" y="414" width="218" height="50" rx="12" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
-          <rect x="32" y="428" width="24" height="24" rx="7" fill="rgba(255,255,255,0.07)"/>
-          <rect x="64" y="430" width="90" height="7" rx="3.5" fill="rgba(255,255,255,0.4)"/>
-          <rect x="64" y="442" width="55" height="5" rx="2.5" fill="rgba(255,255,255,0.18)"/>
-          <rect x="216" y="434" width="14" height="14" rx="3" fill="rgba(245,158,11,0.4)"/>
-          <!-- Home indicator -->
-          <rect x="103" y="496" width="54" height="4" rx="2" fill="rgba(255,255,255,0.25)"/>
-        </svg>
+        <div class="phone-frame">
+          <div class="phone-screen">
+            <img src="screenshot-mobile.png" alt="Campus Hub App" loading="eager">
+            <div class="phone-notch"></div>
+            <div class="phone-home-indicator"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1135,10 +1133,10 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
         <div class="install-note-text">No App Store download required. Campus Hub is a Progressive Web App that installs instantly from your browser.</div>
       </div>
       <div class="install-cta-row">
-        <button class="btn-install-primary" onclick="openIOSModal()">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="14" height="14" rx="3.5" stroke="#0d1b3e" stroke-width="1.5"/><path d="M8 4v5M5.5 7l2.5 2 2.5-2" stroke="#0d1b3e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          View Full Guide
-        </button>
+        <a class="btn-install-primary" href="/app/">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M8 3l5 5-5 5" stroke="#0d1b3e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Open for iPhone
+        </a>
       </div>
     </div>
 
@@ -1171,9 +1169,9 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
         </div>
       </div>
       <div class="install-cta-row">
-        <a class="btn-install-primary" href="https://github.com/razzaquecodes/campus-hub/releases/download/v1.3.0/CampusHub-BBIT-v1.0.apk" download>
+        <a class="btn-install-primary" href="https://github.com/razzaquecodes/campus-hub/releases/download/v1.3.0/CampusHub-BBIT-v1.0.apk" download="CampusHub-BBIT.apk">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v8M5 7l3 3 3-3M2 13h12" stroke="#0d1b3e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Download APK
+          Download for Android
         </a>
       </div>
     </div>
@@ -1348,7 +1346,7 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
     <div>
       <a class="footer-brand-logo" href="#">
         <div class="footer-logo-mark">
-          <img src="icon.png" alt="Campus Hub" style="width:30px;height:30px;object-fit:cover;border-radius:9px;display:block;">
+          <img src="assets/images/icon.png" alt="Campus Hub" style="width:30px;height:30px;object-fit:cover;border-radius:9px;display:block;">
         </div>
         <span class="footer-brand-name">Campus Hub</span>
       </a>
@@ -1401,7 +1399,7 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
 <!-- PWA Banner -->
 <div id="pwa-banner">
   <div class="pwa-banner-icon">
-    <img src="icon.png" alt="Campus Hub" style="width:100%;height:100%;object-fit:cover;border-radius:11px;display:block;">
+    <img src="assets/images/icon.png" alt="Campus Hub" style="width:100%;height:100%;object-fit:cover;border-radius:11px;display:block;">
   </div>
   <div class="pwa-banner-text">
     <div class="pwa-banner-title">Install Campus Hub</div>
@@ -1420,7 +1418,7 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
     <div class="modal-header">
       <div class="modal-title-row">
         <div class="modal-app-icon">
-          <img src="icon.png" alt="Campus Hub" style="width:100%;height:100%;object-fit:cover;border-radius:13px;display:block;">
+          <img src="assets/images/icon.png" alt="Campus Hub" style="width:100%;height:100%;object-fit:cover;border-radius:13px;display:block;">
         </div>
         <div>
           <div class="modal-title">Install Campus Hub</div>
@@ -1560,7 +1558,8 @@ function closeIOSModal(e){
 /* Smart button routing */
 function routeInstall(){
   if(platform==='ios'){
-    openIOSModal();
+    /* iOS users should open the app first, then install from there */
+    window.location.href = '/app/';
   } else if(platform==='android'){
     document.getElementById('install')?.scrollIntoView({behavior:'smooth'});
     setTimeout(()=>switchPanel('android'),400);
@@ -1576,12 +1575,6 @@ document.getElementById('nav-install-btn')?.addEventListener('click', function(e
   routeInstall();
 });
 document.getElementById('cta-install-btn')?.addEventListener('click', routeInstall);
-
-document.getElementById('hero-open-btn')?.addEventListener('click', function(e){
-  /* Navigate to the Expo app at /app/ */
-  e.preventDefault();
-  window.location.href = '/app/';
-});
 
 /* ── PWA INSTALL BANNER ── */
 let deferredPrompt = null;

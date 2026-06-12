@@ -14,6 +14,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { SplashScreen } from '@/components/animations/splash/SplashScreen';
+import { PWAInstallBanner } from '@/components/PWAInstallBanner';
 import { UpdateModal } from '@/components/modals/UpdateModal';
 import { ThemeProvider as AppThemeProvider, useTheme } from '@/context/ThemeContext';
 import { AppProviders } from '@/providers/app-providers';
@@ -243,6 +244,9 @@ function AppShell() {
           <SplashScreen onAnimationComplete={() => setAnimationDone(true)} />
         </View>
       )}
+
+      {/* iOS PWA Install Banner */}
+      <PWAInstallBanner />
 
       {/* Global Update Modal */}
       <UpdateModal
