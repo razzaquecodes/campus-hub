@@ -6,6 +6,7 @@ import {
     ActivityIndicator,
     Alert,
     Dimensions,
+    TouchableOpacity,
     StyleSheet,
     Text,
     View,
@@ -13,7 +14,6 @@ import {
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SpringButton } from '@/components/ui';
 import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase';
@@ -43,129 +43,40 @@ export default function FacultyLoginScreen() {
     try {
       if (!supabase) throw new Error('Supabase is not configured.');
 
-      console.info('[faculty-login] 1. Triggering Google Sign-In...');
       await signInWithGoogle();
-      console.info('[faculty-login] ✓ Google Sign-In flow completed.');
 
-      console.info('[faculty-login] 2. Fetching authenticated user profile...');
       const { data: userData, error: userError } = await supabase.auth.getUser();
       
       if (userError || !userData?.user?.email) {
-        console.error('[faculty-login] ✗ Failed to retrieve user profile:', userError?.message);
         throw new Error('Failed to retrieve user profile from Google.');
       }
 
       const authenticatedEmail = userData.user.email;
       const normalizedEmail = authenticatedEmail.trim().toLowerCase();
       
-      console.info('[faculty-login] User email from Google:', authenticatedEmail);
-      console.info('[faculty-login] Normalized email:', normalizedEmail);
-
-      if (!supabase) throw new Error('Supabase is not configured.');
-
-      // Debug: Check what session we have
-      const { data: sessionData } = await supabase.auth.getSession();
-      console.info('[faculty-login] Session info:', {
-        hasSession: Boolean(sessionData?.session),
-        userId: sessionData?.session?.user?.id,
-        accessToken: sessionData?.session?.access_token ? 'present' : 'missing'
-      });
-
-      // Debug: Try to query faculty table with more details
-      console.info('[faculty-login] 3. Querying faculty table...');
-      
-      let allFaculty: { email: string; full_name: string }[] | null = null;
-      let tableExists = true;
-      
-      // First, let's try a simple query to see if we can read the faculty table at all
-      try {
-        const { data, error: allFacultyError } = await supabase
-          .from('faculty')
-          .select('email, full_name')
-          .limit(5);
-        
-        if (allFacultyError) {
-          // Check if the error is because the table doesn't exist
-          if (allFacultyError.code === 'PGRST205' || allFacultyError.message?.includes('table')) {
-            console.error('[faculty-login] ✗ Faculty table does not exist:', allFacultyError);
-            tableExists = false;
-          } else {
-            // Some other error - might be RLS related
-            console.warn('[faculty-login] Faculty table query warning:', allFacultyError);
-          }
-        } else {
-          allFaculty = data;
-          console.info('[faculty-login] Faculty table query result:', {
-            count: data?.length ?? 0,
-            facultyEmails: data?.map(f => f.email) ?? [],
-            tableExists: true
-          });
-        }
-      } catch (err) {
-        console.error('[faculty-login] ✗ Exception querying faculty table:', err);
-        tableExists = false;
-      }
-
-      // If table doesn't exist, show specific error
-      if (!tableExists) {
-        console.error('[faculty-login] Faculty table does not exist - database not initialized');
-        Alert.alert(
-          'Database Setup Required',
-          'The faculty database has not been set up yet. Please contact the system administrator to initialize the database.\n\n' +
-          'Once set up, you will need to be added to the faculty list by an administrator.',
-          [{ text: 'OK' }]
-        );
-        throw new Error('Faculty database not initialized. Please contact administrator.');
-      }
-
-      // Now try the specific email query
-      const { data: facultyRow, error: facultyError } = await supabase
-        .from('faculty')
+      // Query the admins table to verify authorization
+      const { data: adminRow, error: adminError } = await supabase
+        .from('admins')
         .select('email, full_name')
         .eq('email', normalizedEmail)
         .limit(1)
         .maybeSingle();
 
-      console.info('[faculty-login] Faculty lookup result:', {
-        found: Boolean(facultyRow),
-        email: facultyRow?.email ?? null,
-        name: facultyRow?.full_name ?? null,
-        error: facultyError?.message ?? null,
-        errorCode: facultyError?.code ?? null
-      });
-
-      if (facultyError) {
-        console.error('[faculty-login] ✗ Faculty table query failed:', facultyError);
+      if (adminError) {
         Alert.alert(
           'Database Error',
-          'Failed to verify faculty status. Please try again later. If this persists, contact support.'
+          'Failed to verify admin status. Please try again later.'
         );
-        throw new Error('Failed to verify faculty status. Please try again later.');
+        throw new Error('Failed to verify admin status.');
       }
 
-      if (!facultyRow) {
-        // Check if the table is empty (no faculty registered at all)
-        if (!allFaculty || allFaculty.length === 0) {
-          console.warn('[faculty-login] No faculty members in system:', {
-            attemptedEmail: normalizedEmail
-          });
-          Alert.alert(
-            'No Faculty Registered',
-            'No faculty members are registered in the system yet. Please contact the administrator to add faculty members.'
-          );
-        } else {
-          // Provide helpful error with available faculty emails
-          console.warn('[faculty-login] Unauthorized faculty login attempt:', {
-            attemptedEmail: normalizedEmail,
-            availableFaculty: allFaculty.map(f => f.email)
-          });
-          Alert.alert(
-            'Access Denied',
-            `Your email (${normalizedEmail}) was not found in the faculty list.\n\n` +
-            `If you believe this is an error, please contact the administrator to add your email to the faculty database.`
-          );
-        }
-        throw new Error('You are not authorized to access the faculty portal.');
+      if (!adminRow) {
+        Alert.alert(
+          'Access Denied',
+          `Your email (${normalizedEmail}) was not found in the admin list.\n\n` +
+          `If you believe this is an error, please contact the administrator.`
+        );
+        throw new Error('You are not authorized to access the admin portal.');
       }
 
       useAdminStore.getState().setAdmin(normalizedEmail);
@@ -173,37 +84,29 @@ export default function FacultyLoginScreen() {
       router.replace('/faculty');
       
     } catch (error: any) {
-      console.error('[faculty-login] Authentication failed:', error);
-      
       // Don't show error alert for cancelled sign-in
       if (error.message === 'Sign-in was cancelled') {
         return;
       }
       
-      // Provide more helpful error messages based on error type
-      let errorTitle = 'Authentication Failed';
-      let errorMessage = error.message || 'An unexpected error occurred. Please try again.';
+      const errorMessage = error.message || 'An unexpected error occurred. Please try again.';
       
       // Handle specific error cases with user-friendly messages
-      if (errorMessage.includes('not authorized') || errorMessage.includes('faculty') || errorMessage.includes('not initialized')) {
+      if (errorMessage.includes('not authorized') || errorMessage.includes('admin') || errorMessage.includes('not initialized')) {
         // These are expected cases - the error was already shown via Alert.alert above
-        // Just log and return without showing another alert
         return;
-      } else if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('ECONNREFUSED')) {
-        errorTitle = 'Network Error';
-        errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
-      } else if (errorMessage.includes('redirect') || errorMessage.includes('URI') || errorMessage.includes('OAuth')) {
-        errorTitle = 'Authentication Error';
-        errorMessage = 'There was a problem with the authentication process. Please try again or contact support if the issue persists.';
-      } else if (errorMessage.includes('session') || errorMessage.includes('token')) {
-        errorTitle = 'Session Error';
-        errorMessage = 'Your session has expired. Please try signing in again.';
-      } else if (errorMessage.includes('database') || errorMessage.includes('Database')) {
-        errorTitle = 'Database Error';
-        errorMessage = 'Unable to verify your account. Please try again later.';
       }
       
-      // Only show alert if we haven't already shown one
+      let errorTitle = 'Authentication Failed';
+      
+      if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('ECONNREFUSED')) {
+        errorTitle = 'Network Error';
+      } else if (errorMessage.includes('redirect') || errorMessage.includes('URI') || errorMessage.includes('OAuth')) {
+        errorTitle = 'Authentication Error';
+      } else if (errorMessage.includes('session') || errorMessage.includes('token')) {
+        errorTitle = 'Session Error';
+      }
+      
       Alert.alert(errorTitle, errorMessage);
     } finally {
       setLoading(false);
@@ -262,7 +165,15 @@ export default function FacultyLoginScreen() {
         </Animated.View>
 
         <Animated.View entering={FadeInDown.duration(500).delay(300)} style={ss.actionWrap}>
-          <SpringButton onPress={handleGoogleLogin} disabled={loading} scaleDown={0.96}>
+          <TouchableOpacity 
+            testID="google-login-btn"
+            onPress={handleGoogleLogin} 
+            disabled={loading}
+            activeOpacity={0.8}
+            style={[
+              ss.loginBtnContainer,
+              { opacity: loading ? 0.6 : 1 }
+            ]}>
             <View style={[ss.loginBtn, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
               {loading ? (
                 <ActivityIndicator color={theme.colors.primaryLight} />
@@ -275,7 +186,7 @@ export default function FacultyLoginScreen() {
                 </>
               )}
             </View>
-          </SpringButton>
+          </TouchableOpacity>
         </Animated.View>
       </View>
     </View>
@@ -323,6 +234,9 @@ const ss = StyleSheet.create({
     width: '100%',
     maxWidth: 340,
     paddingHorizontal: Spacing.md,
+  },
+  loginBtnContainer: {
+    width: '100%',
   },
   loginBtn: {
     flexDirection: 'row',
