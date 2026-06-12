@@ -82,21 +82,22 @@ nav{
 /* ── HERO ── */
 .hero{
   min-height:100vh;
-  display:grid;
-  grid-template-columns:1fr 1fr;
+  display:flex;
+  flex-direction:column;
   align-items:center;
+  justify-content:center;
+  text-align:center;
   position:relative;
   padding:120px 80px 80px;
   overflow:hidden;
   background:var(--snow);
-  gap:60px;
 }
 .hero-bg{
   position:absolute;inset:0;z-index:0;
   background:
-    radial-gradient(ellipse 70% 70% at 70% 40%,rgba(37,99,235,0.07) 0%,transparent 65%),
-    radial-gradient(ellipse 50% 50% at 10% 80%,rgba(13,27,62,0.04) 0%,transparent 60%),
-    radial-gradient(ellipse 40% 40% at 90% 10%,rgba(124,58,237,0.03) 0%,transparent 60%);
+    radial-gradient(ellipse 70% 70% at 50% 40%,rgba(37,99,235,0.08) 0%,transparent 65%),
+    radial-gradient(ellipse 50% 50% at 50% 80%,rgba(13,27,62,0.05) 0%,transparent 60%),
+    radial-gradient(ellipse 40% 40% at 50% 10%,rgba(124,58,237,0.04) 0%,transparent 60%);
 }
 .hero-grid{
   position:absolute;inset:0;z-index:0;
@@ -109,8 +110,7 @@ nav{
 
 .hero-content{
   position:relative;z-index:2;
-  text-align:left;
-  max-width:600px;
+  max-width:720px;
 }
 .hero-eyebrow{
   display:inline-flex;align-items:center;gap:8px;
@@ -150,12 +150,12 @@ nav{
   color:var(--text-secondary);
   font-weight:300;
   line-height:1.75;
-  max-width:500px;
-  margin:0 0 40px;
+  max-width:560px;
+  margin:0 auto 40px;
   animation:fadeUp 0.7s 0.5s ease both;
 }
 .hero-actions{
-  display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+  display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;
   animation:fadeUp 0.7s 0.6s ease both;
 }
 .btn-primary{
@@ -182,54 +182,16 @@ nav{
 }
 .btn-secondary:hover{background:var(--fog);border-color:var(--fog-3);transform:translateY(-1px)}
 
-/* ── PHONE MOCKUP ── */
-.hero-visual{
-  position:relative;z-index:2;
-  display:flex;align-items:center;justify-content:center;
-  animation:fadeUp 0.9s 0.4s ease both;
-}
-.phone-wrap{
-  position:relative;
-  width:260px;
-}
-.phone-float{
-  animation:phoneFloat 6s ease-in-out infinite;
-  filter:drop-shadow(0 40px 80px rgba(13,27,62,0.18)) drop-shadow(0 8px 24px rgba(13,27,62,0.12));
-}
-@keyframes phoneFloat{
-  0%,100%{transform:translateY(0) rotate(-1.5deg)}
-  50%{transform:translateY(-14px) rotate(1deg)}
-}
-.phone-svg-frame{
-  width:100%;
-  height:auto;
-}
-/* Glow orbs behind phone */
-.hero-glow-1{
-  position:absolute;width:300px;height:300px;
-  background:radial-gradient(circle,rgba(37,99,235,0.12) 0%,transparent 70%);
-  border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%);
-  z-index:-1;
-  animation:glowPulse 4s ease-in-out infinite;
-}
-.hero-glow-2{
-  position:absolute;width:200px;height:200px;
-  background:radial-gradient(circle,rgba(13,27,62,0.08) 0%,transparent 70%);
-  border-radius:50%;bottom:-40px;right:-20px;
-  z-index:-1;
-  animation:glowPulse 4s 2s ease-in-out infinite;
-}
-@keyframes glowPulse{0%,100%{opacity:0.6;transform:translate(-50%,-50%) scale(1)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}}
-@keyframes glowPulse2{0%,100%{opacity:0.4;transform:scale(1)}50%{opacity:0.7;transform:scale(1.1)}}
-
 /* ── HERO STATS STRIP ── */
 .hero-stats{
-  position:absolute;bottom:0;left:0;right:0;z-index:2;
+  position:relative;z-index:2;
   display:flex;align-items:center;justify-content:center;gap:0;
+  margin-top:48px;
   background:rgba(255,255,255,0.7);
   backdrop-filter:blur(12px);
   -webkit-backdrop-filter:blur(12px);
-  border-top:1px solid rgba(228,227,222,0.5);
+  border:1px solid rgba(228,227,222,0.5);
+  border-radius:var(--radius-lg);
   animation:fadeUp 0.7s 0.8s ease both;
 }
 .hero-stat{
@@ -706,16 +668,13 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
   .nav-links{display:none}
   section{padding:70px 24px}
   .hero{
-    grid-template-columns:1fr;
     padding:100px 24px 80px;
     min-height:auto;
-    text-align:center;
   }
-  .hero-content{text-align:center;max-width:100%}
+  .hero-content{max-width:100%}
   .hero-sub{margin:0 auto 40px}
   .hero-actions{justify-content:center}
-  .hero-visual{display:none}
-  .hero-stats{position:static;margin-top:40px;border-radius:var(--radius-lg);border:1px solid var(--border);background:rgba(255,255,255,0.8)}
+  .hero-stats{margin-top:40px;border-radius:var(--radius-lg);border:1px solid var(--border);background:rgba(255,255,255,0.8)}
   .hero-stat{max-width:none}
   .trust-grid{grid-template-columns:repeat(2,1fr)}
   .install-steps{grid-template-columns:1fr}
@@ -778,81 +737,6 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="1" width="12" height="14" rx="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h6M5 9.5h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
         <span id="hero-install-label">Install on iPhone</span>
       </button>
-    </div>
-  </div>
-
-  <!-- Animated phone mockup -->
-  <div class="hero-visual">
-    <div class="hero-glow-1"></div>
-    <div class="hero-glow-2"></div>
-    <div class="phone-wrap">
-      <div class="phone-float">
-        <svg class="phone-svg-frame" viewBox="0 0 260 520" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <!-- Phone frame -->
-          <rect x="1" y="1" width="258" height="518" rx="40" fill="#0d1b3e" stroke="#1e2f5e" stroke-width="2"/>
-          <!-- Screen area -->
-          <rect x="10" y="10" width="240" height="500" rx="33" fill="#0f2053"/>
-          <!-- Dynamic island -->
-          <rect x="95" y="22" width="70" height="22" rx="11" fill="#0a0a0f"/>
-          <!-- Status bar dots -->
-          <circle cx="196" cy="33" r="3" fill="rgba(255,255,255,0.35)"/>
-          <circle cx="208" cy="33" r="3" fill="rgba(255,255,255,0.35)"/>
-          <!-- Top gradient header bar -->
-          <rect x="10" y="10" width="240" height="80" rx="33" fill="url(#headerGrad)"/>
-          <defs>
-            <linearGradient id="headerGrad" x1="10" y1="10" x2="250" y2="90" gradientUnits="userSpaceOnUse">
-              <stop stop-color="#162248"/>
-              <stop offset="1" stop-color="#1e2f5e" stop-opacity="0"/>
-            </linearGradient>
-          </defs>
-          <!-- App icon in header -->
-          <rect x="22" y="58" width="36" height="36" rx="10" fill="#2563eb"/>
-          <text x="40" y="80" font-family="system-ui,sans-serif" font-size="16" font-weight="700" fill="white" text-anchor="middle">CH</text>
-          <!-- Header text -->
-          <rect x="66" y="63" width="80" height="8" rx="4" fill="rgba(255,255,255,0.65)"/>
-          <rect x="66" y="77" width="50" height="6" rx="3" fill="rgba(255,255,255,0.3)"/>
-          <!-- Card 1: Attendance -->
-          <rect x="22" y="106" width="106" height="88" rx="14" fill="rgba(37,99,235,0.15)" stroke="rgba(37,99,235,0.25)" stroke-width="1"/>
-          <rect x="32" y="117" width="24" height="24" rx="7" fill="rgba(37,99,235,0.3)"/>
-          <rect x="32" y="148" width="56" height="7" rx="3.5" fill="rgba(255,255,255,0.55)"/>
-          <rect x="32" y="160" width="76" height="24" rx="6" fill="rgba(255,255,255,0.08)"/>
-          <rect x="36" y="168" width="30" height="8" rx="4" fill="rgba(96,165,250,0.7)"/>
-          <!-- Card 2: Results -->
-          <rect x="136" y="106" width="106" height="88" rx="14" fill="rgba(5,150,105,0.12)" stroke="rgba(5,150,105,0.2)" stroke-width="1"/>
-          <rect x="146" y="117" width="24" height="24" rx="7" fill="rgba(5,150,105,0.25)"/>
-          <rect x="146" y="148" width="48" height="7" rx="3.5" fill="rgba(255,255,255,0.55)"/>
-          <rect x="146" y="160" width="76" height="24" rx="6" fill="rgba(255,255,255,0.08)"/>
-          <rect x="150" y="168" width="40" height="8" rx="4" fill="rgba(52,211,153,0.6)"/>
-          <!-- Card 3: Timetable -->
-          <rect x="22" y="202" width="106" height="88" rx="14" fill="rgba(245,158,11,0.1)" stroke="rgba(245,158,11,0.2)" stroke-width="1"/>
-          <rect x="32" y="213" width="24" height="24" rx="7" fill="rgba(245,158,11,0.22)"/>
-          <rect x="32" y="244" width="60" height="7" rx="3.5" fill="rgba(255,255,255,0.55)"/>
-          <rect x="32" y="256" width="76" height="24" rx="6" fill="rgba(255,255,255,0.08)"/>
-          <!-- Card 4: ID -->
-          <rect x="136" y="202" width="106" height="88" rx="14" fill="rgba(124,58,237,0.1)" stroke="rgba(124,58,237,0.2)" stroke-width="1"/>
-          <rect x="146" y="213" width="24" height="24" rx="7" fill="rgba(124,58,237,0.22)"/>
-          <rect x="146" y="244" width="52" height="7" rx="3.5" fill="rgba(255,255,255,0.55)"/>
-          <rect x="146" y="256" width="76" height="24" rx="6" fill="rgba(255,255,255,0.08)"/>
-          <!-- Bottom list items -->
-          <rect x="22" y="302" width="218" height="50" rx="12" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
-          <rect x="32" y="316" width="24" height="24" rx="7" fill="rgba(255,255,255,0.07)"/>
-          <rect x="64" y="318" width="80" height="7" rx="3.5" fill="rgba(255,255,255,0.4)"/>
-          <rect x="64" y="330" width="50" height="5" rx="2.5" fill="rgba(255,255,255,0.18)"/>
-          <rect x="216" y="322" width="14" height="14" rx="3" fill="rgba(37,99,235,0.4)"/>
-          <rect x="22" y="358" width="218" height="50" rx="12" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
-          <rect x="32" y="372" width="24" height="24" rx="7" fill="rgba(255,255,255,0.07)"/>
-          <rect x="64" y="374" width="70" height="7" rx="3.5" fill="rgba(255,255,255,0.4)"/>
-          <rect x="64" y="386" width="40" height="5" rx="2.5" fill="rgba(255,255,255,0.18)"/>
-          <rect x="216" y="378" width="14" height="14" rx="3" fill="rgba(5,150,105,0.4)"/>
-          <rect x="22" y="414" width="218" height="50" rx="12" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
-          <rect x="32" y="428" width="24" height="24" rx="7" fill="rgba(255,255,255,0.07)"/>
-          <rect x="64" y="430" width="90" height="7" rx="3.5" fill="rgba(255,255,255,0.4)"/>
-          <rect x="64" y="442" width="55" height="5" rx="2.5" fill="rgba(255,255,255,0.18)"/>
-          <rect x="216" y="434" width="14" height="14" rx="3" fill="rgba(245,158,11,0.4)"/>
-          <!-- Home indicator -->
-          <rect x="103" y="496" width="54" height="4" rx="2" fill="rgba(255,255,255,0.25)"/>
-        </svg>
-      </div>
     </div>
   </div>
 
