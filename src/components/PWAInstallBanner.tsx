@@ -9,12 +9,13 @@ export function PWAInstallBanner() {
   const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
-    // Only show on iOS web (not in standalone/native app)
-    const isIOS = Platform.OS === 'ios';
-    const isStandalone = typeof window !== 'undefined' && 
-      window.matchMedia?.('(display-mode: standalone)').matches;
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+
+    // Detect iOS web
+    const isIOSWeb = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    const isStandalone = window.matchMedia?.('(display-mode: standalone)').matches || (navigator as any).standalone === true;
     
-    if (isIOS && !isStandalone) {
+    if (isIOSWeb && !isStandalone) {
       // Check if user has dismissed this session
       const dismissed = sessionStorage.getItem('ios-install-banner-dismissed');
       if (!dismissed) {
@@ -28,7 +29,9 @@ export function PWAInstallBanner() {
   const handleDismiss = () => {
     setIsVisible(false);
     setIsDismissed(true);
-    sessionStorage.setItem('ios-install-banner-dismissed', '1');
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      sessionStorage.setItem('ios-install-banner-dismissed', '1');
+    }
   };
 
   if (!isVisible || isDismissed) return null;
