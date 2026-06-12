@@ -1,5 +1,8 @@
 {
+  "buildCommand": "npx expo export --platform web --output-dir .expo-output && mkdir -p dist && cp -r .expo-output/* dist/ && cp index.html dist/ && cp manifest.webmanifest dist/app/manifest.webmanifest 2>/dev/null || true && cp sw.js dist/app/sw.js 2>/dev/null || true && for f in dist/app/*.html; do sed -i 's|href=\"/manifest.json\"|href=\"/app/manifest.json\"|g' \"$f\" 2>/dev/null || true; done",
   "outputDirectory": "dist",
+  "installCommand": "npm install",
+  "framework": null,
   "cleanUrls": true,
   "rewrites": [
     {
