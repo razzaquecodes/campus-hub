@@ -1,5 +1,4 @@
 {
-  "framework": "static",
   "outputDirectory": "dist",
   "cleanUrls": true,
   "trailingSlash": false,
