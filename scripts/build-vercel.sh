@@ -60,6 +60,9 @@ fi
 if [ -d "assets/images" ]; then
   mkdir -p dist/assets/images
   cp assets/images/*.png dist/assets/images/
+  # Also copy to dist/app/assets/images for landing page icons
+  mkdir -p dist/app/assets/images
+  cp assets/images/*.png dist/app/assets/images/ 2>/dev/null || true
 fi
 
 # Step 7: Also copy icons to /app/ for PWA
