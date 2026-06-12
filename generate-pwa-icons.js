@@ -37,6 +37,20 @@ async function generate() {
     fs.copyFileSync(faviconSrc, path.join(APP_DIR, 'favicon.png'));
   }
 
+  // Copy all assets/images to app/assets/images (for landing page icons)
+  const assetsDir = path.join(__dirname, 'assets/images');
+  const appAssetsDir = path.join(APP_DIR, 'assets/images');
+  if (fs.existsSync(assetsDir)) {
+    if (!fs.existsSync(appAssetsDir)) {
+      fs.mkdirSync(appAssetsDir, { recursive: true });
+    }
+    const assetFiles = fs.readdirSync(assetsDir).filter(f => f.endsWith('.png'));
+    assetFiles.forEach(file => {
+      fs.copyFileSync(path.join(assetsDir, file), path.join(appAssetsDir, file));
+    });
+    console.log('Copied ' + assetFiles.length + ' assets to app/assets/images/');
+  }
+
   console.log('PWA icons generated successfully for both public/ and app/ directories.');
 }
 generate();
