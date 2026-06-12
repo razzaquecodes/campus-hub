@@ -1,62 +1,40 @@
 {
   "framework": "static",
-  "buildCommand": "",
-  "installCommand": "",
   "outputDirectory": "dist",
   "cleanUrls": true,
+  "trailingSlash": false,
   "rewrites": [
-    {
-      "source": "/app",
-      "destination": "/app/"
-    },
-    {
-      "source": "/app/_expo/static/(.*)",
-      "destination": "/app/_expo/static/$1"
-    },
-    {
-      "source": "/app/(.*)",
-      "destination": "/app/index.html"
-    }
+    { "source": "/app", "destination": "/app/" },
+    { "source": "/app/_expo/static/(.*)", "destination": "/app/_expo/static/$1" },
+    { "source": "/app/(.*)", "destination": "/app/index.html" }
+  ],
+  "redirects": [
+    { "source": "/index.html", "destination": "/", "permanent": true }
   ],
   "headers": [
     {
       "source": "/app/manifest.webmanifest",
       "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/manifest+json"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
-        }
+        { "key": "Content-Type", "value": "application/manifest+json" },
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
       ]
     },
     {
       "source": "/app/sw.js",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        }
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
       ]
     },
     {
       "source": "/app/_expo/static/(.*)",
       "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     },
     {
       "source": "/(.*)",
       "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        }
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
       ]
     }
   ]
