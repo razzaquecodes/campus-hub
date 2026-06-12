@@ -21,6 +21,10 @@ export interface StudentModel {
   abcId: string;
   profilePhotoUrl?: string;
 
+  // ── Academic ──────────────────────────────────────────────────────────
+  /** Current semester from official MAKAUT records (1-8) */
+  currentSemester?: string;
+
   // ── Verification metadata ─────────────────────────────────────────────
   /** Whether MAKAUT verification was successful */
   verified: boolean;
