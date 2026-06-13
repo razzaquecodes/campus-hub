@@ -21,6 +21,7 @@
 import { create } from 'zustand';
 
 import { queryClient } from '@/lib/query-client';
+import { supabase } from '@/lib/supabase';
 import { clearSession } from '@/services/makaut-auth.service';
 import type { StudentProfile, UserProfile } from '@/types/database';
 import type { StudentModel } from '@/types/student';
@@ -109,6 +110,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     storeLog('signOut: starting');
     set({ isLoading: true, error: null });
     try {
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
       await clearSession();
       await queryClient.clear();
       set({ profile: null, makautProfile: null, isLoading: false, error: null });

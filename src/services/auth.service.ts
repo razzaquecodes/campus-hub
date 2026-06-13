@@ -66,14 +66,16 @@ const NATIVE_REDIRECT_URI = `${APP_SCHEME}://${OAUTH_CALLBACK_PATH}`;
 // Build the redirect URI for OAuth callback.
 // For standalone/bare builds (development builds, production), use native directly.
 // For Expo Go, makeRedirectUri will use scheme + path to generate the proper URL.
-export const REDIRECT_URI: string = makeRedirectUri({
-  // native: returned directly in standalone/bare builds (most important)
-  native: NATIVE_REDIRECT_URI,
-  // scheme: used by makeRedirectUri in Expo Go (storeClient) via Linking.createURL
-  scheme: APP_SCHEME,
-  // Ensure the path is appended for web and Expo Go
-  path: OAUTH_CALLBACK_PATH,
-});
+export const REDIRECT_URI: string = Platform.OS === 'web'
+  ? 'https://campushubq.vercel.app/oauth-callback'
+  : makeRedirectUri({
+      // native: returned directly in standalone/bare builds (most important)
+      native: NATIVE_REDIRECT_URI,
+      // scheme: used by makeRedirectUri in Expo Go (storeClient) via Linking.createURL
+      scheme: APP_SCHEME,
+      // Ensure the path is appended for web and Expo Go
+      path: OAUTH_CALLBACK_PATH,
+    });
 
 authLog('Redirect URI computed', {
   redirectUri: REDIRECT_URI,
@@ -151,7 +153,7 @@ export async function signInWithGoogle(): Promise<void> {
     provider: 'google',
     options: {
       redirectTo: REDIRECT_URI,
-      skipBrowserRedirect: true,
+      skipBrowserRedirect: Platform.OS !== 'web', // Native uses openAuthSessionAsync, Web lets Supabase redirect
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',
@@ -172,12 +174,17 @@ export async function signInWithGoogle(): Promise<void> {
     oauthUrl: __DEV__ ? data.url : '(redacted)',
   });
 
+  if (Platform.OS === 'web') {
+    authLog('Step 2: Supabase handles redirect automatically for web.');
+    // Execution will not continue here as the page redirects.
+    // The OAuth flow will resume in oauth-callback.tsx when it returns.
+    // Return a never-resolving promise to pause execution here so the
+    // UI doesn't transition unexpectedly while the browser redirects.
+    return new Promise(() => {});
+  }
+
   // Step 2: Open Google sign-in in ASWebAuthenticationSession (iOS) /
-  //   Chrome Custom Tab (Android) / Browser tab (web).
-  //
-  //   For web: use openAuthSessionAsync with the OAuth URL
-  //   The redirect URL must match what we registered in Supabase
-  //
+  //   Chrome Custom Tab (Android).
   authLog('Step 2: Opening browser for Google consent...');
   const result = await WebBrowser.openAuthSessionAsync(
     data.url,

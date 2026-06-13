@@ -13,19 +13,25 @@ export interface MakautFeedItem {
 
 export const fetchMakautFeed = async (limit: number = 20): Promise<MakautFeedItem[]> => {
   if (!supabase) {
-    throw new Error('Supabase client is not initialized');
+    console.warn('[MakautFeedAPI] Supabase client is not initialized');
+    return [];
   }
 
-  const { data, error } = await supabase
-    .from('makaut_updates')
-    .select('*')
-    .order('date_published', { ascending: false })
-    .limit(limit);
+  try {
+    const { data, error } = await supabase
+      .from('makaut_updates')
+      .select('*')
+      .order('date_published', { ascending: false })
+      .limit(limit);
 
-  if (error) {
-    console.error('[MakautFeedAPI] Error fetching makaut feed:', error);
-    throw new Error(error.message);
+    if (error) {
+      console.warn('[MakautFeedAPI] Error fetching makaut feed (table might not exist):', error.message);
+      return [];
+    }
+
+    return data as MakautFeedItem[];
+  } catch (err) {
+    console.error('[MakautFeedAPI] Exception fetching makaut feed:', err);
+    return [];
   }
-
-  return data as MakautFeedItem[];
 };

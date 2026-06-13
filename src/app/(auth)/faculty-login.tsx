@@ -42,30 +42,7 @@ export default function FacultyLoginScreen() {
   const handleGoogleLogin = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
 
-    // --- PWA iOS Detection & Intercept ---
-    const isWeb = Platform.OS === 'web';
-    // @ts-ignore - navigator is only on web
-    const isIOSWeb = isWeb && /iPad|iPhone|iPod/.test(navigator.userAgent);
-    // @ts-ignore - standalone is an Apple-specific non-standard property
-    const isPWA = isWeb && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone);
-
-    if (isIOSWeb && isPWA) {
-      Alert.alert(
-        'Action Required',
-        'Google Sign-In is restricted by Apple within installed web apps. Please log in through Safari directly or download our native iOS app.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Open in Safari', 
-            onPress: () => {
-              window.open(window.location.href, '_blank');
-            }
-          }
-        ]
-      );
-      return;
-    }
-    // -------------------------------------
+    // --- PWA iOS Detection removed since Web now uses skipBrowserRedirect: false ---
 
     setLoading(true);
 
