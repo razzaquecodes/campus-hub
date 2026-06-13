@@ -53,17 +53,15 @@ export default function OAuthCallbackScreen() {
           const email = session.user.email?.trim().toLowerCase();
           if (!email) throw new Error('No email found in session');
 
-          const { data: facultyRow, error: facultyError } = await supabase
-            .from('faculty')
-            .select('email')
-            .eq('email', email)
-            .limit(1)
-            .single();
+         const { data: adminRow, error: adminError } = await supabase
+  .from('admins')
+  .select('email')
+  .eq('email', email)
+  .single();
 
-          if (facultyError || !facultyRow) {
-            throw new Error('You are not authorized to access the faculty portal.');
-          }
-
+if (adminError || !adminRow) {
+  throw new Error('You are not authorized to access the faculty portal.');
+}
           useAdminStore.getState().setAdmin(email);
           router.replace('/faculty');
         } catch (err: any) {
