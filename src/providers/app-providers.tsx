@@ -29,6 +29,9 @@ import { resolveMasterProfile } from '@/services/profile.service';
 import { mapStudentToUserProfile, useAuthStore } from '@/store/auth.store';
 import { useStudentStore } from '@/store/student.store';
 import { useProfileStore } from '@/store/useProfileStore';
+import { useAdminStore } from '@/store/admin.store';
+import { useFacultyStore } from '@/store/faculty.store';
+import { supabase } from '@/lib/supabase';
 import { AppState } from 'react-native';
 
 function hydratorLog(message: string, details?: Record<string, unknown>) {
@@ -65,12 +68,45 @@ function AuthHydrator({ children }: { children: React.ReactNode }) {
       setIsHydrated(true);
     }, 5000); // 5 second fallback
 
-    restoreSession()
+    const hydrateFaculty = async () => {
+      try {
+        if (!supabase) return;
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.email) {
+          const email = session.user.email.trim().toLowerCase();
+          const { data: facultyRow } = await supabase
+            .from('faculty')
+            .select('id, full_name, department, designation, email, phone, created_at')
+            .eq('email', email)
+            .limit(1)
+            .single();
+
+          if (facultyRow) {
+            useFacultyStore.getState().setProfile({
+              id: facultyRow.id,
+              name: facultyRow.full_name,
+              department: facultyRow.department,
+              designation: facultyRow.designation,
+              employeeId: facultyRow.id,
+              email: facultyRow.email || email,
+              phone: facultyRow.phone || '',
+              joiningDate: facultyRow.created_at,
+            });
+            useAdminStore.getState().setAdmin(email);
+            hydratorLog('AuthHydrator: faculty session restored');
+          }
+        }
+      } catch (e) {
+        hydratorLog('AuthHydrator: faculty hydrate failed', { error: String(e) });
+      }
+    };
+
+    Promise.all([restoreSession(), hydrateFaculty()])
       .then(() => {
-        hydratorLog('AuthHydrator: restoreSession completed');
+        hydratorLog('AuthHydrator: restore sessions completed');
       })
       .catch((e) => {
-        hydratorLog('AuthHydrator: restoreSession threw (non-fatal)', {
+        hydratorLog('AuthHydrator: restore sessions threw (non-fatal)', {
           error: e instanceof Error ? e.message : String(e),
         });
       })

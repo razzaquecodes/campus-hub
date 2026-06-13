@@ -15,6 +15,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, View, Platform, Alert, Text } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
+import { useFacultyStore } from '@/store/faculty.store';
 import { useAdminStore } from '@/store/admin.store';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -70,15 +71,28 @@ export default function OAuthCallbackScreen() {
           const email = session.user.email?.trim().toLowerCase();
           if (!email) throw new Error('No email found in session');
 
-          const { data: adminRow, error: adminError } = await supabase
-            .from('admins')
-            .select('email')
+          const { data: facultyRow, error: facultyError } = await supabase
+            .from('faculty')
+            .select('id, full_name, department, designation, email, phone, created_at')
             .eq('email', email)
+            .limit(1)
             .single();
 
-          if (adminError || !adminRow) {
+          if (facultyError || !facultyRow) {
             throw new Error('You are not authorized to access the faculty portal.');
           }
+
+          useFacultyStore.getState().setProfile({
+            id: facultyRow.id,
+            name: facultyRow.full_name,
+            department: facultyRow.department,
+            designation: facultyRow.designation,
+            employeeId: facultyRow.id,
+            email: facultyRow.email || email,
+            phone: facultyRow.phone || '',
+            joiningDate: facultyRow.created_at,
+          });
+
           useAdminStore.getState().setAdmin(email);
           router.replace('/faculty');
         } catch (err: any) {

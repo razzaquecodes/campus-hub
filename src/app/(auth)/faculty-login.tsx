@@ -18,6 +18,7 @@ import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase';
 import { signInWithGoogle } from '@/services/auth.service';
+import { useFacultyStore } from '@/store/faculty.store';
 import { useAdminStore } from '@/store/admin.store';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -64,7 +65,7 @@ export default function FacultyLoginScreen() {
 
       const { data: facultyRow, error: facultyError } = await supabase
         .from('faculty')
-        .select('email')
+        .select('id, full_name, department, designation, email, phone, created_at')
         .eq('email', normalizedEmail)
         .limit(1)
         .single();
@@ -73,6 +74,17 @@ export default function FacultyLoginScreen() {
         console.warn('[faculty-login] Unauthorized faculty login attempt for', normalizedEmail);
         throw new Error('You are not authorized to access the faculty portal.');
       }
+
+      useFacultyStore.getState().setProfile({
+        id: facultyRow.id,
+        name: facultyRow.full_name,
+        department: facultyRow.department,
+        designation: facultyRow.designation,
+        employeeId: facultyRow.id,
+        email: facultyRow.email || normalizedEmail,
+        phone: facultyRow.phone || '',
+        joiningDate: facultyRow.created_at,
+      });
 
       useAdminStore.getState().setAdmin(normalizedEmail);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});

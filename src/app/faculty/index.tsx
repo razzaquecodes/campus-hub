@@ -35,12 +35,13 @@ export default function FacultyAnnouncementDashboard() {
   }, []);
 
   useEffect(() => {
+    if (!profile) return;
     attendanceService.getActiveSessions().then((sessions) => {
       const facultySessions = sessions.filter((s) => s.faculty_id === profile.employeeId);
       const totalSubs = facultySessions.reduce((sum, s) => sum + (s.live_count ?? 0), 0);
       setAttendanceStats({ sessions: facultySessions.length, submissions: totalSubs });
     }).catch(() => {});
-  }, [profile.employeeId]);
+  }, [profile?.employeeId]);
 
   const nextClass = todayRoutine.find(c => c.status === 'Upcoming') || todayRoutine[0];
 
@@ -69,7 +70,7 @@ export default function FacultyAnnouncementDashboard() {
     );
   };
 
-  if (isLoading) {
+  if (isLoading || !profile) {
     return (
       <View style={[ss.root, { backgroundColor: theme.colors.void, paddingTop: insets.top + Spacing.xl, paddingHorizontal: Spacing.page.horizontal }]}>
         <Animated.View exiting={FadeOut} style={{ gap: Spacing.xl }}>
