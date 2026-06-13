@@ -1514,9 +1514,9 @@ const platform = detectPlatform();
 (function(){
   const label = document.getElementById('hero-install-label');
   if(!label) return;
-  if(platform==='ios') label.textContent='Install on iPhone';
-  else if(platform==='android') label.textContent='Install on Android';
-  else label.textContent='Install App';
+  if(platform==='ios') label.textContent='Open for iPhone';
+  else if(platform==='android') label.textContent='Download for Android';
+  else label.textContent='Open App';
 })();
 
 /* Activate correct platform tab on load */
@@ -1560,13 +1560,15 @@ function closeIOSModal(e){
 /* Smart button routing */
 function routeInstall(){
   if(platform==='ios'){
-    openIOSModal();
+    // Navigate to the PWA at /app/
+    window.location.href = '/app/';
   } else if(platform==='android'){
+    // For Android, scroll to the install section
     document.getElementById('install')?.scrollIntoView({behavior:'smooth'});
     setTimeout(()=>switchPanel('android'),400);
   } else {
-    document.getElementById('install')?.scrollIntoView({behavior:'smooth'});
-    setTimeout(()=>switchPanel('desktop'),400);
+    // Desktop: open the PWA
+    window.location.href = '/app/';
   }
 }
 

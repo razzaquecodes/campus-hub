@@ -147,7 +147,9 @@ function AppShell() {
   useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       // With baseUrl: '/app', the service worker is at /app/sw.js
-      navigator.serviceWorker.register('/app/sw.js').then((registration) => {
+      // Use the correct path for the service worker
+      const swPath = '/app/sw.js';
+      navigator.serviceWorker.register(swPath).then((registration) => {
         console.info('[ServiceWorker] Registered with scope:', registration.scope);
       }).catch((err) => {
         console.error('[ServiceWorker] Registration failed:', err);

@@ -20,7 +20,9 @@ export const supabase = (isSupabaseConfigured
         storage: supabaseAuthStorage,
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: false,
+        // For web, we need detectSessionInUrl: true to handle OAuth callbacks properly
+        // For native, we handle the callback manually in auth.service.ts
+        detectSessionInUrl: Platform.OS === 'web',
         flowType: 'pkce',
       },
     })

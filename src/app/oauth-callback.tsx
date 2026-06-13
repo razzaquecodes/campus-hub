@@ -8,11 +8,14 @@
  * After the auth service completes the token exchange, this page serves as
  * a visual confirmation that the callback was received. It then navigates
  * back to the faculty login screen to complete the flow.
+ * 
+ * For Web: The callback URL contains the auth code in query parameters.
+ * We extract it here and let the auth service handle the exchange.
  */
 import * as WebBrowser from 'expo-web-browser';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useEffect } from 'react';
-import { ActivityIndicator, View, Platform } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { ActivityIndicator, Platform, View } from 'react-native';
 
 // ─── CRITICAL ──────────────────────────────────────────────────────────────────
 // This must be called at module scope. When the deep link opens this file,
@@ -22,18 +25,19 @@ WebBrowser.maybeCompleteAuthSession();
 
 export default function OAuthCallbackScreen() {
   const params = useLocalSearchParams();
+  const navigationHandled = useRef(false);
 
   useEffect(() => {
+    // Prevent multiple navigations
+    if (navigationHandled.current) return;
+    
     console.info('[oauth-callback] Reached callback route.', params);
     
-    // In bare workflow on Android, maybeCompleteAuthSession() might not automatically
-    // close the window if it opened a separate activity. We give it a tiny
-    // buffer to process, then fallback to replacing the route.
+    // On web, maybeCompleteAuthSession handles everything via postMessage.
+    // For native, we give it a buffer then fallback to redirecting.
     const timer = setTimeout(() => {
-      if (Platform.OS === 'web') {
-        // On web, maybeCompleteAuthSession handles everything via postMessage.
-        return;
-      }
+      if (navigationHandled.current) return;
+      navigationHandled.current = true;
       
       console.info('[oauth-callback] Fallback redirect triggered.');
       // Navigate back to faculty login - the auth service has already processed
@@ -43,6 +47,18 @@ export default function OAuthCallbackScreen() {
 
     return () => clearTimeout(timer);
   }, [params]);
+
+  // Handle error params from OAuth callback
+  useEffect(() => {
+    if (params.error) {
+      console.error('[oauth-callback] OAuth error:', params.error, params.error_description);
+      navigationHandled.current = true;
+      router.replace({
+        pathname: '/(auth)/faculty-login',
+        params: { authError: params.error_description || params.error }
+      });
+    }
+  }, [params.error, params.error_description]);
 
   return (
     <View style={{ flex: 1, backgroundColor: '#000000', alignItems: 'center', justifyContent: 'center' }}>

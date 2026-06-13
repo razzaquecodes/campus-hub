@@ -55,6 +55,7 @@ function authLog(message: string, details?: Record<string, unknown>) {
 //
 //   Web
 //     Linking.createURL() produces https://localhost:PORT/oauth-callback
+//     For production, we use the current origin + /oauth-callback path
 //
 // WHY `native` MATTERS:
 //   In makeRedirectUri(), when executionEnvironment is 'bare' or 'standalone',
@@ -73,6 +74,20 @@ export const REDIRECT_URI: string = makeRedirectUri({
   scheme: APP_SCHEME,
   // No path parameter - we construct the full URL in native
 });
+
+// ─── Web-specific redirect URI ───────────────────────────────────────────────
+// For web, we need to use the current origin + path
+export function getWebRedirectUri(): string {
+  if (Platform.OS !== 'web') return REDIRECT_URI;
+  
+  // In browser, use the current origin
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}/oauth-callback`;
+  }
+  
+  // Fallback for SSR or when window is not available
+  return REDIRECT_URI;
+}
 
 authLog('Redirect URI computed', {
   redirectUri: REDIRECT_URI,
@@ -133,13 +148,17 @@ function parseUrlParams(url: string): Record<string, string> {
 export async function signInWithGoogle(): Promise<void> {
   if (!supabase) throw new Error('Supabase not configured');
 
+  const isWeb = Platform.OS === 'web';
+  const redirectTo = isWeb ? getWebRedirectUri() : REDIRECT_URI;
+
   authLog('▶ Starting Google OAuth', {
     executionEnvironment: Constants.executionEnvironment,
     appOwnership: Constants.appOwnership,
     platform: Platform.OS,
-    redirectUri: REDIRECT_URI,
+    redirectUri: redirectTo,
     nativeUri: NATIVE_REDIRECT_URI,
     scheme: APP_SCHEME,
+    isWeb,
   });
 
   // Step 1: Get the Google OAuth URL from Supabase.
@@ -149,7 +168,7 @@ export async function signInWithGoogle(): Promise<void> {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: REDIRECT_URI,
+      redirectTo,
       skipBrowserRedirect: true,
       queryParams: {
         access_type: 'offline',
@@ -167,7 +186,7 @@ export async function signInWithGoogle(): Promise<void> {
   authLog('Step 1 ✓ OAuth URL created', {
     provider: 'google',
     authHost: safeHost(data.url),
-    redirectUri: REDIRECT_URI,
+    redirectUri: redirectTo,
     oauthUrl: __DEV__ ? data.url : '(redacted)',
   });
 
@@ -178,9 +197,14 @@ export async function signInWithGoogle(): Promise<void> {
   //   The redirect URL must match what we registered in Supabase
   //
   authLog('Step 2: Opening browser for Google consent...');
+  
+  // For web, we use the full redirectTo (includes origin)
+  // For native, we use the scheme-based URI
+  const browserRedirectTo = isWeb ? redirectTo : REDIRECT_URI;
+  
   const result = await WebBrowser.openAuthSessionAsync(
     data.url,
-    REDIRECT_URI, // Second param is the return URL to detect
+    browserRedirectTo,
   );
 
   authLog('Step 2 complete — browser result', {
@@ -303,7 +327,7 @@ export async function signOut(): Promise<void> {
 // your Supabase project (Dashboard → Authentication → URL Configuration):
 //
 // REDIRECT URLs (must include ALL of these):
-//   - https://campushubq.vercel.app/api/auth/callback  (for web production)
+//   - https://campushubq.vercel.app/oauth-callback  (for web production)
 //   - campushub://oauth-callback                       (for iOS/Android native)
 //   - exp://*/*oauth-callback                          (for Expo Go development)
 //   - http://localhost:*/*                             (for local development)
