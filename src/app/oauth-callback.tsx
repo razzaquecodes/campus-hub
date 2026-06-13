@@ -11,8 +11,8 @@
  */
 import * as WebBrowser from 'expo-web-browser';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, View, Platform, Alert } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, View, Platform, Alert, Text } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 import { useAdminStore } from '@/store/admin.store';
@@ -22,6 +22,7 @@ WebBrowser.maybeCompleteAuthSession();
 export default function OAuthCallbackScreen() {
   const params = useLocalSearchParams();
   const [error, setError] = useState<string | null>(null);
+  const exchangedRef = useRef(false);
 
   useEffect(() => {
     console.info('[oauth-callback] Reached callback route.', params);
@@ -33,14 +34,30 @@ export default function OAuthCallbackScreen() {
         try {
           const hash = window.location.hash;
           const search = window.location.search;
+          const searchParams = new URLSearchParams(search);
+          const code = searchParams.get('code');
+          const errParam = searchParams.get('error') || searchParams.get('error_description');
           
-          if (!hash.includes('access_token=') && !search.includes('code=')) {
+          if (errParam) {
+            throw new Error(`OAuth Error: ${errParam}`);
+          }
+          
+          if (!hash.includes('access_token=') && !code) {
             // No tokens in URL, likely a cancelled login or missing params
             router.replace('/(auth)/faculty-login');
             return;
           }
 
-          // Supabase JS auto-handles the URL tokens on web. We just need to wait for the session.
+          // EXPLICITLY EXCHANGE CODE FOR SESSION
+          // This fixes the infinite spinner when detectSessionInUrl doesn't trigger automatically
+          if (code && !exchangedRef.current) {
+            exchangedRef.current = true;
+            console.info('[oauth-callback] Exchanging code for session explicitly...');
+            const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+            if (exchangeError) throw exchangeError;
+          }
+
+          // Now fetch the session
           const { data: { session }, error: sessionError } = await supabase.auth.getSession();
           
           if (sessionError) throw sessionError;
@@ -53,15 +70,15 @@ export default function OAuthCallbackScreen() {
           const email = session.user.email?.trim().toLowerCase();
           if (!email) throw new Error('No email found in session');
 
-         const { data: adminRow, error: adminError } = await supabase
-  .from('admins')
-  .select('email')
-  .eq('email', email)
-  .single();
+          const { data: adminRow, error: adminError } = await supabase
+            .from('admins')
+            .select('email')
+            .eq('email', email)
+            .single();
 
-if (adminError || !adminRow) {
-  throw new Error('You are not authorized to access the faculty portal.');
-}
+          if (adminError || !adminRow) {
+            throw new Error('You are not authorized to access the faculty portal.');
+          }
           useAdminStore.getState().setAdmin(email);
           router.replace('/faculty');
         } catch (err: any) {
@@ -80,12 +97,19 @@ if (adminError || !adminRow) {
       });
 
       return () => subscription.unsubscribe();
+    } else {
+      // For native, if we end up stuck here without the browser closing, auto-redirect back
+      const timer = setTimeout(() => {
+        router.replace('/(auth)/faculty-login');
+      }, 3000);
+      return () => clearTimeout(timer);
     }
   }, [params]);
 
   return (
     <View style={{ flex: 1, backgroundColor: '#000000', alignItems: 'center', justifyContent: 'center' }}>
       <ActivityIndicator size="large" color="#60A5FA" />
+      {error && <Text style={{ color: '#EF4444', marginTop: 16 }}>{error}</Text>}
     </View>
   );
 }

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Campus Hub — Your Complete College Companion</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,200;0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=Geist+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,200;0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 /* ── RESET ── */
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -40,7 +40,7 @@ html{scroll-behavior:smooth;}
   --radius-lg:22px;
   --radius-xl:32px;
   --radius-pill:999px;
-  --f-display:'DM Sans',system-ui,sans-serif;
+  --f-display:'Instrument Serif',Georgia,serif;
   --f-body:'DM Sans',system-ui,sans-serif;
   --f-mono:'Geist Mono',monospace;
   --shadow-sm:0 1px 3px rgba(10,10,15,0.06),0 1px 2px rgba(10,10,15,0.04);
@@ -95,9 +95,9 @@ nav{
 .hero-bg{
   position:absolute;inset:0;z-index:0;
   background:
-    radial-gradient(ellipse 60% 60% at 50% 0%,rgba(37,99,235,0.08) 0%,transparent 70%),
-    radial-gradient(ellipse 70% 70% at 80% 100%,rgba(13,27,62,0.06) 0%,transparent 60%),
-    radial-gradient(ellipse 40% 40% at 20% 80%,rgba(124,58,237,0.07) 0%,transparent 70%);
+    radial-gradient(ellipse 60% 60% at 50% 0%,rgba(37,99,235,0.06) 0%,transparent 70%),
+    radial-gradient(ellipse 70% 70% at 80% 100%,rgba(13,27,62,0.04) 0%,transparent 60%),
+    radial-gradient(ellipse 40% 40% at 20% 80%,rgba(124,58,237,0.05) 0%,transparent 70%);
   animation: bgShift 15s ease-in-out infinite alternate;
 }
 @keyframes bgShift {
@@ -105,18 +105,33 @@ nav{
   100% { transform: scale(1.05); }
 }
 
+.hero-grid{
+  position:absolute;inset:0;z-index:0;
+  background-image:
+    linear-gradient(rgba(10,10,15,0.03) 1px, transparent 1px),
+    linear-gradient(90deg,rgba(10,10,15,0.03) 1px, transparent 1px);
+  background-size:60px 60px;
+  mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 20%,transparent 80%);
+  -webkit-mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 20%,transparent 80%);
+  animation: gridMove 30s linear infinite;
+}
+@keyframes gridMove {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(60px); }
+}
+
 .hero-glow-blob-1 {
   position:absolute;width:40vw;height:40vw;max-width:500px;max-height:500px;
   background:radial-gradient(circle, rgba(37,99,235,0.08) 0%, transparent 70%);
   border-radius:50%;top:10%;left:15%;
-  filter:blur(60px);z-index:0;
+  filter:blur(40px);z-index:0;
   animation:blobFloat1 12s infinite alternate ease-in-out;
 }
 .hero-glow-blob-2 {
   position:absolute;width:45vw;height:45vw;max-width:600px;max-height:600px;
   background:radial-gradient(circle, rgba(124,58,237,0.06) 0%, transparent 70%);
   border-radius:50%;bottom:10%;right:15%;
-  filter:blur(60px);z-index:0;
+  filter:blur(50px);z-index:0;
   animation:blobFloat2 15s infinite alternate-reverse ease-in-out;
 }
 
@@ -145,7 +160,7 @@ nav{
   border-radius:var(--radius-pill);
   padding:6px 16px 6px 8px;
   margin-bottom:24px;
-  animation:smoothBlurIn 0.8s 0.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation:smoothFadeUp 0.8s 0.1s cubic-bezier(0.16, 1, 0.3, 1) both;
   box-shadow: 0 4px 12px rgba(37,99,235,0.05);
 }
 .eyebrow-text{font-size:13px;font-weight:600;color:var(--electric);letter-spacing:0.5px;text-transform:uppercase}
@@ -153,40 +168,40 @@ nav{
 .hero-h1{
   font-family:var(--f-display);
   font-size:clamp(48px, 6.5vw, 84px);
-  font-weight:700;
-  line-height:0.95;
-  letter-spacing:-3px;
+  font-weight:400;
+  line-height:1.0;
+  letter-spacing:-2px;
   color:var(--ink);
   margin-bottom:8px;
-  animation:smoothBlurIn 0.8s 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation:smoothFadeUp 0.8s 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-.hero-h1 em{font-style:normal;color:var(--navy)}
+.hero-h1 em{font-style:italic;color:var(--navy)}
 .hero-h1-sub{
   font-family:var(--f-display);
   font-size:clamp(48px, 6.5vw, 84px);
-  font-weight:700;
-  font-style:normal;
-  line-height:1.0;
-  letter-spacing:-3px;
+  font-weight:400;
+  font-style:italic;
+  line-height:1.05;
+  letter-spacing:-2px;
   color:var(--electric);
   margin-bottom:32px;
-  animation:smoothBlurIn 0.8s 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
-  background: linear-gradient(135deg, var(--electric), #7c3aed, #ec4899);
+  animation:smoothFadeUp 0.8s 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  background: linear-gradient(to right, var(--electric), #7c3aed);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 .hero-sub{
   font-size:clamp(16px, 1.2vw, 19px);
   color:var(--text-secondary);
-  font-weight:400;
+  font-weight:300;
   line-height:1.65;
   max-width:640px;
   margin:0 auto 48px;
-  animation:smoothBlurIn 0.8s 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation:smoothFadeUp 0.8s 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .hero-actions{
   display:flex;gap:16px;align-items:center;justify-content:center;flex-wrap:wrap;
-  animation:smoothBlurIn 0.8s 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation:smoothFadeUp 0.8s 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .btn-primary{
   display:inline-flex;align-items:center;gap:8px;
@@ -235,7 +250,6 @@ nav{
 .hero-stat-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted)}
 
 @keyframes smoothFadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
-@keyframes smoothBlurIn{from{opacity:0;transform:translateY(30px) scale(0.95);filter:blur(10px)}to{opacity:1;transform:none;filter:blur(0)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
 
 /* ── SECTION BASE ── */
@@ -698,16 +712,16 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
 
 /* ── RESPONSIVE ── */
 @media(max-width:900px){
-  nav{padding:0 24px}
+  nav{padding:0 20px}
   .nav-links{display:none}
-  section{padding:80px 24px}
+  section{padding:70px 24px}
   .hero{
-    padding:160px 24px 100px;
+    padding:120px 24px 120px;
     min-height:auto;
   }
   .hero-content{max-width:100%}
   .hero-sub{margin:0 auto 40px}
-  .hero-stats{position:static;margin-top:48px;border-radius:var(--radius-lg);border:1px solid var(--border);background:rgba(255,255,255,0.7);backdrop-filter:blur(24px) saturate(1.5);-webkit-backdrop-filter:blur(24px) saturate(1.5);overflow:hidden;box-shadow:0 8px 32px rgba(10,10,15,0.04);}
+  .hero-stats{position:static;margin-top:40px;border-radius:var(--radius-lg);border:1px solid var(--border);background:rgba(255,255,255,0.8)}
   .hero-stat{max-width:none}
   .trust-grid{grid-template-columns:repeat(2,1fr)}
   .install-steps{grid-template-columns:1fr}
@@ -721,7 +735,7 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
 @media(max-width:520px){
   .trust-grid{grid-template-columns:1fr}
   .hero-stats{flex-direction:column}
-  .hero-stat{border-right:none;border-bottom:1px solid rgba(228,227,222,0.5);padding:24px;}
+  .hero-stat{border-right:none;border-bottom:1px solid rgba(228,227,222,0.5)}
   .hero-stat:last-child{border-bottom:none}
 }
 </style>
@@ -751,6 +765,7 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
 <!-- HERO -->
 <section class="hero" id="top">
   <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
 
   <div class="hero-content">
     <div class="hero-eyebrow">
@@ -761,14 +776,14 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
     <div class="hero-h1-sub">College Companion</div>
     <p class="hero-sub">Student identity, academic data, exam results, and digital credentials — unified in one beautifully crafted app. No App Store required.</p>
     <div class="hero-actions">
-      <button type="button" class="btn-primary" id="hero-install-btn">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="1" width="12" height="14" rx="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h6M5 9.5h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-        <span id="hero-install-label">Install App</span>
-      </button>
-      <a class="btn-secondary" href="#install" id="hero-open-btn">
+      <a class="btn-primary" href="#" id="hero-open-btn">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Open App
       </a>
+      <button class="btn-secondary" id="hero-install-btn">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="1" width="12" height="14" rx="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h6M5 9.5h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        <span id="hero-install-label">Install on iPhone</span>
+      </button>
     </div>
   </div>
 
@@ -978,15 +993,15 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
 
     <!-- Platform tabs -->
     <div class="platform-tabs reveal" id="platform-tabs">
-      <button type="button" class="platform-tab active" data-panel="ios" onclick="switchPanel('ios')">
+      <button class="platform-tab active" data-panel="ios" onclick="switchPanel('ios')">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="3" stroke="currentColor" stroke-width="1.3"/><path d="M5 5.5C5 4.7 5.7 4 6.5 4H8c.8 0 1.5.7 1.5 1.5S8.8 7 8 7H6.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M5 7h3.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M5 9.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
         iPhone / iPad
       </button>
-      <button type="button" class="platform-tab" data-panel="android" onclick="switchPanel('android')">
+      <button class="platform-tab" data-panel="android" onclick="switchPanel('android')">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 9V6c0-2.8 2.2-5 5-5s5 2.2 5 5v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><rect x="1" y="9" width="3" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="10" y="9" width="3" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M4 9h6" stroke="currentColor" stroke-width="1.2"/></svg>
         Android
       </button>
-      <button type="button" class="platform-tab" data-panel="desktop" onclick="switchPanel('desktop')">
+      <button class="platform-tab" data-panel="desktop" onclick="switchPanel('desktop')">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M5 10v2M9 10v2M3 12h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
         Desktop
       </button>
@@ -996,10 +1011,10 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
     <div class="install-panel active reveal" id="panel-ios">
       <div class="install-progress">
         <div class="install-progress-dot active"></div>
-        <div class="install-progress-dot"></div>
-        <div class="install-progress-dot"></div>
-        <div class="install-progress-dot"></div>
-        <div class="install-progress-dot"></div>
+        <div class="install-progress-dot active"></div>
+        <div class="install-progress-dot active"></div>
+        <div class="install-progress-dot active"></div>
+        <div class="install-progress-dot active"></div>
       </div>
       <div class="install-steps">
         <div class="step-card">
@@ -1048,7 +1063,7 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
         <div class="install-note-text">No App Store download required. Campus Hub is a Progressive Web App that installs instantly from your browser.</div>
       </div>
       <div class="install-cta-row">
-        <button type="button" class="btn-install-primary" onclick="openIOSModal()">
+        <button class="btn-install-primary" onclick="openIOSModal()">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="14" height="14" rx="3.5" stroke="#0d1b3e" stroke-width="1.5"/><path d="M8 4v5M5.5 7l2.5 2 2.5-2" stroke="#0d1b3e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           View Full Guide
         </button>
@@ -1136,35 +1151,35 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
     </div>
     <div class="faq-list reveal">
       <div class="faq-item">
-        <div class="faq-question" role="button" tabindex="0" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' ')toggleFaq(this)">
+        <div class="faq-question" onclick="toggleFaq(this)">
           How do I install Campus Hub on iPhone?
           <div class="faq-chevron"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         </div>
         <div class="faq-answer"><p class="faq-answer-text">Open this website in Safari, tap the Share button (box with an arrow), scroll to "Add to Home Screen", and tap Add. Campus Hub will appear on your Home Screen like any native app.</p></div>
       </div>
       <div class="faq-item">
-        <div class="faq-question" role="button" tabindex="0" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' ')toggleFaq(this)">
+        <div class="faq-question" onclick="toggleFaq(this)">
           Does it require the App Store?
           <div class="faq-chevron"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         </div>
         <div class="faq-answer"><p class="faq-answer-text">No. Campus Hub is a Progressive Web App (PWA). You install it directly from your browser in seconds — no App Store or Play Store visit required.</p></div>
       </div>
       <div class="faq-item">
-        <div class="faq-question" role="button" tabindex="0" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' ')toggleFaq(this)">
+        <div class="faq-question" onclick="toggleFaq(this)">
           Can I install it on Android?
           <div class="faq-chevron"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         </div>
         <div class="faq-answer"><p class="faq-answer-text">Yes. Open this site in Chrome on your Android device. Chrome will show an "Add to Home Screen" prompt. You can also download the native APK directly from the Install section above.</p></div>
       </div>
       <div class="faq-item">
-        <div class="faq-question" role="button" tabindex="0" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' ')toggleFaq(this)">
+        <div class="faq-question" onclick="toggleFaq(this)">
           Does it work offline?
           <div class="faq-chevron"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         </div>
         <div class="faq-answer"><p class="faq-answer-text">Core app features and cached data are accessible offline. Live data like results and marks requires an internet connection to fetch fresh data from MAKAUT servers.</p></div>
       </div>
       <div class="faq-item">
-        <div class="faq-question" role="button" tabindex="0" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' ')toggleFaq(this)">
+        <div class="faq-question" onclick="toggleFaq(this)">
           Is my data secure?
           <div class="faq-chevron"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         </div>
@@ -1235,7 +1250,7 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
     <h2 class="cta-h2">Ready to explore<br><em>Campus Hub?</em></h2>
     <p class="cta-p">A fully functional application with real backend integration, secure authentication, and cloud persistence — built for BBIT students.</p>
     <div class="install-cta-row">
-      <button type="button" class="btn-primary-light" id="cta-install-btn">
+      <button class="btn-primary-light" id="cta-install-btn">
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="1" y="1" width="16" height="16" rx="4" stroke="#0d1b3e" stroke-width="1.5"/><path d="M9 5v6M6 9l3 3 3-3" stroke="#0d1b3e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Install App
       </button>
@@ -1302,7 +1317,7 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
   </div>
 
   <div class="footer-bottom">
-    <span class="footer-copyright" id="copyright-year">© <script>document.write(new Date().getFullYear())</script> Campus Hub. All rights reserved.</span>
+    <span class="footer-copyright" id="copyright-year">© 2026 Campus Hub. All rights reserved.</span>
     <span class="footer-credit">
       From a BBIT student, for BBIT students
       <span class="footer-credit-heart">❤</span>
@@ -1320,8 +1335,8 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
     <div class="pwa-banner-title">Install Campus Hub</div>
     <div class="pwa-banner-sub">Add to Home Screen for the best experience</div>
   </div>
-  <button type="button" class="pwa-banner-btn" id="pwa-install-btn">Install</button>
-  <button type="button" class="pwa-banner-close" onclick="dismissBanner()" aria-label="Dismiss">
+  <button class="pwa-banner-btn" id="pwa-install-btn">Install</button>
+  <button class="pwa-banner-close" onclick="dismissBanner()" aria-label="Dismiss">
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
   </button>
 </div>
@@ -1397,7 +1412,7 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
         </div>
       </div>
     </div>
-    <button type="button" class="modal-close-btn" onclick="closeIOSModalDirect()">Got it</button>
+    <button class="modal-close-btn" onclick="closeIOSModalDirect()">Got it</button>
   </div>
 </div>
 
@@ -1507,13 +1522,12 @@ document.getElementById('hero-open-btn')?.addEventListener('click', function(e){
 /* ── PWA INSTALL BANNER ── */
 let deferredPrompt = null;
 const banner = document.getElementById('pwa-banner');
-const bannerSuppressed = !!sessionStorage.getItem('pwa-banner-dismissed');
 
 window.addEventListener('beforeinstallprompt', (e)=>{
   e.preventDefault();
   deferredPrompt = e;
-  /* Only show banner if not already installed and not dismissed this session */
-  if(!window.matchMedia('(display-mode: standalone)').matches && !bannerSuppressed){
+  /* Only show banner if not already installed */
+  if(!window.matchMedia('(display-mode: standalone)').matches){
     setTimeout(()=>{ if(banner) banner.classList.add('show'); }, 3000);
   }
 });
@@ -1537,8 +1551,13 @@ function dismissBanner(){
   sessionStorage.setItem('pwa-banner-dismissed','1');
 }
 
+if(sessionStorage.getItem('pwa-banner-dismissed')){
+  /* won't show banner this session */
+  window.removeEventListener && window.removeEventListener('beforeinstallprompt', ()=>{});
+}
+
 /* ── PLATFORM DETECTION (used by multiple scripts) ── */
-// detectPlatform already defined above — no duplicate needed
+function detectPlatform(){const ua=navigator.userAgent||'';if(/iPad|iPhone|iPod/.test(ua)&&!window.MSStream)return'ios';if(/android/i.test(ua))return'android';return'desktop';}
 </script>
 </body>
 </html>

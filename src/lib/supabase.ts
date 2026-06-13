@@ -20,7 +20,7 @@ export const supabase = (isSupabaseConfigured
         storage: supabaseAuthStorage,
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: false,
+        detectSessionInUrl: true,
         flowType: 'pkce',
       },
     })
