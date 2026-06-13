@@ -46,6 +46,7 @@ import { attendanceRepository } from '@/repositories/attendance.repository';
 import { audienceToLabel } from '@/services/targeting.service';
 import { useAttendanceStore } from '@/store/attendance.store';
 import type { AttendanceSession } from '@/types/attendance';
+import { safeBack } from '@/lib/navigation';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -399,7 +400,7 @@ export default function StudentAttendanceRoute() {
         entering={FadeInDown.duration(400)}
         style={[ss.header, { paddingTop: insets.top + 12 }]}
       >
-        <SpringButton onPress={() => router.back()} scaleDown={0.88}>
+        <SpringButton onPress={() => safeBack('/(tabs)')} scaleDown={0.88}>
           <View style={[ss.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', borderColor: theme.colors.border }]}>
             <ArrowLeft color={theme.colors.textPrimary} size={20} strokeWidth={2.5} />
           </View>

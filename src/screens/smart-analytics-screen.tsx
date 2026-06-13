@@ -28,6 +28,7 @@ import { Radius, Spacing, Shadows } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useResults } from '@/hooks/queries/use-results';
 import { generateSmartAnalytics } from '@/utils/smart-analytics';
+import { safeBack } from '@/lib/navigation';
 
 export function SmartAnalyticsScreen() {
   const { theme, isDark } = useTheme();
@@ -89,7 +90,7 @@ export function SmartAnalyticsScreen() {
           },
         ]}
       >
-        <SpringButton onPress={() => router.back()} scaleDown={0.88}>
+        <SpringButton onPress={() => safeBack('/(tabs)')} scaleDown={0.88}>
           <View
             style={[
               s.backBtn,

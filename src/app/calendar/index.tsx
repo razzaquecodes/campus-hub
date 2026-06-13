@@ -9,6 +9,7 @@ import { ArrowLeft, Calendar as CalendarIcon, MapPin, Clock, BookOpen, PartyPopp
 import { useTheme } from '@/context/ThemeContext';
 import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { GlassCard, SpringButton } from '@/components/ui';
+import { safeBack } from '@/lib/navigation';
 
 interface CalendarEvent {
   id: string;
@@ -44,7 +45,7 @@ export default function AcademicCalendarScreen() {
       
       <Animated.View entering={FadeInDown.duration(400)} style={[ss.header, { paddingTop: insets.top + Spacing.sm }]}>
         <View style={ss.headerTopRow}>
-          <SpringButton onPress={() => router.back()} scaleDown={0.88}>
+          <SpringButton onPress={() => safeBack('/(tabs)')} scaleDown={0.88}>
             <GlassCard intensity={isDark ? 30 : 50} style={ss.backBtn}>
               <ArrowLeft color={theme.colors.textPrimary} size={20} strokeWidth={2.5} />
             </GlassCard>

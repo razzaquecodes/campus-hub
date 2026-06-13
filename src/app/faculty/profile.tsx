@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import React from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, LogOut, Mail, Phone, ShieldCheck, User } from 'lucide-react-native';
@@ -16,6 +16,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { useProfileStore } from '@/store/useProfileStore';
 import { queryClient } from '@/lib/query-client';
 import { supabase } from '@/lib/supabase';
+import { safeBack } from '@/lib/navigation';
 
 export default function FacultyProfile() {
   const { theme, isDark } = useTheme();
@@ -60,13 +61,27 @@ export default function FacultyProfile() {
     ]);
   };
 
+  if (!profile) {
+    return (
+      <View style={[ss.root, { backgroundColor: theme.colors.void, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={[Typography.body.md, { color: theme.colors.textSecondary, marginTop: Spacing.md }]}>
+          Loading profile...
+        </Text>
+        <SpringButton onPress={() => router.replace('/(auth)/faculty-login')} style={{ marginTop: Spacing.xl }}>
+          <Text style={[Typography.body.md, { color: theme.colors.primary }]}>Go to Login</Text>
+        </SpringButton>
+      </View>
+    );
+  }
+
   return (
     <View style={[ss.root, { backgroundColor: theme.colors.void }]}>
       {/* ── Header ── */}
       <Animated.View entering={FadeInDown.duration(400)} style={[ss.header, { paddingTop: insets.top + Spacing.sm }]}>
         <SpringButton onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          router.back();
+          safeBack('/faculty');
         }} scaleDown={0.88}>
           <GlassCard intensity={isDark ? 30 : 50} style={ss.backBtn}>
             <ArrowLeft color={theme.colors.textPrimary} size={20} strokeWidth={2.5} />
@@ -88,14 +103,14 @@ export default function FacultyProfile() {
           </LinearGradient>
           
           <View style={ss.nameRow}>
-            <Text style={[Typography.display.small, { color: theme.colors.textPrimary, letterSpacing: -0.5 }]}>{profile.name}</Text>
+            <Text style={[Typography.display.small, { color: theme.colors.textPrimary, letterSpacing: -0.5 }]}>{profile?.name || 'Faculty Member'}</Text>
             <ShieldCheck color={theme.colors.success} size={22} strokeWidth={2.5} style={{ marginLeft: 8 }} />
           </View>
-          <Text style={[Typography.headline.md, { color: theme.colors.textSecondary, marginTop: 4, fontWeight: '500' }]}>{profile.designation}</Text>
+          <Text style={[Typography.headline.md, { color: theme.colors.textSecondary, marginTop: 4, fontWeight: '500' }]}>{profile?.designation || 'Pending'}</Text>
           
           <View style={[ss.deptBadge, { backgroundColor: isDark ? 'rgba(99,102,241,0.15)' : 'rgba(79,70,229,0.10)' }]}>
             <Text style={[Typography.label.sm, { color: theme.colors.primaryLight, fontWeight: '700', letterSpacing: 0.5 }]}>
-              {profile.department.toUpperCase()}
+              {profile?.department?.toUpperCase() || 'N/A'}
             </Text>
           </View>
         </Animated.View>
@@ -103,9 +118,9 @@ export default function FacultyProfile() {
         {/* ── Details ── */}
         <Animated.View entering={FadeInUp.duration(500).delay(200)}>
           <GlassCard intensity={isDark ? 20 : 60} style={[ss.card, { borderColor: theme.colors.border }]}>
-            <DetailRow label="Employee ID" value={profile.employeeId} />
+            <DetailRow label="Employee ID" value={profile?.employeeId || 'N/A'} />
             <View style={[ss.divider, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} />
-            <DetailRow label="Joining Date" value={profile.joiningDate} />
+            <DetailRow label="Joining Date" value={profile?.joiningDate || 'N/A'} />
             <View style={[ss.divider, { backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }]} />
             
             <View style={ss.contactRow}>
@@ -114,7 +129,7 @@ export default function FacultyProfile() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[Typography.label.sm, { color: theme.colors.textTertiary }]}>Email Address</Text>
-                <Text style={[Typography.headline.sm, { color: theme.colors.textPrimary, marginTop: 2 }]}>{profile.email}</Text>
+                <Text style={[Typography.headline.sm, { color: theme.colors.textPrimary, marginTop: 2 }]}>{profile?.email || 'N/A'}</Text>
               </View>
             </View>
             
@@ -126,7 +141,7 @@ export default function FacultyProfile() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[Typography.label.sm, { color: theme.colors.textTertiary }]}>Phone Number</Text>
-                <Text style={[Typography.headline.sm, { color: theme.colors.textPrimary, marginTop: 2 }]}>{profile.phone}</Text>
+                <Text style={[Typography.headline.sm, { color: theme.colors.textPrimary, marginTop: 2 }]}>{profile?.phone || 'N/A'}</Text>
               </View>
             </View>
           </GlassCard>

@@ -13,6 +13,7 @@ import { useMasterProfile } from '@/hooks/use-master-profile';
 import { useCampusAnnouncementFeed } from '@/hooks/queries/use-announcement-system';
 import { useRealtimeAnnouncements } from '@/hooks/use-realtime';
 import type { CampusAnnouncement } from '@/types/announcement';
+import { safeBack } from '@/lib/navigation';
 
 const FILTERS: { id: string, label: string }[] = [
   { id: 'all', label: 'All Updates' },
@@ -68,7 +69,7 @@ export default function StudentAnnouncementCenter() {
       {/* ── Premium Header ── */}
       <Animated.View entering={FadeInDown.duration(400)} style={[ss.header, { paddingTop: insets.top + Spacing.sm }]}>
         <View style={ss.headerTopRow}>
-          <SpringButton onPress={() => router.back()} scaleDown={0.88}>
+          <SpringButton onPress={() => safeBack('/(tabs)')} scaleDown={0.88}>
             <GlassCard intensity={isDark ? 30 : 50} style={ss.backBtn}>
               <ArrowLeft color={theme.colors.textPrimary} size={20} strokeWidth={2.5} />
             </GlassCard>

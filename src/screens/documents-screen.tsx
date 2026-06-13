@@ -32,6 +32,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useResults } from '@/hooks/queries/use-results';
 import { useStudentStore } from '@/store/student.store';
 import { useAuthStore } from '@/store/auth.store';
+import { safeBack } from '@/lib/navigation';
 
 import {
   saveDocument,
@@ -177,7 +178,7 @@ export function DocumentsScreen() {
           },
         ]}
       >
-        <SpringButton onPress={() => router.back()} scaleDown={0.88}>
+        <SpringButton onPress={() => safeBack('/(tabs)')} scaleDown={0.88}>
           <View
             style={[
               s.backBtn,

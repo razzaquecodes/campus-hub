@@ -9,6 +9,7 @@ import { ArrowLeft, Check, X, Inbox, User, CalendarX2 } from 'lucide-react-nativ
 import { useTheme } from '@/context/ThemeContext';
 import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { GlassCard, SpringButton } from '@/components/ui';
+import { safeBack } from '@/lib/navigation';
 
 interface ApprovalRequest {
   id: string;
@@ -35,7 +36,7 @@ export default function FacultyApprovalsScreen() {
     <View style={[ss.root, { backgroundColor: theme.colors.void }]}>
       <Animated.View entering={FadeInDown.duration(400)} style={[ss.header, { paddingTop: insets.top + Spacing.sm }]}>
         <View style={ss.headerTopRow}>
-          <SpringButton onPress={() => router.back()} scaleDown={0.88}>
+          <SpringButton onPress={() => safeBack('/faculty')} scaleDown={0.88}>
             <GlassCard intensity={isDark ? 30 : 50} style={ss.backBtn}>
               <ArrowLeft color={theme.colors.textPrimary} size={20} strokeWidth={2.5} />
             </GlassCard>

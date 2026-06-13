@@ -34,6 +34,7 @@ import { SpringButton } from '@/components/ui';
 import { Radius, Shadows, Spacing } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useVerification } from '@/hooks/queries/use-verification';
+import { safeBack } from '@/lib/navigation';
 
 export function VerificationScreen({ id }: { id: string }) {
   const { theme, isDark } = useTheme();
@@ -191,7 +192,7 @@ export function VerificationScreen({ id }: { id: string }) {
           },
         ]}
       >
-        <SpringButton onPress={() => router.back()} scaleDown={0.88}>
+        <SpringButton onPress={() => safeBack('/(tabs)')} scaleDown={0.88}>
           <View
             style={[
               s.backBtn,

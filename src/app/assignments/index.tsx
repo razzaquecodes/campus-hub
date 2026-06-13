@@ -10,6 +10,7 @@ import { GlassCard, SpringButton } from '@/components/ui';
 import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useAssignments } from '@/hooks/use-assignments';
+import { safeBack } from '@/lib/navigation';
 
 export default function StudentAssignmentCenter() {
   const { theme, isDark } = useTheme();
@@ -35,7 +36,7 @@ export default function StudentAssignmentCenter() {
       {/* ── Premium Header ── */}
       <Animated.View entering={FadeInDown.duration(400)} style={[ss.header, { paddingTop: insets.top + Spacing.sm }]}>
         <View style={ss.headerTopRow}>
-          <SpringButton onPress={() => router.back()} scaleDown={0.88}>
+          <SpringButton onPress={() => safeBack('/(tabs)')} scaleDown={0.88}>
             <GlassCard intensity={isDark ? 30 : 50} style={ss.backBtn}>
               <ArrowLeft color={theme.colors.textPrimary} size={20} strokeWidth={2.5} />
             </GlassCard>

@@ -20,6 +20,7 @@ import { SpringButton } from '@/components/ui';
 import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useNotices } from '@/hooks/queries/use-notices';
+import { safeBack } from '@/lib/navigation';
 
 // Using the exact schema established in the Admin Notices module
 interface NoticeRecord {
@@ -78,7 +79,7 @@ export default function StudentNoticesScreen() {
       >
         <SpringButton onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-          router.back();
+          safeBack('/(tabs)');
         }} scaleDown={0.88}>
           <View style={[ss.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', borderColor: theme.colors.glassBorder }]}>
             <ArrowLeft color={theme.colors.textPrimary} size={20} strokeWidth={2} />

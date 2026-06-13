@@ -49,6 +49,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useMasterProfile } from '@/hooks/use-master-profile';
 import { useAttendanceSession } from '@/hooks/queries/use-attendance';
 import { useAttendanceStore } from '@/store/attendance.store';
+import { safeBack } from '@/lib/navigation';
 import {
   createSubmissionNonce,
   submitVerifiedAttendance,
@@ -545,7 +546,7 @@ export default function StudentSubmitAttendance() {
       Alert.alert(
         'Session Unavailable',
         `This attendance session is ${session.status}. You can no longer submit.`,
-        [{ text: 'OK', onPress: () => router.back() }],
+        [{ text: 'OK', onPress: () => safeBack('/(tabs)') }],
       );
     }
   }, [session]);
@@ -628,7 +629,7 @@ export default function StudentSubmitAttendance() {
         style={[ss.header, { paddingTop: insets.top + 12 }]}
       >
         <SpringButton
-          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); router.back(); }}
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); safeBack('/(tabs)'); }}
           scaleDown={0.88}
         >
           <View style={[ss.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', borderColor: theme.colors.border }]}>
@@ -748,7 +749,7 @@ export default function StudentSubmitAttendance() {
           <SuccessScreen
             onDone={() => {
               clearDraft();
-              router.back();
+              safeBack('/(tabs)');
             }}
           />
         )}

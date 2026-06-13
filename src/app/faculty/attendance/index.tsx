@@ -28,6 +28,7 @@ import { Animation, Radius, Shadows, Spacing, Typography } from '@/constants/the
 import { useTheme } from '@/context/ThemeContext';
 import { useFacultyStore } from '@/store/faculty.store';
 import { startAttendanceSession } from '@/services/attendance.service';
+import { safeBack } from '@/lib/navigation';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const BRANCHES = ['CSE', 'CE', 'ME', 'EE', 'ECE'];
@@ -153,7 +154,7 @@ export default function FacultyStartAttendance() {
         <SpringButton
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.back();
+            safeBack('/faculty');
           }}
           scaleDown={0.88}
           haptic={false}

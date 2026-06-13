@@ -25,6 +25,7 @@ import { Radius, Spacing, Shadows } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useResults } from '@/hooks/queries/use-results';
 import { buildAcademicTimeline, AcademicTimelineEvent } from '@/utils/academic-insights';
+import { safeBack } from '@/lib/navigation';
 
 export function AcademicTimelineScreen() {
   const { theme, isDark } = useTheme();
@@ -81,7 +82,7 @@ export function AcademicTimelineScreen() {
           },
         ]}
       >
-        <SpringButton onPress={() => router.back()} scaleDown={0.88}>
+        <SpringButton onPress={() => safeBack('/(tabs)')} scaleDown={0.88}>
           <View
             style={[
               s.backBtn,

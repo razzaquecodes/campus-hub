@@ -15,6 +15,7 @@ import { useAdminStore } from '@/store/admin.store';
 import { useAuthStore } from '@/store/auth.store';
 import { useProfileStore } from '@/store/useProfileStore';
 import { queryClient } from '@/lib/query-client';
+import { safeBack } from '@/lib/navigation';
 
 export default function FacultySettingsScreen() {
   const { theme, isDark, toggleTheme } = useTheme();
@@ -65,10 +66,18 @@ export default function FacultySettingsScreen() {
     }, 1500);
   };
 
+  if (!profile) {
+    return (
+      <View style={[ss.root, { backgroundColor: theme.colors.void, justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={[Typography.body.md, { color: theme.colors.textSecondary }]}>Loading settings...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={[ss.root, { backgroundColor: theme.colors.void }]}>
       <Animated.View entering={FadeInDown.duration(400)} style={[ss.header, { paddingTop: insets.top + Spacing.sm }]}>
-        <SpringButton onPress={() => router.back()} scaleDown={0.88}>
+        <SpringButton onPress={() => safeBack('/faculty')} scaleDown={0.88}>
           <GlassCard intensity={isDark ? 30 : 50} style={ss.backBtn}>
             <ArrowLeft color={theme.colors.textPrimary} size={20} strokeWidth={2.5} />
           </GlassCard>

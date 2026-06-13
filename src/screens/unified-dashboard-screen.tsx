@@ -45,6 +45,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { useInternalMarks } from '@/hooks/queries/use-internal-marks';
 import { useResults } from '@/hooks/queries/use-results';
 import { calculateRiskAnalysis } from '@/utils/risk-predictor';
+import { safeBack } from '@/lib/navigation';
 
 
 
@@ -201,7 +202,7 @@ export function UnifiedDashboardScreen() {
 
       {/* Header */}
       <Animated.View entering={FadeIn.duration(300)} style={[s.header, { paddingTop: insets.top + 8, backgroundColor: theme.colors.void }]}>
-        <SpringButton onPress={() => router.back()} scaleDown={0.88}>
+        <SpringButton onPress={() => safeBack('/(tabs)')} scaleDown={0.88}>
           <View style={[s.backBtn, { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)', borderColor: theme.colors.glassBorder }]}>
             <ArrowLeft color={theme.colors.textPrimary} size={20} strokeWidth={2} />
           </View>

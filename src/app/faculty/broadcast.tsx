@@ -10,6 +10,7 @@ import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { supabase } from '@/lib/supabase';
 import { useFacultyStore } from '@/store/faculty.store';
+import { safeBack } from '@/lib/navigation';
 
 const BRANCHES = ['CSE', 'ECE', 'ME', 'CE', 'IT'];
 const SECTIONS = ['A', 'B', 'C'];
@@ -74,7 +75,7 @@ export default function BroadcastScreen() {
       if (error) throw error;
       
       Alert.alert('Success', 'Announcement broadcasted successfully!', [
-        { text: 'OK', onPress: () => router.back() }
+        { text: 'OK', onPress: () => safeBack('/faculty') }
       ]);
     } catch (error: any) {
       Alert.alert('Broadcast Failed', error.message);
@@ -86,7 +87,7 @@ export default function BroadcastScreen() {
   return (
     <View style={[ss.root, { backgroundColor: theme.colors.void }]}>
       <Animated.View entering={FadeInDown.duration(400)} style={[ss.header, { paddingTop: insets.top + Spacing.sm }]}>
-        <SpringButton onPress={() => router.back()} scaleDown={0.88}>
+        <SpringButton onPress={() => safeBack('/faculty')} scaleDown={0.88}>
           <GlassCard intensity={isDark ? 30 : 50} style={ss.backBtn}>
             <ArrowLeft color={theme.colors.textPrimary} size={20} strokeWidth={2.5} />
           </GlassCard>

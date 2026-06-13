@@ -11,6 +11,7 @@ import { GlassCard, SpringButton } from '@/components/ui';
 import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useFacultyStore } from '@/store/faculty.store';
+import { safeBack } from '@/lib/navigation';
 
 export default function FacultyRoutine() {
   const { theme, isDark } = useTheme();
@@ -46,7 +47,7 @@ export default function FacultyRoutine() {
       <Animated.View entering={FadeInDown.duration(400)} style={[ss.header, { paddingTop: insets.top + Spacing.sm }]}>
         <SpringButton onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          router.back();
+          safeBack('/faculty');
         }} scaleDown={0.88}>
           <GlassCard intensity={isDark ? 30 : 50} style={ss.backBtn}>
             <ArrowLeft color={theme.colors.textPrimary} size={20} strokeWidth={2.5} />

@@ -54,6 +54,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { useStudentStore } from '@/store/student.store';
 import { useResults, type SemesterResult } from '@/hooks/queries/use-results';
 import { useMasterProfile } from '@/hooks/use-master-profile';
+import { safeBack } from '@/lib/navigation';
 
 const { width: W } = Dimensions.get('window');
 
@@ -207,7 +208,7 @@ export function DigitalIdScreen() {
           },
         ]}
       >
-        <SpringButton onPress={() => router.back()} scaleDown={0.88}>
+        <SpringButton onPress={() => safeBack('/(tabs)')} scaleDown={0.88}>
           <View
             style={[
               s.backBtn,

@@ -11,6 +11,7 @@ import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { GlassCard, SpringButton } from '@/components/ui';
 import { useResourceStore, ResourceModel } from '@/store/resources.store';
 import { useAuthStore } from '@/store/auth.store';
+import { safeBack } from '@/lib/navigation';
 
 const CATEGORIES = ['All', 'Favorites', 'Notes', 'PPT', 'PYQ', 'Lab Manual', 'Assignment'];
 
@@ -108,7 +109,7 @@ export default function StudentResourceHub() {
       {/* ── HEADER ── */}
       <Animated.View entering={FadeInDown.duration(400)} style={[ss.header, { paddingTop: insets.top + Spacing.sm }]}>
         <View style={ss.headerTopRow}>
-          <SpringButton onPress={() => router.back()} scaleDown={0.88}>
+          <SpringButton onPress={() => safeBack('/(tabs)')} scaleDown={0.88}>
             <GlassCard intensity={isDark ? 30 : 50} style={ss.backBtn}>
               <ArrowLeft color={theme.colors.textPrimary} size={20} strokeWidth={2.5} />
             </GlassCard>

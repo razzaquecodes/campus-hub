@@ -10,6 +10,7 @@ import { GlassCard, SpringButton } from '@/components/ui';
 import { Radius, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useAssignments } from '@/hooks/use-assignments';
+import { safeBack } from '@/lib/navigation';
 
 export default function AssignmentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -35,7 +36,7 @@ export default function AssignmentDetailScreen() {
         <View style={[ss.root, { backgroundColor: theme.colors.void, justifyContent: 'center', alignItems: 'center' }]}> 
           <Text style={[Typography.headline.md, { color: theme.colors.textPrimary }]}>Assignment not found.</Text>
           <Text style={[Typography.body.sm, { color: theme.colors.textSecondary, marginTop: 8 }]}>Return to the assignments list to view available work.</Text>
-          <SpringButton onPress={() => router.back()} scaleDown={0.96} style={{ marginTop: 24 }}>
+          <SpringButton onPress={() => safeBack('/(tabs)')} scaleDown={0.96} style={{ marginTop: 24 }}>
             <View style={[ss.submitBtn, { backgroundColor: theme.colors.primary }]}> 
               <Text style={[Typography.headline.sm, { color: '#fff' }]}>Back to Assignments</Text>
             </View>
@@ -54,7 +55,7 @@ export default function AssignmentDetailScreen() {
       <View style={[ss.root, { backgroundColor: theme.colors.void }]}>
         <Animated.View entering={FadeInDown.duration(400)} style={[ss.header, { paddingTop: insets.top + Spacing.sm }]}>
           <View style={ss.headerTopRow}>
-            <SpringButton onPress={() => router.back()} scaleDown={0.88}>
+            <SpringButton onPress={() => safeBack('/(tabs)')} scaleDown={0.88}>
               <GlassCard intensity={isDark ? 30 : 50} style={ss.backBtn}>
                 <ArrowLeft color={theme.colors.textPrimary} size={20} strokeWidth={2.5} />
               </GlassCard>

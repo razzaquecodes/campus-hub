@@ -25,6 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Radius, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { Badge, GlassCard, SectionHeader, SpringButton, StatTile, EmptyState } from '@/components/ui';
+import { safeBack } from '@/lib/navigation';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -196,7 +197,7 @@ export function AttendanceScreen() {
           alignItems: 'center',
           gap: Spacing.md,
         }}>
-        <SpringButton onPress={() => router.back()} scaleDown={0.88}>
+        <SpringButton onPress={() => safeBack('/(tabs)')} scaleDown={0.88}>
           <View style={{
             width: 40, height: 40, borderRadius: 20,
             backgroundColor: theme.colors.glass,

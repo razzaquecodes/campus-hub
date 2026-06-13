@@ -10,6 +10,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { GlassCard, SpringButton } from '@/components/ui';
 import { useFacultyStore, FacultyNotice } from '@/store/faculty.store';
+import { safeBack } from '@/lib/navigation';
 
 export default function FacultyAnnouncementsDashboard() {
   const { theme, isDark } = useTheme();
@@ -44,7 +45,7 @@ export default function FacultyAnnouncementsDashboard() {
       {/* HEADER */}
       <Animated.View entering={FadeInDown.duration(400)} style={[ss.header, { paddingTop: insets.top + Spacing.sm }]}>
         <View style={ss.headerTopRow}>
-          <SpringButton onPress={() => router.back()} scaleDown={0.88}>
+          <SpringButton onPress={() => safeBack('/faculty')} scaleDown={0.88}>
             <GlassCard intensity={isDark ? 30 : 50} style={ss.backBtn}>
               <ArrowLeft color={theme.colors.textPrimary} size={20} strokeWidth={2.5} />
             </GlassCard>

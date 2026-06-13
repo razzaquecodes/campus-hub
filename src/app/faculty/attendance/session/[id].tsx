@@ -23,6 +23,7 @@ import { Avatar, Badge, GlassCard, SpringButton } from '@/components/ui';
 import { Animation, Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useAttendanceStore } from '@/store/attendance.store';
+import { safeBack } from '@/lib/navigation';
 import {
   closeAttendanceSession,
   subscribeToSessionSubmissions,
@@ -295,7 +296,7 @@ export default function FacultyLiveSession() {
             setIsClosing(true);
             await closeAttendanceSession(id as string);
             setIsClosing(false);
-            router.back();
+            safeBack('/faculty');
           },
         },
       ]
@@ -321,7 +322,7 @@ export default function FacultyLiveSession() {
         <SpringButton
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.back();
+            safeBack('/faculty');
           }}
           scaleDown={0.88}
           haptic="light"

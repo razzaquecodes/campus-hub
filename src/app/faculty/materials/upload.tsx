@@ -12,6 +12,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useResourceStore, ResourceType } from '@/store/resources.store';
 import { useFacultyStore } from '@/store/faculty.store';
 import type { BranchCode, SectionCode } from '@/types/targeting';
+import { safeBack } from '@/lib/navigation';
 
 const RESOURCE_TYPES: ResourceType[] = ['Notes', 'PPT', 'PYQ', 'Lab Manual', 'Assignment', 'Other'];
 const BRANCHES: BranchCode[] = ['CSE', 'CE', 'ME', 'EE', 'ECE'];
@@ -64,7 +65,7 @@ export default function FacultyUploadResource() {
     });
 
     Alert.alert('Success', 'Resource uploaded successfully!', [
-      { text: 'OK', onPress: () => router.back() }
+      { text: 'OK', onPress: () => safeBack('/faculty') }
     ]);
   };
 
@@ -105,7 +106,7 @@ export default function FacultyUploadResource() {
       <Animated.View entering={FadeInDown.duration(400)} style={[ss.header, { paddingTop: insets.top + Spacing.sm }]}>
         <SpringButton onPress={() => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          router.back();
+          safeBack('/faculty');
         }} scaleDown={0.88}>
           <GlassCard intensity={isDark ? 30 : 50} style={ss.backBtn}>
             <ArrowLeft color={theme.colors.textPrimary} size={20} strokeWidth={2.5} />

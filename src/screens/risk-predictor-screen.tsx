@@ -25,6 +25,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useResults } from '@/hooks/queries/use-results';
 import { useInternalMarks } from '@/hooks/queries/use-internal-marks';
 import { calculateRiskAnalysis } from '@/utils/risk-predictor';
+import { safeBack } from '@/lib/navigation';
 
 export function RiskPredictorScreen() {
   const { theme, isDark } = useTheme();
@@ -84,7 +85,7 @@ export function RiskPredictorScreen() {
           },
         ]}
       >
-        <SpringButton onPress={() => router.back()} scaleDown={0.88}>
+        <SpringButton onPress={() => safeBack('/(tabs)')} scaleDown={0.88}>
           <View
             style={[
               s.backBtn,

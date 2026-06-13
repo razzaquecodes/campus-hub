@@ -36,6 +36,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useStudentStore } from '@/store/student.store';
 import { useInternalMarks } from '@/hooks/queries/use-internal-marks';
 import type { InternalMark } from '@/types/internal-marks';
+import { safeBack } from '@/lib/navigation';
 
 // ─── Skeleton Row ─────────────────────────────────────────────────────────────
 function SkeletonRow() {
@@ -302,7 +303,7 @@ export function InternalMarksScreen() {
           },
         ]}
       >
-        <SpringButton onPress={() => router.back()} scaleDown={0.88}>
+        <SpringButton onPress={() => safeBack('/(tabs)')} scaleDown={0.88}>
           <View
             style={[
               cs.backBtn,

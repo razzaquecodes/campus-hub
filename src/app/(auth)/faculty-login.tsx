@@ -9,6 +9,7 @@ import {
     StyleSheet,
     Text,
     View,
+    Platform,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,6 +21,7 @@ import { supabase } from '@/lib/supabase';
 import { signInWithGoogle } from '@/services/auth.service';
 import { useFacultyStore } from '@/store/faculty.store';
 import { useAdminStore } from '@/store/admin.store';
+import { safeBack } from '@/lib/navigation';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const isSmallScreen = SCREEN_WIDTH < 375;
@@ -39,6 +41,32 @@ export default function FacultyLoginScreen() {
 
   const handleGoogleLogin = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+
+    // --- PWA iOS Detection & Intercept ---
+    const isWeb = Platform.OS === 'web';
+    // @ts-ignore - navigator is only on web
+    const isIOSWeb = isWeb && /iPad|iPhone|iPod/.test(navigator.userAgent);
+    // @ts-ignore - standalone is an Apple-specific non-standard property
+    const isPWA = isWeb && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone);
+
+    if (isIOSWeb && isPWA) {
+      Alert.alert(
+        'Action Required',
+        'Google Sign-In is restricted by Apple within installed web apps. Please log in through Safari directly or download our native iOS app.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Open in Safari', 
+            onPress: () => {
+              window.open(window.location.href, '_blank');
+            }
+          }
+        ]
+      );
+      return;
+    }
+    // -------------------------------------
+
     setLoading(true);
 
     try {
@@ -126,7 +154,7 @@ export default function FacultyLoginScreen() {
         entering={FadeInDown.duration(400)}
         style={[ss.header, { paddingTop: insets.top + 12 }]}
       >
-        <SpringButton onPress={() => router.back()} scaleDown={0.88}>
+        <SpringButton onPress={() => safeBack('/faculty')} scaleDown={0.88}>
           <View
             style={[
               ss.backBtn,

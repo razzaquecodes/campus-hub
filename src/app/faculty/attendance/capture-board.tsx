@@ -25,6 +25,7 @@ import { useFacultyStore } from '@/store/faculty.store';
 import { startAttendanceSession } from '@/services/attendance.service';
 import { buildCapturePath, uploadAttendanceImage } from '@/services/attendance-upload.service';
 import { LocationService } from '@/services/location.service';
+import { safeBack } from '@/lib/navigation';
 
 // ─── Step Item ────────────────────────────────────────────────────────────────
 function StepPill({
@@ -194,7 +195,7 @@ export default function FacultyCaptureBoard() {
         <SpringButton
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.back();
+            safeBack('/faculty');
           }}
           scaleDown={0.88}
           haptic="light"

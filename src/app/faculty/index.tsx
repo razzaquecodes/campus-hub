@@ -159,13 +159,13 @@ export default function FacultyAnnouncementDashboard() {
               {getGreeting()} 👋
             </Text>
             <Text style={[ss.heroName, { color: theme.colors.textPrimary }]} numberOfLines={1}>
-              {profile.name}
+              {profile?.name || 'Faculty Member'}
             </Text>
             {/* Faculty badge */}
             <View style={[ss.facultyBadge, { backgroundColor: theme.colors.primaryMuted }]}>
               <ShieldCheck color={theme.colors.primary} size={13} strokeWidth={2.5} />
               <Text style={[ss.badgeText, { color: theme.colors.primary }]}>
-                {profile.designation}
+                {profile?.designation || 'Faculty'}
               </Text>
             </View>
           </View>
@@ -178,7 +178,7 @@ export default function FacultyAnnouncementDashboard() {
                 style={ss.avatarGradient}
               >
                 <Text style={ss.avatarInitial}>
-                  {(profile.name?.[0] ?? 'F').toUpperCase()}
+                  {(profile?.name?.[0] ?? 'F').toUpperCase()}
                 </Text>
               </LinearGradient>
             </View>
