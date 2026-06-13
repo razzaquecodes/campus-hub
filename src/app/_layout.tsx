@@ -10,7 +10,8 @@ import * as Notifications from 'expo-notifications';
 import { Stack, router, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View, AppState, AppStateStatus } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { SplashScreen } from '@/components/animations/splash/SplashScreen';
@@ -23,6 +24,8 @@ import { registerBackgroundSync } from '@/services/background-sync.service';
 import { UpdateInfo, updaterService } from '@/services/updater.service';
 import { useAdminStore } from '@/store/admin.store';
 import { useAuthStore } from '@/store/auth.store';
+import { useStudentStore } from '@/store/student.store';
+import { queryClient } from '@/lib/query-client';
 
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
@@ -145,6 +148,40 @@ function AppShell() {
       registerBackgroundSync();
     }
   }, [isHydrated]);
+
+  // Handle Foreground Auto-Refresh from Background Syncs
+  const appState = React.useRef(AppState.currentState);
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', async (nextAppState: AppStateStatus) => {
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+        console.info('[AppShell] App foregrounded, checking for sync updates...');
+        const studentStore = useStudentStore.getState();
+        const student = studentStore.student;
+        
+        if (student?.rollNumber) {
+          const syncKey = `sync_last_timestamp_${student.rollNumber}`;
+          const lastSyncStr = await AsyncStorage.getItem(syncKey);
+          
+          if (lastSyncStr) {
+            console.info('[AppShell] Found background sync data, refreshing state');
+            // Refresh in-memory student session to pull new semester/cgpa from SecureStore
+            await studentStore.restoreSession();
+            
+            // Invalidate React Query stats and results to refresh the UI immediately
+            const userId = `makaut_${student.rollNumber}`;
+            queryClient.invalidateQueries({ queryKey: ['studentStats', userId] });
+            queryClient.invalidateQueries({ queryKey: ['results', student.rollNumber] });
+            queryClient.invalidateQueries({ queryKey: ['internalMarks', student.rollNumber] });
+          }
+        }
+      }
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined' && 'serviceWorker' in navigator) {

@@ -7,8 +7,10 @@ import { Platform } from 'react-native';
 
 import { fetchInternalMarks } from '@/api/internal-marks.api';
 import { insertNotification } from '@/api/notifications.api';
+import { upsertStudentStats } from '@/api/stats.api';
 import { API_CONFIG } from '@/config/api';
 import { apiClient } from '@/lib/api-client';
+import { supabase } from '@/lib/supabase';
 
 const BACKGROUND_ACADEMIC_SYNC = 'BACKGROUND_ACADEMIC_SYNC';
 
@@ -79,9 +81,20 @@ TaskManager.defineTask(BACKGROUND_ACADEMIC_SYNC, async () => {
 
     const latestInternalMarks = await fetchInternalMarks(rollNumber).catch(() => []);
 
+    // Calculate Overall CGPA and Current Semester
+    const publishedResults = latestResults.filter(r => r.status === 'Published' && r.sgpa !== null);
+    const overallCgpa = publishedResults.length > 0
+      ? Number((publishedResults.reduce((acc, curr) => acc + (curr.sgpa || 0), 0) / publishedResults.length).toFixed(2))
+      : null;
+    const currentSemester = latestResults.length > 0 
+      ? Math.max(...latestResults.map(r => r.semester))
+      : null;
+
     // 2. Load Previous Data for Diffing
     const prevResultsStr = await AsyncStorage.getItem(`sync_prev_results_${rollNumber}`);
     const prevInternalStr = await AsyncStorage.getItem(`sync_prev_internal_${rollNumber}`);
+    const sentNotificationsStr = await AsyncStorage.getItem(`sync_sent_notifications_${rollNumber}`);
+    const sentNotifications = sentNotificationsStr ? JSON.parse(sentNotificationsStr) : [];
     
     let hasChanges = false;
     let pushTitle = '';
@@ -129,24 +142,61 @@ TaskManager.defineTask(BACKGROUND_ACADEMIC_SYNC, async () => {
 
     // If changes found, push local notification & sync to DB
     if (hasChanges) {
-      // 1. Show OS Push
-      await triggerLocalPush(pushTitle, pushBody, { url: actionUrl });
+      // Check idempotency: avoid sending the exact same push notification again
+      const notifHash = `${pushTitle}|${pushBody}`;
+      if (!sentNotifications.includes(notifHash)) {
+        // 1. Show OS Push
+        await triggerLocalPush(pushTitle, pushBody, { url: actionUrl });
 
-      // 2. Sync to Supabase Notification Center
-      await insertNotification({
-        user_id: userId,
-        title: pushTitle,
-        body: pushBody,
-        category: pushCategory,
-        action_url: actionUrl,
-      });
+        // 2. Sync to Supabase Notification Center
+        await insertNotification({
+          user_id: userId,
+          title: pushTitle,
+          body: pushBody,
+          category: pushCategory,
+          action_url: actionUrl,
+        });
 
-      // 3. Update saved hashes
+        // Track sent notification
+        sentNotifications.push(notifHash);
+        // keep only last 50 to avoid infinite growth
+        if (sentNotifications.length > 50) sentNotifications.shift();
+        await AsyncStorage.setItem(`sync_sent_notifications_${rollNumber}`, JSON.stringify(sentNotifications));
+      }
+
+      // 3. Update saved hashes and session
       await AsyncStorage.setItem(`sync_prev_results_${rollNumber}`, JSON.stringify(latestResults));
       await AsyncStorage.setItem(`sync_prev_internal_${rollNumber}`, JSON.stringify(latestInternalMarks));
+      
+      // Update local student session with new semester and cgpa
+      student.semester = currentSemester ? String(currentSemester) : student.semester;
+      student.cgpa = overallCgpa ?? student.cgpa;
+      await SecureStore.setItemAsync('student_session', JSON.stringify(student));
+
+      // 4. Update Supabase
+      if (currentSemester || overallCgpa !== null) {
+        await upsertStudentStats(userId, {
+          cgpa: overallCgpa,
+        });
+      }
+      
+      const now = new Date().toISOString();
+      await supabase.from('student_profiles').upsert({
+        id: userId,
+        user_id: userId,
+        roll_number: rollNumber,
+        full_name: student.fullName,
+        last_synced_at: now
+      }, { onConflict: 'user_id' });
+      
+      // Update last sync time for UI refresh
+      await AsyncStorage.setItem(`sync_last_timestamp_${rollNumber}`, String(Date.now()));
 
       return BackgroundFetch.BackgroundFetchResult.NewData;
     } else {
+      // Even if no changes to results, let's ensure we track last sync time
+      await AsyncStorage.setItem(`sync_last_timestamp_${rollNumber}`, String(Date.now()));
+      
       // If we didn't have previous data, save it now to establish baseline
       if (!prevResultsStr) {
         await AsyncStorage.setItem(`sync_prev_results_${rollNumber}`, JSON.stringify(latestResults));

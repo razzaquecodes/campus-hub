@@ -48,13 +48,13 @@ export function mapStudentToUserProfile(student: StudentModel): UserProfile {
     phone: student.mobile ?? null,
     avatar_url: null,
     is_verified: student.verified,
-    // Optional fields — not available from MAKAUT but kept typed correctly
+    // Optional fields — not available from initial MAKAUT verification but added via background sync
     branch_id: null,
     semester_id: null,
     section_id: null,
-    semester: null,
+    semester: student.semester ?? null,
     section: null,
-    year: null,
+    year: student.semester ? String(Math.ceil(parseInt(student.semester, 10) / 2)) : null,
     batch: null,
     advisor: null,
     hostel_block: null,

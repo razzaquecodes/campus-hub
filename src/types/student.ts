@@ -21,6 +21,10 @@ export interface StudentModel {
   abcId: string;
   profilePhotoUrl?: string;
 
+  // ── Synced Academic Data ──────────────────────────────────────────────
+  semester?: string;
+  cgpa?: number;
+
   // ── Verification metadata ─────────────────────────────────────────────
   /** Whether MAKAUT verification was successful */
   verified: boolean;

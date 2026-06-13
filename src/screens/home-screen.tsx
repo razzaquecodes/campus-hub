@@ -4,6 +4,7 @@
 
 import { EmptyState, ErrorState, Skeleton, SpringButton } from '@/components/ui';
 import { ActiveAttendanceCard } from '@/components/ui/ActiveAttendanceCard';
+import { MakautFeedList } from '@/components/makaut/MakautFeedList';
 import { getCurrentAndNextClass, getTodayClasses } from '@/constants/routine';
 import { Radius, Shadows, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
@@ -258,7 +259,7 @@ export function HomeScreen() {
           }]}>
             <GraduationCap color={theme.colors.primaryLight} size={13} strokeWidth={2} />
             <Text style={[ss.pillText, { color: theme.colors.primaryLight }]}>
-              Sem {profile?.semester || '4'} · {profile?.branch || 'CSE'}
+              {profile?.semester ? `Sem ${profile.semester}` : 'Sem Pending'} · {profile?.branch || 'Branch N/A'}
             </Text>
           </View>
           <View style={[ss.pill, {
@@ -267,7 +268,7 @@ export function HomeScreen() {
           }]}>
             <Users color={isDark ? theme.colors.accent : '#7C3AED'} size={13} strokeWidth={2} />
             <Text style={[ss.pillText, { color: isDark ? theme.colors.accent : '#7C3AED' }]}>
-              Sec {profile?.section || 'C'} · {profile?.batch || '2024-2028'}
+              {profile?.section ? `Sec ${profile.section}` : 'Sec Pending'} · {profile?.batch || 'Batch Syncing'}
             </Text>
           </View>
         </Animated.View>
@@ -699,6 +700,17 @@ export function HomeScreen() {
               </Animated.View>
             ))}
           </View>
+        </Animated.View>
+
+        {/* ── MAKAUT Updates (New Service) ── */}
+        <Animated.View entering={FadeInDown.duration(500).delay(420)} style={ss.section}>
+          <View style={ss.sectionRow}>
+            <Text style={[Typography.headline.lg, { color: theme.colors.textPrimary }]}>MAKAUT Updates</Text>
+            <View style={[ss.countBadge, { backgroundColor: `${theme.colors.primary}15` }]}>
+              <Text style={[ss.countBadgeText, { color: theme.colors.primary }]}>Live</Text>
+            </View>
+          </View>
+          <MakautFeedList />
         </Animated.View>
 
         {/* ── Dynamic Featured Announcement Spotlight ── */}

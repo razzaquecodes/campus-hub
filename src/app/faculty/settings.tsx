@@ -1,21 +1,25 @@
 import { router } from 'expo-router';
 import { ArrowLeft, Bell, DownloadCloud, Info, LogOut, Moon } from 'lucide-react-native';
+import { supabase } from '@/lib/supabase';
 import React, { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 
 import { GlassCard, SpringButton } from '@/components/ui';
 import { Radius, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
-import { useAuthStore } from '@/store/auth.store';
 import { useFacultyStore } from '@/store/faculty.store';
+import { useAdminStore } from '@/store/admin.store';
+import { useAuthStore } from '@/store/auth.store';
+import { useProfileStore } from '@/store/useProfileStore';
+import { queryClient } from '@/lib/query-client';
 
 export default function FacultySettingsScreen() {
   const { theme, isDark, toggleTheme } = useTheme();
   const insets = useSafeAreaInsets();
   const { profile } = useFacultyStore();
-  const logout = useAuthStore(s => s.signOut);
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
@@ -23,9 +27,32 @@ export default function FacultySettingsScreen() {
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to log out?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Logout', style: 'destructive', onPress: () => {
-        logout();
-        router.replace('/(auth)/login');
+      { text: 'Logout', style: 'destructive', onPress: async () => {
+        console.info('[FacultyLogout] Initiating logout from settings...');
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        try {
+          // 1. Clear Supabase Auth
+          const { error } = await supabase.auth.signOut();
+          console.info('[FacultyLogout] supabase.auth.signOut() result:', { error });
+          
+          // 2. Verify Session is null
+          const { data } = await supabase.auth.getSession();
+          console.info('[FacultyLogout] current session after logout:', data.session);
+
+          // 3. Clear all Local Stores
+          useFacultyStore.getState().setProfile(null);
+          useAdminStore.getState().clearAdmin();
+          useProfileStore.getState().clearProfile();
+          await useAuthStore.getState().signOut();
+          queryClient.clear();
+          
+          console.info('[FacultyLogout] Stores cleared, navigating to faculty-login');
+          
+          // 4. Navigate
+          router.replace('/(auth)/faculty-login');
+        } catch (e) {
+          console.error('[FacultyLogout] Exception during signOut:', e);
+        }
       }}
     ]);
   };

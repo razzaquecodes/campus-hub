@@ -50,6 +50,8 @@ function AuthHydrator({ children }: { children: React.ReactNode }) {
   const studentIsHydrated = useStudentStore((s) => s.isHydrated);
   const student = useStudentStore((s) => s.student);
 
+  const [facultyHydrated, setFacultyHydrated] = React.useState(false);
+
   // Guard against re-running on every render
   const initStarted = useRef(false);
 
@@ -66,7 +68,7 @@ function AuthHydrator({ children }: { children: React.ReactNode }) {
     // Wrap in timeout to ensure we don't hang forever
     const timeoutId = setTimeout(() => {
       hydratorLog('AuthHydrator: timeout reached — forcing hydration');
-      setIsHydrated(true);
+      setFacultyHydrated(true);
     }, 5000); // 5 second fallback
 
     const hydrateFaculty = async () => {
@@ -88,7 +90,7 @@ function AuthHydrator({ children }: { children: React.ReactNode }) {
             .select('id, full_name, department, designation, email, phone, created_at')
             .eq('email', email)
             .limit(1)
-            .single();
+            .maybeSingle();
 
           if (facultyRow) {
             useFacultyStore.getState().setProfile({
@@ -121,6 +123,7 @@ function AuthHydrator({ children }: { children: React.ReactNode }) {
       })
       .finally(() => {
         clearTimeout(timeoutId);
+        setFacultyHydrated(true);
       });
   }, [restoreSession, setIsHydrated]);
 
@@ -129,11 +132,12 @@ function AuthHydrator({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     hydratorLog('AuthHydrator: sync effect running', {
       studentIsHydrated,
+      facultyHydrated,
       hasStudent: Boolean(student),
     });
 
-    if (!studentIsHydrated) {
-      hydratorLog('AuthHydrator: student store not hydrated yet — waiting');
+    if (!studentIsHydrated || !facultyHydrated) {
+      hydratorLog('AuthHydrator: stores not fully hydrated yet — waiting');
       return;
     }
 
@@ -156,7 +160,26 @@ function AuthHydrator({ children }: { children: React.ReactNode }) {
     // race condition where isHydrated=true but profile=null flashes login.
     hydratorLog('AuthHydrator: marking isHydrated=true');
     setIsHydrated(true);
-  }, [studentIsHydrated, student, setProfile, setIsHydrated, setMasterProfile, clearMasterProfile]);
+  }, [studentIsHydrated, facultyHydrated, student, setProfile, setIsHydrated, setMasterProfile, clearMasterProfile]);
+
+  // ── Step 3: Listen for Supabase Auth SIGNED_OUT events ────────────────────
+  useEffect(() => {
+    if (!supabase) return;
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        hydratorLog('AuthHydrator: Supabase SIGNED_OUT event received, clearing faculty/admin stores');
+        useFacultyStore.getState().setProfile(null);
+        useAdminStore.getState().clearAdmin();
+        useProfileStore.getState().clearProfile();
+        // Clear caches
+        queryClient.clear();
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
 
   return <>{children}</>;
 }

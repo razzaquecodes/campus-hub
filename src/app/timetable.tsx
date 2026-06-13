@@ -44,32 +44,6 @@ function getBranchFromCourse(courseName?: string | null): string {
   return 'CSE';
 }
 
-function getCurrentSemester(rollNumber?: string): string {
-  if (!rollNumber || rollNumber.length < 8) return '1';
-  
-  // MAKAUT Roll Number format e.g. 12000121065 (Admission year 2021 is at index 6-7)
-  const yearStr = rollNumber.substring(6, 8);
-  const admissionYear = 2000 + parseInt(yearStr, 10);
-  if (isNaN(admissionYear)) return '1';
-
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth(); // 0-indexed (Jan = 0, Jun = 5, Aug = 7)
-
-  let yearsDiff = currentYear - admissionYear;
-  let semester = yearsDiff * 2;
-  
-  // Odd semesters (1,3,5,7) start around August
-  if (currentMonth >= 7) {
-    semester += 1;
-  }
-  
-  if (semester < 1) semester = 1;
-  if (semester > 8) semester = 8;
-  
-  return semester.toString();
-}
-
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function StudentTimetableScreen() {
@@ -78,7 +52,7 @@ export default function StudentTimetableScreen() {
   
   const student = useStudentStore((s) => s.student);
   const branch = getBranchFromCourse(student?.courseName);
-  const semester = getCurrentSemester(student?.rollNumber);
+  const semester = student?.semester;
   
   const [timetable, setTimetable] = useState<TimetableRecord | null>(null);
   const [loading, setLoading] = useState(true);
@@ -86,6 +60,12 @@ export default function StudentTimetableScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchTimetable = async () => {
+    if (!semester) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+    
     try {
       setError(null);
       const { data, error: fetchError } = await supabase
@@ -144,7 +124,7 @@ export default function StudentTimetableScreen() {
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={[Typography.display.small, { color: theme.colors.textPrimary }]}>Timetable</Text>
           <Text style={[Typography.body.sm, { color: theme.colors.textSecondary }]}>
-            {branch} • Semester {semester}
+            {branch} • {semester ? `Semester ${semester}` : 'Semester Pending Sync'}
           </Text>
         </View>
       </Animated.View>
@@ -181,7 +161,9 @@ export default function StudentTimetableScreen() {
           <View style={[ss.emptyState, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}>
             <Calendar color={theme.colors.textTertiary} size={32} />
             <Text style={[Typography.body.md, { color: theme.colors.textSecondary, marginTop: 12, textAlign: 'center' }]}>
-              No timetable available for your semester
+              {semester 
+                ? 'No timetable available for your semester'
+                : 'Waiting for academic data sync to identify your semester.'}
             </Text>
           </View>
         ) : (

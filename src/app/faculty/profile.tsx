@@ -11,6 +11,10 @@ import { GlassCard, SpringButton } from '@/components/ui';
 import { Radius, Shadows, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/context/ThemeContext';
 import { useFacultyStore } from '@/store/faculty.store';
+import { useAdminStore } from '@/store/admin.store';
+import { useAuthStore } from '@/store/auth.store';
+import { useProfileStore } from '@/store/useProfileStore';
+import { queryClient } from '@/lib/query-client';
 import { supabase } from '@/lib/supabase';
 
 export default function FacultyProfile() {
@@ -25,9 +29,32 @@ export default function FacultyProfile() {
         text: 'Log Out',
         style: 'destructive',
         onPress: async () => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          await supabase.auth.signOut();
-          router.replace('/(auth)/faculty-login');
+          console.info('[FacultyLogout] Initiating logout from profile...');
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+          
+          try {
+            // 1. Clear Supabase Auth
+            const { error } = await supabase.auth.signOut();
+            console.info('[FacultyLogout] supabase.auth.signOut() result:', { error });
+            
+            // 2. Verify Session is null
+            const { data } = await supabase.auth.getSession();
+            console.info('[FacultyLogout] current session after logout:', data.session);
+            
+            // 3. Clear all Local Stores to prevent AuthGuard bounce
+            useFacultyStore.getState().setProfile(null);
+            useAdminStore.getState().clearAdmin();
+            useProfileStore.getState().clearProfile();
+            await useAuthStore.getState().signOut(); // also clears SecureStore student session
+            queryClient.clear();
+            
+            console.info('[FacultyLogout] Stores cleared, navigating to faculty-login');
+            
+            // 4. Navigate
+            router.replace('/(auth)/faculty-login');
+          } catch (e) {
+            console.error('[FacultyLogout] Exception during logout:', e);
+          }
         },
       },
     ]);

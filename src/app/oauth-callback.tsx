@@ -24,6 +24,7 @@ export default function OAuthCallbackScreen() {
   const params = useLocalSearchParams();
   const [error, setError] = useState<string | null>(null);
   const exchangedRef = useRef(false);
+  const handledRef = useRef(false);
 
   useEffect(() => {
     console.info('[oauth-callback] Reached callback route.', params);
@@ -37,6 +38,8 @@ export default function OAuthCallbackScreen() {
       }
 
       const handleFullPageRedirect = async () => {
+        if (handledRef.current) return;
+        
         try {
           const hash = window.location.hash;
           const search = window.location.search;
@@ -73,7 +76,11 @@ export default function OAuthCallbackScreen() {
           }
 
           // Session exists! Check if faculty
+          handledRef.current = true; // Mark as handled to prevent duplicate execution
+
           const email = session.user.email?.trim().toLowerCase();
+          console.info('[oauth-callback] Authenticated email:', email, 'User ID:', session.user.id, 'Session exists:', !!session);
+
           if (!email) throw new Error('No email found in session');
 
           const { data: facultyRow, error: facultyError } = await supabase
@@ -81,9 +88,15 @@ export default function OAuthCallbackScreen() {
             .select('id, full_name, department, designation, email, phone, created_at')
             .eq('email', email)
             .limit(1)
-            .single();
+            .maybeSingle();
 
-          if (facultyError || !facultyRow) {
+          console.info('[oauth-callback] Faculty query result:', !!facultyRow, 'Error:', facultyError?.message);
+
+          if (facultyError) {
+            throw new Error('Database error while verifying your account.');
+          }
+
+          if (!facultyRow) {
             throw new Error('You are not authorized to access the faculty portal.');
           }
 
@@ -99,9 +112,11 @@ export default function OAuthCallbackScreen() {
           });
 
           useAdminStore.getState().setAdmin(email);
+          console.info('[oauth-callback] Routing destination: /faculty');
           router.replace('/faculty');
         } catch (err: any) {
           console.error('[oauth-callback] PWA login fallback failed:', err);
+          handledRef.current = false; // Allow retry if it failed
           router.replace({ pathname: '/(auth)/faculty-login', params: { authError: err.message } });
         }
       };

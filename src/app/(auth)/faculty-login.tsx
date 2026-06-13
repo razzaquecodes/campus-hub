@@ -68,9 +68,14 @@ export default function FacultyLoginScreen() {
         .select('id, full_name, department, designation, email, phone, created_at')
         .eq('email', normalizedEmail)
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (facultyError || !facultyRow) {
+      if (facultyError) {
+        console.error('[faculty-login] Database error checking faculty:', facultyError.message);
+        throw new Error('Database error while verifying your account.');
+      }
+
+      if (!facultyRow) {
         console.warn('[faculty-login] Unauthorized faculty login attempt for', normalizedEmail);
         throw new Error('You are not authorized to access the faculty portal.');
       }
