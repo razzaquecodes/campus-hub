@@ -751,7 +751,6 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
 <!-- HERO -->
 <section class="hero" id="top">
   <div class="hero-bg"></div>
-  <div class="hero-grid"></div>
 
   <div class="hero-content">
     <div class="hero-eyebrow">
@@ -762,11 +761,11 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
     <div class="hero-h1-sub">College Companion</div>
     <p class="hero-sub">Student identity, academic data, exam results, and digital credentials — unified in one beautifully crafted app. No App Store required.</p>
     <div class="hero-actions">
-      <button class="btn-primary" id="hero-install-btn">
+      <button type="button" class="btn-primary" id="hero-install-btn">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="1" width="12" height="14" rx="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 7h6M5 9.5h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
         <span id="hero-install-label">Install App</span>
       </button>
-      <a class="btn-secondary" href="#" id="hero-open-btn">
+      <a class="btn-secondary" href="#install" id="hero-open-btn">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Open App
       </a>
@@ -979,15 +978,15 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
 
     <!-- Platform tabs -->
     <div class="platform-tabs reveal" id="platform-tabs">
-      <button class="platform-tab active" data-panel="ios" onclick="switchPanel('ios')">
+      <button type="button" class="platform-tab active" data-panel="ios" onclick="switchPanel('ios')">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="3" stroke="currentColor" stroke-width="1.3"/><path d="M5 5.5C5 4.7 5.7 4 6.5 4H8c.8 0 1.5.7 1.5 1.5S8.8 7 8 7H6.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M5 7h3.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M5 9.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
         iPhone / iPad
       </button>
-      <button class="platform-tab" data-panel="android" onclick="switchPanel('android')">
+      <button type="button" class="platform-tab" data-panel="android" onclick="switchPanel('android')">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 9V6c0-2.8 2.2-5 5-5s5 2.2 5 5v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><rect x="1" y="9" width="3" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="10" y="9" width="3" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><path d="M4 9h6" stroke="currentColor" stroke-width="1.2"/></svg>
         Android
       </button>
-      <button class="platform-tab" data-panel="desktop" onclick="switchPanel('desktop')">
+      <button type="button" class="platform-tab" data-panel="desktop" onclick="switchPanel('desktop')">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2" width="12" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M5 10v2M9 10v2M3 12h8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
         Desktop
       </button>
@@ -997,10 +996,10 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
     <div class="install-panel active reveal" id="panel-ios">
       <div class="install-progress">
         <div class="install-progress-dot active"></div>
-        <div class="install-progress-dot active"></div>
-        <div class="install-progress-dot active"></div>
-        <div class="install-progress-dot active"></div>
-        <div class="install-progress-dot active"></div>
+        <div class="install-progress-dot"></div>
+        <div class="install-progress-dot"></div>
+        <div class="install-progress-dot"></div>
+        <div class="install-progress-dot"></div>
       </div>
       <div class="install-steps">
         <div class="step-card">
@@ -1049,7 +1048,7 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
         <div class="install-note-text">No App Store download required. Campus Hub is a Progressive Web App that installs instantly from your browser.</div>
       </div>
       <div class="install-cta-row">
-        <button class="btn-install-primary" onclick="openIOSModal()">
+        <button type="button" class="btn-install-primary" onclick="openIOSModal()">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="14" height="14" rx="3.5" stroke="#0d1b3e" stroke-width="1.5"/><path d="M8 4v5M5.5 7l2.5 2 2.5-2" stroke="#0d1b3e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           View Full Guide
         </button>
@@ -1137,35 +1136,35 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
     </div>
     <div class="faq-list reveal">
       <div class="faq-item">
-        <div class="faq-question" onclick="toggleFaq(this)">
+        <div class="faq-question" role="button" tabindex="0" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' ')toggleFaq(this)">
           How do I install Campus Hub on iPhone?
           <div class="faq-chevron"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         </div>
         <div class="faq-answer"><p class="faq-answer-text">Open this website in Safari, tap the Share button (box with an arrow), scroll to "Add to Home Screen", and tap Add. Campus Hub will appear on your Home Screen like any native app.</p></div>
       </div>
       <div class="faq-item">
-        <div class="faq-question" onclick="toggleFaq(this)">
+        <div class="faq-question" role="button" tabindex="0" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' ')toggleFaq(this)">
           Does it require the App Store?
           <div class="faq-chevron"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         </div>
         <div class="faq-answer"><p class="faq-answer-text">No. Campus Hub is a Progressive Web App (PWA). You install it directly from your browser in seconds — no App Store or Play Store visit required.</p></div>
       </div>
       <div class="faq-item">
-        <div class="faq-question" onclick="toggleFaq(this)">
+        <div class="faq-question" role="button" tabindex="0" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' ')toggleFaq(this)">
           Can I install it on Android?
           <div class="faq-chevron"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         </div>
         <div class="faq-answer"><p class="faq-answer-text">Yes. Open this site in Chrome on your Android device. Chrome will show an "Add to Home Screen" prompt. You can also download the native APK directly from the Install section above.</p></div>
       </div>
       <div class="faq-item">
-        <div class="faq-question" onclick="toggleFaq(this)">
+        <div class="faq-question" role="button" tabindex="0" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' ')toggleFaq(this)">
           Does it work offline?
           <div class="faq-chevron"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         </div>
         <div class="faq-answer"><p class="faq-answer-text">Core app features and cached data are accessible offline. Live data like results and marks requires an internet connection to fetch fresh data from MAKAUT servers.</p></div>
       </div>
       <div class="faq-item">
-        <div class="faq-question" onclick="toggleFaq(this)">
+        <div class="faq-question" role="button" tabindex="0" onclick="toggleFaq(this)" onkeydown="if(event.key==='Enter'||event.key===' ')toggleFaq(this)">
           Is my data secure?
           <div class="faq-chevron"><svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         </div>
@@ -1236,7 +1235,7 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
     <h2 class="cta-h2">Ready to explore<br><em>Campus Hub?</em></h2>
     <p class="cta-p">A fully functional application with real backend integration, secure authentication, and cloud persistence — built for BBIT students.</p>
     <div class="install-cta-row">
-      <button class="btn-primary-light" id="cta-install-btn">
+      <button type="button" class="btn-primary-light" id="cta-install-btn">
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="1" y="1" width="16" height="16" rx="4" stroke="#0d1b3e" stroke-width="1.5"/><path d="M9 5v6M6 9l3 3 3-3" stroke="#0d1b3e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Install App
       </button>
@@ -1303,7 +1302,7 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
   </div>
 
   <div class="footer-bottom">
-    <span class="footer-copyright" id="copyright-year">© 2026 Campus Hub. All rights reserved.</span>
+    <span class="footer-copyright" id="copyright-year">© <script>document.write(new Date().getFullYear())</script> Campus Hub. All rights reserved.</span>
     <span class="footer-credit">
       From a BBIT student, for BBIT students
       <span class="footer-credit-heart">❤</span>
@@ -1321,8 +1320,8 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
     <div class="pwa-banner-title">Install Campus Hub</div>
     <div class="pwa-banner-sub">Add to Home Screen for the best experience</div>
   </div>
-  <button class="pwa-banner-btn" id="pwa-install-btn">Install</button>
-  <button class="pwa-banner-close" onclick="dismissBanner()" aria-label="Dismiss">
+  <button type="button" class="pwa-banner-btn" id="pwa-install-btn">Install</button>
+  <button type="button" class="pwa-banner-close" onclick="dismissBanner()" aria-label="Dismiss">
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
   </button>
 </div>
@@ -1398,7 +1397,7 @@ footer{background:var(--ink);border-top:1px solid rgba(255,255,255,0.05)}
         </div>
       </div>
     </div>
-    <button class="modal-close-btn" onclick="closeIOSModalDirect()">Got it</button>
+    <button type="button" class="modal-close-btn" onclick="closeIOSModalDirect()">Got it</button>
   </div>
 </div>
 
@@ -1508,12 +1507,13 @@ document.getElementById('hero-open-btn')?.addEventListener('click', function(e){
 /* ── PWA INSTALL BANNER ── */
 let deferredPrompt = null;
 const banner = document.getElementById('pwa-banner');
+const bannerSuppressed = !!sessionStorage.getItem('pwa-banner-dismissed');
 
 window.addEventListener('beforeinstallprompt', (e)=>{
   e.preventDefault();
   deferredPrompt = e;
-  /* Only show banner if not already installed */
-  if(!window.matchMedia('(display-mode: standalone)').matches){
+  /* Only show banner if not already installed and not dismissed this session */
+  if(!window.matchMedia('(display-mode: standalone)').matches && !bannerSuppressed){
     setTimeout(()=>{ if(banner) banner.classList.add('show'); }, 3000);
   }
 });
@@ -1537,13 +1537,8 @@ function dismissBanner(){
   sessionStorage.setItem('pwa-banner-dismissed','1');
 }
 
-if(sessionStorage.getItem('pwa-banner-dismissed')){
-  /* won't show banner this session */
-  window.removeEventListener && window.removeEventListener('beforeinstallprompt', ()=>{});
-}
-
 /* ── PLATFORM DETECTION (used by multiple scripts) ── */
-function detectPlatform(){const ua=navigator.userAgent||'';if(/iPad|iPhone|iPod/.test(ua)&&!window.MSStream)return'ios';if(/android/i.test(ua))return'android';return'desktop';}
+// detectPlatform already defined above — no duplicate needed
 </script>
 </body>
 </html>
