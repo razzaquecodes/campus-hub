@@ -13,6 +13,9 @@ const APP_BASE = '/app';
 
 // Assets to cache immediately on install
 const PRECACHE_ASSETS = [
+  '/',
+  '/index.html',
+  '/docs/index.html',
   '/app/',
   '/app/manifest.webmanifest',
 ];
@@ -77,12 +80,15 @@ self.addEventListener('fetch', (event) => {
             // If we have a cached version, return it
             if (cached) return cached;
             
-            // Otherwise return the app root page from cache or network
-            return caches.match('/app/').then((rootCache) => {
+            // Otherwise return the app root page or landing page from cache
+            const isRoot = url.pathname === '/' || url.pathname === '/index.html';
+            const fallbackPath = isRoot ? '/' : '/app/';
+            
+            return caches.match(fallbackPath).then((rootCache) => {
               if (rootCache) return rootCache;
               
-              // Last resort: try to fetch the app root
-              return fetch('/app/').then((htmlResponse) => htmlResponse);
+              // Last resort: try to fetch the fallback path
+              return fetch(fallbackPath).then((htmlResponse) => htmlResponse);
             });
           });
         })

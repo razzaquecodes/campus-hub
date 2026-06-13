@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { supabase } from '@/lib/supabase';
 import type { BranchCode, SectionCode } from '@/types/targeting';
@@ -95,95 +97,105 @@ interface FacultyState {
   deleteAssignment: (id: string) => Promise<void>;
 }
 
-export const useFacultyStore = create<FacultyState>((set, get) => ({
-  profile: null,
+export const useFacultyStore = create<FacultyState>()(
+  persist(
+    (set, get) => ({
+      profile: null,
 
-  todayRoutine: [],
-  activeNotices: [],
-  activeAssignments: [],
+      todayRoutine: [],
+      activeNotices: [],
+      activeAssignments: [],
 
-  setProfile: (profile) => set({ profile }),
-  setTodayRoutine: (routine) => set({ todayRoutine: routine }),
-  setActiveNotices: (notices) => set({ activeNotices: notices }),
-  setActiveAssignments: (assignments) => set({ activeAssignments: assignments }),
+      setProfile: (profile) => set({ profile }),
+      setTodayRoutine: (routine) => set({ todayRoutine: routine }),
+      setActiveNotices: (notices) => set({ activeNotices: notices }),
+      setActiveAssignments: (assignments) => set({ activeAssignments: assignments }),
 
-  createNotice: async (noticeData) => {
-    if (!supabase) throw new Error('Supabase not configured');
-    // In a real app, author_id would be derived from the logged-in faculty's session
-    const { data, error } = await supabase
-      .from('notices')
-      .insert({
-        title: noticeData.title,
-        description: noticeData.description,
-        type: noticeData.type,
-        target: noticeData.target,
-        priority: noticeData.priority,
-        is_pinned: noticeData.isPinned,
-        // author_id should be set on the backend via RLS or trigger
-      })
-      .select()
-      .single();
+      createNotice: async (noticeData) => {
+        if (!supabase) throw new Error('Supabase not configured');
+        const { data, error } = await supabase
+          .from('notices')
+          .insert({
+            title: noticeData.title,
+            description: noticeData.description,
+            type: noticeData.type,
+            target: noticeData.target,
+            priority: noticeData.priority,
+            is_pinned: noticeData.isPinned,
+          })
+          .select()
+          .single();
 
-    if (error) throw error;
-    return data as FacultyNotice; // The UI layer will use this to update React Query cache
-  },
+        if (error) throw error;
+        return data as FacultyNotice;
+      },
 
-  editNotice: async (id, updates) => {
-    if (!supabase) throw new Error('Supabase not configured');
-    const { data, error } = await supabase
-      .from('notices')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data as FacultyNotice;
-  },
+      editNotice: async (id, updates) => {
+        if (!supabase) throw new Error('Supabase not configured');
+        const { data, error } = await supabase
+          .from('notices')
+          .update(updates)
+          .eq('id', id)
+          .select()
+          .single();
+        
+        if (error) throw error;
+        return data as FacultyNotice;
+      },
 
-  archiveNotice: async (id) => {
-    if (!supabase) throw new Error('Supabase not configured');
-    const { error } = await supabase
-      .from('notices')
-      .update({ status: 'Archived' })
-      .eq('id', id);
-     
-    if (error) throw error;
-  },
+      archiveNotice: async (id) => {
+        if (!supabase) throw new Error('Supabase not configured');
+        const { error } = await supabase
+          .from('notices')
+          .update({ status: 'Archived' })
+          .eq('id', id);
+        
+        if (error) throw error;
+      },
 
-  // Backwards-compatible alias expected by UI: deleteNotice
-  deleteNotice: async (id) => {
-    // Default to archiving to preserve data; UI calls this when "deleting" a notice
-    const state = get();
-    await state.archiveNotice(id);
-  },
+      deleteNotice: async (id) => {
+        const state = get();
+        await state.archiveNotice(id);
+      },
 
-  createAssignment: async (assignmentData) => {
-    if (!supabase) throw new Error('Supabase not configured');
-    const { data, error } = await supabase
-      .from('assignments')
-      .insert({
-        title: assignmentData.title,
-        subject_name: assignmentData.subject_name,
-        description: assignmentData.description,
-        due_date: assignmentData.due_date,
-        priority: assignmentData.priority,
-        target: assignmentData.target,
-      })
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data as FacultyAssignment;
-  },
+      createAssignment: async (assignmentData) => {
+        if (!supabase) throw new Error('Supabase not configured');
+        const { data, error } = await supabase
+          .from('assignments')
+          .insert({
+            title: assignmentData.title,
+            subject_name: assignmentData.subject_name,
+            description: assignmentData.description,
+            due_date: assignmentData.due_date,
+            priority: assignmentData.priority,
+            target: assignmentData.target,
+          })
+          .select()
+          .single();
+        
+        if (error) throw error;
+        return data as FacultyAssignment;
+      },
 
-  deleteAssignment: async (id) => {
-    if (!supabase) throw new Error('Supabase not configured');
-    const { error } = await supabase
-      .from('assignments')
-      .delete()
-      .eq('id', id);
+      deleteAssignment: async (id) => {
+        if (!supabase) throw new Error('Supabase not configured');
+        const { error } = await supabase
+          .from('assignments')
+          .delete()
+          .eq('id', id);
 
-    if (error) throw error;
-  },
-}));
+        if (error) throw error;
+      },
+    }),
+    {
+      name: 'faculty-storage',
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (state) => ({ 
+        profile: state.profile,
+        todayRoutine: state.todayRoutine,
+        activeNotices: state.activeNotices,
+        activeAssignments: state.activeAssignments
+      }),
+    }
+  )
+);

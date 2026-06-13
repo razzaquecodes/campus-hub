@@ -4,7 +4,7 @@
     "slug": "campus-hub",
     "scheme": "campushub",
     "android": {
-      "versionCode": 6,
+      "versionCode": 5,
       "package": "in.edu.bbit.campushub",
       "adaptiveIcon": {
         "backgroundColor": "#020617",

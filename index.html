@@ -225,6 +225,36 @@ nav{
   display: flex; gap: 16px; align-items: center; flex-wrap: wrap; justify-content: center;
 }
 
+.btn-primary{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--navy);
+  color:var(--text-on-dark);
+  border:1px solid transparent;
+  border-radius:var(--radius-pill);
+  padding:15px 32px;
+  margin:0; outline:none; appearance:none; -webkit-appearance:none;
+  font-family:var(--f-body);font-size:16px;font-weight:600;
+  cursor:pointer;text-decoration:none;
+  transition:all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow:0 4px 20px rgba(13,27,62,0.25);
+}
+.btn-primary:hover{background:var(--navy-3);transform:translateY(-2px) scale(1.02);box-shadow:0 12px 30px rgba(13,27,62,0.3)}
+
+.btn-secondary{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,0.8);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  color:var(--text-primary);
+  border:1px solid var(--border);border-radius:var(--radius-pill);
+  padding:14px 28px;
+  margin:0; outline:none; appearance:none; -webkit-appearance:none;
+  font-family:var(--f-body);font-size:16px;font-weight:500;
+  cursor:pointer;text-decoration:none;
+  transition:all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-secondary:hover{background:var(--snow);border-color:var(--fog-3);transform:translateY(-2px) scale(1.02);box-shadow:0 8px 24px rgba(10,10,15,0.06)}
+
 .btn-primary, .btn-secondary {
   will-change: transform, box-shadow;
   position: relative; overflow: hidden;
@@ -577,10 +607,11 @@ section{padding:100px 40px}
   background:var(--snow);color:var(--navy);
   border:none;border-radius:var(--radius-pill);
   padding:16px 32px;
+  margin:0; outline:none; appearance:none; -webkit-appearance:none;
   font-family:var(--f-body);font-size:15px;font-weight:700;
   cursor:pointer;text-decoration:none;
   transition:all 0.2s;
-  box-shadow:0 4px 24px rgba(0,0,0,0.3);
+  box-shadow:0 4px 24px rgba(0,0,0,0.2);
 }
 .btn-primary-light:hover{transform:translateY(-2px);box-shadow:0 8px 40px rgba(0,0,0,0.4)}
 .cta-stack{

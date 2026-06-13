@@ -31,6 +31,11 @@ export default function OAuthCallbackScreen() {
     // On web, maybeCompleteAuthSession handles everything via postMessage if it was a popup.
     // If it was a full-page redirect (like a PWA), window.opener is null, and maybeCompleteAuthSession does nothing.
     if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.opener) {
+        // Running in a popup. maybeCompleteAuthSession() already posted the message.
+        return;
+      }
+
       const handleFullPageRedirect = async () => {
         try {
           const hash = window.location.hash;
@@ -112,11 +117,10 @@ export default function OAuthCallbackScreen() {
 
       return () => subscription.unsubscribe();
     } else {
-      // For native, if we end up stuck here without the browser closing, auto-redirect back
-      const timer = setTimeout(() => {
-        router.replace('/(auth)/faculty-login');
-      }, 3000);
-      return () => clearTimeout(timer);
+      // For native, WebBrowser.openAuthSessionAsync in auth.service.ts handles the flow.
+      // This route just needs to stay mounted while the underlying promise resolves,
+      // and faculty-login.tsx will handle the navigation to the dashboard.
+      // We do not set a timeout here to avoid race conditions.
     }
   }, [params]);
 

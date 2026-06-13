@@ -15,6 +15,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { SplashScreen } from '@/components/animations/splash/SplashScreen';
 import { PWAInstallBanner } from '@/components/PWAInstallBanner';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { UpdateModal } from '@/components/modals/UpdateModal';
 import { ThemeProvider as AppThemeProvider, useTheme } from '@/context/ThemeContext';
 import { AppProviders } from '@/providers/app-providers';
@@ -199,6 +200,7 @@ function AppShell() {
 
   return (
     <NavigationThemeProvider value={navTheme}>
+      <OfflineBanner />
       <StatusBar style={isDark ? 'light' : 'dark'} />
       {Platform.OS !== 'web' && <NotificationBootstrap />}
       <Stack

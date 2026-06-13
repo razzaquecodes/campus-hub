@@ -18,6 +18,8 @@
  *   - getMakautProfile() call (student data is now in StudentModel itself)
  */
 
+import { AppState, Platform } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import React, { useEffect, useRef } from 'react';
 
@@ -32,7 +34,6 @@ import { useProfileStore } from '@/store/useProfileStore';
 import { useAdminStore } from '@/store/admin.store';
 import { useFacultyStore } from '@/store/faculty.store';
 import { supabase } from '@/lib/supabase';
-import { AppState } from 'react-native';
 
 function hydratorLog(message: string, details?: Record<string, unknown>) {
   const ts = new Date().toISOString().slice(11, 23);
@@ -74,6 +75,14 @@ function AuthHydrator({ children }: { children: React.ReactNode }) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user?.email) {
           const email = session.user.email.trim().toLowerCase();
+          
+          const netInfo = await NetInfo.fetch();
+          if (!netInfo.isConnected) {
+             // Offline: Rely on Zustand persist to provide the profile
+             hydratorLog('AuthHydrator: offline, relying on persisted faculty state');
+             return;
+          }
+
           const { data: facultyRow } = await supabase
             .from('faculty')
             .select('id, full_name, department, designation, email, phone, created_at')
