@@ -13,6 +13,7 @@ const envFromProcess = {
   EXPO_PUBLIC_MAKAUT_API_URL: process.env.EXPO_PUBLIC_MAKAUT_API_URL,
   EXPO_PUBLIC_MAKAUT_VERIFY_URL: process.env.EXPO_PUBLIC_MAKAUT_VERIFY_URL,
   EXPO_PUBLIC_FACE_SERVICE_URL: process.env.EXPO_PUBLIC_FACE_SERVICE_URL,
+  EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
 } as const;
 
 function safeUrl(url: string): string {
@@ -37,8 +38,8 @@ export const Env = {
   supabaseUrl: readEnv('EXPO_PUBLIC_SUPABASE_URL'),
   supabaseAnonKey: readEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY'),
   makautApiUrl: safeUrl(readEnv('EXPO_PUBLIC_MAKAUT_API_URL')),
-  /** Dedicated verify-student endpoint. Falls back to makautApiUrl if not set. */
-  makautVerifyUrl: safeUrl(readEnv('EXPO_PUBLIC_MAKAUT_VERIFY_URL') || readEnv('EXPO_PUBLIC_MAKAUT_API_URL')),
+  /** Dedicated verify-student endpoint. Falls back to API_URL or MAKAUT_API_URL if not set. */
+  makautVerifyUrl: safeUrl(readEnv('EXPO_PUBLIC_MAKAUT_VERIFY_URL') || readEnv('EXPO_PUBLIC_API_URL') || readEnv('EXPO_PUBLIC_MAKAUT_API_URL')),
   /** Optional backend face recognition service URL (e.g. https://faces.example.com) */
   faceServiceUrl: safeUrl(readEnv('EXPO_PUBLIC_FACE_SERVICE_URL') || ''),
 } as const;
@@ -77,10 +78,13 @@ export function getEnvironmentDiagnostics() {
     hasSupabaseUrl: Boolean(Env.supabaseUrl),
     hasSupabaseAnonKey: Boolean(Env.supabaseAnonKey),
     hasMakautApiUrl: Boolean(Env.makautApiUrl),
+    hasMakautVerifyUrl: Boolean(Env.makautVerifyUrl),
     isSupabaseConfigured,
     isMakautApiConfigured,
+    isMakautVerifyConfigured,
     supabaseHost: Env.supabaseUrl ? safeHost(Env.supabaseUrl) : null,
     makautApiHost: Env.makautApiUrl ? safeHost(Env.makautApiUrl) : null,
+    makautVerifyHost: Env.makautVerifyUrl ? safeHost(Env.makautVerifyUrl) : null,
   };
 }
 

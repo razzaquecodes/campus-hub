@@ -16,7 +16,7 @@
  *   - Supabase upsert is best-effort: local session remains valid if it fails.
  */
 
-import { Env, isMakautVerifyConfigured } from '@/lib/env';
+import { Env, getEnvironmentDiagnostics, isMakautVerifyConfigured } from '@/lib/env';
 import { storageGetItem, storageRemoveItem, storageSetItem } from '@/lib/storage';
 import { supabase } from '@/lib/supabase';
 import { sendWelcomeEmail } from '@/services/email.service';
@@ -58,9 +58,26 @@ export async function verifyStudent(
   if (!trimmedPassword) throw new Error('Password is required.');
   if (trimmedRoll.length < 5) throw new Error('Roll number appears to be invalid.');
 
-  // ── Real path (backend endpoint) ─────────────────────────────────────
   if (!isMakautVerifyConfigured) {
-    throw new Error('Verification service is currently unavailable. Please contact the administrator.');
+    const diagnostics = getEnvironmentDiagnostics();
+    log('verifyStudent: verification service is unconfigured', diagnostics);
+    
+    if (__DEV__) {
+      log('verifyStudent: falling back to mock authentication for development');
+      return {
+        rollNumber: trimmedRoll,
+        fullName: 'Dev User',
+        email: 'dev@example.com',
+        mobile: '9999999999',
+        instituteName: 'Mock Institute',
+        verified: true,
+        createdAt: new Date().toISOString(),
+      };
+    }
+    
+    // If the verification service URL is missing entirely from ENV, we must block login
+    // because we cannot securely verify the user's password without it.
+    throw new Error('System configuration error: Verification service URL is missing. Please check EXPO_PUBLIC_API_URL.');
   }
 
   // EXPO_PUBLIC_MAKAUT_VERIFY_URL is the BASE url (e.g. http://localhost:3000).
