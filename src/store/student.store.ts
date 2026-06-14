@@ -150,21 +150,8 @@ export const useStudentStore = create<StudentState>((set, get) => ({
     log('restoreSession: checking for persisted session');
     set({ isLoading: true });
 
-    // Safety fallback: force completion after 4 seconds to prevent infinite hang
-    const timeoutId = setTimeout(() => {
-      log('restoreSession: timeout reached — forcing completion');
-      set({
-        student: null,
-        isAuthenticated: false,
-        isLoading: false,
-        isHydrated: true,
-        error: null,
-      });
-    }, 4000);
-
     try {
       const student = await restoreFromStorage();
-      clearTimeout(timeoutId);
 
       if (student) {
         log('restoreSession: session restored', { rollNumber: student.rollNumber });
@@ -195,7 +182,6 @@ export const useStudentStore = create<StudentState>((set, get) => ({
         });
       }
     } catch (e) {
-      clearTimeout(timeoutId);
       log('restoreSession: error during restore (non-fatal)', {
         error: e instanceof Error ? e.message : String(e),
       });

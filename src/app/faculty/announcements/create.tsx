@@ -70,7 +70,7 @@ export default function FacultyCreateNotice() {
         category: type,
         target,
         authorId: profile.employeeId,
-        authorName: profile.name,
+        authorName: profile?.name || 'Faculty',
         priority,
         isPinned,
       });

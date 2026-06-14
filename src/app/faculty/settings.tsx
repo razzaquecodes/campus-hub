@@ -41,7 +41,7 @@ export default function FacultySettingsScreen() {
           console.info('[FacultyLogout] current session after logout:', data.session);
 
           // 3. Clear all Local Stores
-          useFacultyStore.getState().setProfile(null);
+          useFacultyStore.getState().logout();
           useAdminStore.getState().clearAdmin();
           useProfileStore.getState().clearProfile();
           await useAuthStore.getState().signOut();

@@ -67,16 +67,16 @@ export default function FacultyDashboardScreen() {
           <View>
             <Text style={[Typography.label.lg, { color: theme.colors.textSecondary }]}>Welcome,</Text>
             <Text style={[Typography.display.sm, { color: theme.colors.textPrimary, letterSpacing: -0.5, marginTop: 4 }]}>
-              {profile.name}
+              {profile?.name || 'Faculty'}
             </Text>
             <Text style={[Typography.body.sm, { color: theme.colors.textTertiary, marginTop: 2 }]}>
-              {profile.department}
+              {profile?.department || 'Department'}
             </Text>
           </View>
           <SpringButton onPress={() => router.push('/faculty/settings')} scaleDown={0.9}>
             <View style={[ss.profileAvatar, { backgroundColor: theme.colors.surfaceElevated, borderColor: theme.colors.border }]}>
               <Text style={[Typography.headline.md, { color: theme.colors.primary }]}>
-                {profile.name.charAt(0)}
+                {profile?.name?.charAt(0) || 'F'}
               </Text>
             </View>
           </SpringButton>
@@ -90,11 +90,11 @@ export default function FacultyDashboardScreen() {
             </Text>
             <GlassCard intensity={isDark ? 30 : 60} style={[ss.classCard, { borderColor: theme.colors.border }]}>
               <View style={ss.classHeader}>
-                <Badge label={currentClass.subject} color={theme.colors.primary} size="md" />
+                <Badge label={currentClass.subject || 'Subject'} color={theme.colors.primary} size="md" />
                 <View style={ss.timePill}>
                   <Clock size={14} color={theme.colors.textSecondary} />
                   <Text style={[Typography.label.sm, { color: theme.colors.textSecondary, marginLeft: 4 }]}>
-                    {currentClass.startTime} - {currentClass.endTime}
+                    {currentClass.startTime || '--:--'} - {currentClass.endTime || '--:--'}
                   </Text>
                 </View>
               </View>

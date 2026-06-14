@@ -55,7 +55,7 @@ export default function FacultyUploadResource() {
       type,
       isPinned,
       size: '1.5 MB', // Mock file size
-      authorName: profile.name,
+      authorName: profile?.name || 'Faculty',
       target: {
         isAll,
         branch: isAll ? undefined : branch,

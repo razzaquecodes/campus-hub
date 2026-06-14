@@ -1,6 +1,8 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
+const PRODUCTION_BACKEND_URL = 'https://campus-hub-backend-y5tk.onrender.com';
+
 function readEnv(name: keyof typeof envFromProcess): string {
   const fromProcess = envFromProcess[name];
   const fromExtra = Constants.expoConfig?.extra?.[name];
@@ -33,13 +35,15 @@ function safeUrl(url: string): string {
   return url;
 }
 
+const rawApiUrl = readEnv('EXPO_PUBLIC_API_URL') || PRODUCTION_BACKEND_URL;
+const rawMakautVerifyUrl = readEnv('EXPO_PUBLIC_MAKAUT_VERIFY_URL') || rawApiUrl;
+
 export const Env = {
   supabaseUrl: readEnv('EXPO_PUBLIC_SUPABASE_URL'),
   supabaseAnonKey: readEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY'),
   makautApiUrl: safeUrl(readEnv('EXPO_PUBLIC_MAKAUT_API_URL')),
-  /** Dedicated verify-student endpoint. Falls back to API_URL or MAKAUT_API_URL if not set. */
-  makautVerifyUrl: safeUrl(readEnv('EXPO_PUBLIC_MAKAUT_VERIFY_URL') || readEnv('EXPO_PUBLIC_API_URL') || readEnv('EXPO_PUBLIC_MAKAUT_API_URL')),
-  /** Optional backend face recognition service URL (e.g. https://faces.example.com) */
+  apiUrl: safeUrl(rawApiUrl),
+  makautVerifyUrl: safeUrl(rawMakautVerifyUrl),
   faceServiceUrl: safeUrl(readEnv('EXPO_PUBLIC_FACE_SERVICE_URL') || ''),
 } as const;
 
@@ -63,10 +67,6 @@ export const isMakautApiConfigured = Boolean(
   !isPlaceholderMakautUrl,
 );
 
-/**
- * True when EXPO_PUBLIC_MAKAUT_VERIFY_URL is set and looks like a real URL.
- * Accepts both http:// (local dev / LAN) and https:// (production).
- */
 export const isMakautVerifyConfigured = Boolean(
   Env.makautVerifyUrl &&
   (Env.makautVerifyUrl.startsWith('http://') || Env.makautVerifyUrl.startsWith('https://')),
@@ -78,12 +78,14 @@ export function getEnvironmentDiagnostics() {
     hasSupabaseAnonKey: Boolean(Env.supabaseAnonKey),
     hasMakautApiUrl: Boolean(Env.makautApiUrl),
     hasMakautVerifyUrl: Boolean(Env.makautVerifyUrl),
+    hasApiUrl: Boolean(Env.apiUrl),
     isSupabaseConfigured,
     isMakautApiConfigured,
     isMakautVerifyConfigured,
     supabaseHost: Env.supabaseUrl ? safeHost(Env.supabaseUrl) : null,
     makautApiHost: Env.makautApiUrl ? safeHost(Env.makautApiUrl) : null,
     makautVerifyHost: Env.makautVerifyUrl ? safeHost(Env.makautVerifyUrl) : null,
+    apiHost: Env.apiUrl ? safeHost(Env.apiUrl) : null,
   };
 }
 

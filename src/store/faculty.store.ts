@@ -95,6 +95,8 @@ interface FacultyState {
 
   createAssignment: (assignment: Omit<FacultyAssignment, 'id' | 'date'>) => Promise<FacultyAssignment>;
   deleteAssignment: (id: string) => Promise<void>;
+
+  logout: () => void;
 }
 
 export const useFacultyStore = create<FacultyState>()(
@@ -110,6 +112,13 @@ export const useFacultyStore = create<FacultyState>()(
       setTodayRoutine: (routine) => set({ todayRoutine: routine }),
       setActiveNotices: (notices) => set({ activeNotices: notices }),
       setActiveAssignments: (assignments) => set({ activeAssignments: assignments }),
+      
+      logout: () => set({
+        profile: null,
+        todayRoutine: [],
+        activeNotices: [],
+        activeAssignments: [],
+      }),
 
       createNotice: async (noticeData) => {
         if (!supabase) throw new Error('Supabase not configured');

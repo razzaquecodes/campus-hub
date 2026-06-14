@@ -66,7 +66,7 @@ export default function BroadcastScreen() {
         title,
         body,
         sender_id: profile.id,
-        sender_name: profile.name,
+        sender_name: profile?.name || 'Faculty',
         target_branches: isGlobal ? [] : selectedBranches,
         target_sections: isGlobal ? [] : selectedSections,
         is_global: isGlobal,

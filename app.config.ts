@@ -133,24 +133,15 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
       typedRoutes: true,
       reactCompiler: true,
     },
-    extra: (() => {
-      const env = (globalThis as any).process?.env ?? {};
-      return {
-        ...config.extra,
-        router: {
-          root: './src/app',
-        },
-        eas: {
-          projectId: EAS_PROJECT_ID,
-        },
-        EXPO_PUBLIC_SUPABASE_URL: env.EXPO_PUBLIC_SUPABASE_URL,
-        EXPO_PUBLIC_SUPABASE_ANON_KEY: env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-        EXPO_PUBLIC_MAKAUT_API_URL: env.EXPO_PUBLIC_MAKAUT_API_URL,
-        EXPO_PUBLIC_API_URL: env.EXPO_PUBLIC_API_URL,
-        EXPO_PUBLIC_MAKAUT_VERIFY_URL: env.EXPO_PUBLIC_MAKAUT_VERIFY_URL,
-        EXPO_PUBLIC_FACE_SERVICE_URL: env.EXPO_PUBLIC_FACE_SERVICE_URL,
-        oauthScheme: SCHEME,
-      };
-    })(),
+    extra: {
+      ...config.extra,
+      router: {
+        root: './src/app',
+      },
+      eas: {
+        projectId: EAS_PROJECT_ID,
+      },
+      oauthScheme: SCHEME,
+    },
   };
 }

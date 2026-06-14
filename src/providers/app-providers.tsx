@@ -23,7 +23,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import React, { useEffect, useRef } from 'react';
 
-import { Env } from '@/lib/env';
+import { Env, getEnvironmentDiagnostics } from '@/lib/env';
 import { asyncStoragePersister, queryClient } from '@/lib/query-client';
 import { BackendFaceProvider } from '@/repositories/face.backend.provider';
 import { FaceService } from '@/repositories/face.service';
@@ -168,7 +168,7 @@ function AuthHydrator({ children }: { children: React.ReactNode }) {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT') {
         hydratorLog('AuthHydrator: Supabase SIGNED_OUT event received, clearing faculty/admin stores');
-        useFacultyStore.getState().setProfile(null);
+        useFacultyStore.getState().logout();
         useAdminStore.getState().clearAdmin();
         useProfileStore.getState().clearProfile();
         // Clear caches
@@ -187,6 +187,10 @@ function AuthHydrator({ children }: { children: React.ReactNode }) {
 export function AppProviders({ children }: { children: React.ReactNode }) {
   // Configure runtime providers that depend on environment
   React.useEffect(() => {
+    // Log environment diagnostics on startup
+    const diagnostics = getEnvironmentDiagnostics();
+    console.info('[AppProviders] Startup Environment Diagnostics:', JSON.stringify(diagnostics, null, 2));
+
     if (Env.faceServiceUrl) {
       console.info('[AppProviders] Configuring backend face provider', { url: Env.faceServiceUrl });
       FaceService.setProvider(new BackendFaceProvider());

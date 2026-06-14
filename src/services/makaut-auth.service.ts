@@ -78,13 +78,8 @@ export async function verifyStudent(
       };
     }
     
-    // If the verification service URL is missing entirely from ENV, we must block login
-    // because we cannot securely verify the user's password without it.
-    throw new Error(
-      'System configuration error: Verification service URL is missing.\n' +
-      'If you are on Vercel, please ensure EXPO_PUBLIC_MAKAUT_VERIFY_URL ' +
-      'is added in the Vercel Project Settings > Environment Variables.'
-    );
+    // We provide a fallback, so this should rarely hit unless the environment is completely broken.
+    throw new Error('Unable to connect to the verification service. Please try again later.');
   }
 
   // EXPO_PUBLIC_MAKAUT_VERIFY_URL is the BASE url (e.g. http://localhost:3000).
@@ -95,16 +90,32 @@ export async function verifyStudent(
 
   let response: Response;
   try {
+    // Add a simple timeout mechanism to the fetch call
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+    
     response = await fetch(verifyUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rollNumber: trimmedRoll, password: trimmedPassword }),
+      signal: controller.signal,
     });
-  } catch (networkError) {
+    
+    clearTimeout(timeoutId);
+  } catch (networkError: any) {
     log('verifyStudent: network error', {
       error: networkError instanceof Error ? networkError.message : String(networkError),
     });
-    throw new Error('Network error. Please check your connection and try again.');
+    if (networkError.name === 'AbortError') {
+      throw new Error('Connection timed out. The backend is taking too long to respond. Please try again.');
+    }
+    throw new Error('Network error. Please check your connection to the server and try again.');
+  }
+
+  // Handle specific HTTP status codes for better UX
+  if (response.status === 502 || response.status === 503 || response.status === 504) {
+    log('verifyStudent: backend unavailable', { status: response.status });
+    throw new Error('The backend service is temporarily unavailable. Please try again later.');
   }
 
   let body: VerifyStudentResponse | VerifyStudentErrorResponse;
