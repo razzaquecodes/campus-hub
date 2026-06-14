@@ -66,6 +66,9 @@ export async function verifyStudent(
       log('verifyStudent: falling back to mock authentication for development');
       return {
         rollNumber: trimmedRoll,
+        registrationNumber: 'MOCK-REG-123',
+        courseName: 'Mock Course',
+        abcId: 'MOCK-ABC-123',
         fullName: 'Dev User',
         email: 'dev@example.com',
         mobile: '9999999999',
@@ -77,12 +80,16 @@ export async function verifyStudent(
     
     // If the verification service URL is missing entirely from ENV, we must block login
     // because we cannot securely verify the user's password without it.
-    throw new Error('System configuration error: Verification service URL is missing. Please check EXPO_PUBLIC_API_URL.');
+    throw new Error(
+      'System configuration error: Verification service URL is missing.\n' +
+      'If you are on Vercel, please ensure EXPO_PUBLIC_MAKAUT_VERIFY_URL ' +
+      'is added in the Vercel Project Settings > Environment Variables.'
+    );
   }
 
   // EXPO_PUBLIC_MAKAUT_VERIFY_URL is the BASE url (e.g. http://localhost:3000).
   // Append /verify-student to form the full endpoint path.
-  const baseUrl = (Env.makautVerifyUrl || '').replace(/\/$/, '');
+  const baseUrl = (Env.makautVerifyUrl || '').replace(/\/+$/, '');
   const verifyUrl = `${baseUrl}/verify-student`;
   log('verifyStudent: calling backend', { url: verifyUrl });
 

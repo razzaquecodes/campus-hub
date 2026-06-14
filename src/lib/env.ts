@@ -28,9 +28,8 @@ function safeUrl(url: string): string {
       url = url.replace(/localhost|127\.0\.0\.1/g, fallbackIp);
     }
   }
-  if (url.endsWith('/')) {
-    url = url.slice(0, -1);
-  }
+  // Remove all trailing slashes
+  url = url.replace(/\/+$/, '');
   return url;
 }
 

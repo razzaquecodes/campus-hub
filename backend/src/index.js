@@ -22,20 +22,29 @@ const PORT = process.env.PORT || 3000;
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 
-// Allow requests from the Expo dev server and any localhost origin
+// Allow requests from the Expo dev server, localhost, and Vercel PWA
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow no-origin (curl, Postman, mobile apps) and any localhost
-      if (!origin || origin.startsWith('http://localhost') || origin.startsWith('exp://')) {
+      // Allow no-origin (curl, Postman, mobile native apps)
+      if (!origin) return callback(null, true);
+
+      if (
+        origin.startsWith('http://localhost') || 
+        origin.startsWith('exp://') || 
+        origin.endsWith('.vercel.app') || 
+        origin === 'https://campus-hub.vercel.app'
+      ) {
         return callback(null, true);
       }
-      return callback(null, true); // permissive for development
+      return callback(new Error('Not allowed by CORS'));
     },
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    credentials: true,
   }),
 );
+app.options('*', cors()); // Enable preflight for all routes
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
